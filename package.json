@@ -1,0 +1,13 @@
+{
+  "name": "@arken/seer-protocol",
+  "version": "0.1.0",
+  "main": "src/index.ts",
+  "scripts": {},
+  "dependencies": {
+    "@arken/node": "workspace:*",
+    "@trpc/client": "next",
+    "@trpc/server": "next",
+    "zod": "^3"
+  },
+  "devDependencies": {}
+}

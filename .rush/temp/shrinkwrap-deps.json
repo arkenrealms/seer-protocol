@@ -1,0 +1,6 @@
+{
+  "../../packages/seer/packages/protocol": "../../packages/seer/packages/protocol:DqpluVgOJXP4bAw5LU3fB2EbepfCROvKxtzh6cDdhYE=:",
+  "/@trpc/client/11.0.0-rc.553_@trpc+server@11.0.0-rc.553": "sha512-ICgziilbuAslRgHIVJZ162KaHQRpHXA1C1LPRsNpxPa9aStPF7eThAjn4V3JmDyJsuDLQgAmqLVRImlLPMYR5Q==",
+  "/@trpc/server/11.0.0-rc.553": "sha512-pYUhxV3QU834jP1ugJk1uhtPwwaY1ymIuupb4DiWOhNCl68syuXPlUdD8IYsYKd3BjLkmnjlsOUMoyd/aoOF/Q==",
+  "/zod/3.23.8": "sha512-XBx9AXhXktjUqnepgTiE5flcKIYWi/rme0Eaj+5Y0lftuGBq+jyRu/md4WnuxqgP1ubdpNCsYEYPxrzVHD8d6g=="
+}
