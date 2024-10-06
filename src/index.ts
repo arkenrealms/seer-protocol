@@ -5,6 +5,7 @@ import type { Application, ApplicationModelType, ApplicationServiceType } from '
 import { z } from 'zod';
 import { createRouter as createEvolutionRouter } from './modules/evolution/evolution.router';
 import type * as Arken from '@arken/node/types';
+import * as dotenv from 'dotenv';
 
 export const t = initTRPC.context<{}>().create();
 export const router = t.router;
@@ -119,25 +120,7 @@ export const createRouter = () =>
         };
       }),
     // evolution: createEvolutionRouter(t),
-    evolution: t.router({
-      saveRound: t.procedure
-        .input(
-          z.object({
-            shardId: z.string(),
-            roundId: z.number(),
-            round: z.any(),
-            rewardWinnerAmount: z.number(),
-            lastClients: z.any(),
-          })
-        )
-        .mutation(({ input, ctx }) => {
-          return { status: 1 };
-        }),
-
-      getProfile: t.procedure.input(z.string()).query(({ input, ctx }) => {
-        return { status: 1, data: {} as Arken.Profile.Types.Profile };
-      }),
-    }),
+    evolution: createEvolutionRouter(t),
   });
 
 export type Router = ReturnType<typeof createRouter>;
