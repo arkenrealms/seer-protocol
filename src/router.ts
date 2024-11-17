@@ -2,23 +2,57 @@ import util from '@arken/node/util';
 import { initTRPC } from '@trpc/server';
 import { serialize, deserialize } from '@arken/node/util/rpc';
 import { z } from 'zod';
+import { createRouter as createIslesRouter } from './modules/isles/isles.router';
 import { createRouter as createEvolutionRouter } from './modules/evolution/evolution.router';
 import { createRouter as createOasisRouter } from './modules/oasis/oasis.router';
-import type * as Arken from '@arken/node/types';
+import { customErrorFormatter, hasRole } from '@arken/node/util/rpc';
+import { Query, getQueryInput, getQueryOutput, inferRouterOutputs } from '@arken/node/schema';
+import * as Arken from '@arken/node/types';
+import * as Schema from '@arken/node/schema';
+import type * as Types from './types';
 
-export const t = initTRPC.context<{}>().create();
+export type RouterContext = {
+  app: Types.Seer;
+};
+export const t = initTRPC.context<RouterContext>().create();
 export const router = t.router;
 export const procedure = t.procedure;
 export const createCallerFactory = t.createCallerFactory;
 
-export const createRouter = () =>
-  router({
+export const createRouter = (service?: Types.Seer) => {
+  return router({
     evolution: createEvolutionRouter(t),
+    isles: createIslesRouter(t),
     oasis: createOasisRouter(t),
 
     info: procedure.query(({ input, ctx }) => {
       return { status: 1, data: { stuff: 1 } };
     }),
+
+    getRealms: procedure
+      .use(hasRole('guest', t))
+      .use(customErrorFormatter(t))
+      .input(getQueryInput(Arken.Core.Schemas.Realm))
+      .output(getQueryOutput(z.array(Arken.Core.Schemas.Realm)))
+      .query(({ input, ctx }) => (service.getRealms as any)(input, ctx)),
+
+    // TODO: use protocol types
+    updateRealm: procedure
+      .use(hasRole('guest', t))
+      .use(customErrorFormatter(t))
+      .input(
+        getQueryInput(
+          z.object({
+            realmId: z.string(),
+            status: z.string(),
+            clientCount: z.number(),
+            regionCode: z.string(),
+            realmShards: z.array(z.object({ endpoint: z.string(), status: z.string(), clientCount: z.number() })),
+          })
+        )
+      )
+      .output(getQueryOutput(Arken.Core.Schemas.Realm))
+      .mutation(({ input, ctx }) => (service.updateRealm as any)(input, ctx)),
 
     auth: procedure
       .input(
@@ -147,5 +181,8 @@ export const createRouter = () =>
       return { status: 1, data: {} as Arken.Profile.Types.Profile };
     }),
   });
+};
 
 export type Router = ReturnType<typeof createRouter>;
+export type RouterInput = Schema.inferRouterInputs<Router>;
+export type RouterOutput = Schema.inferRouterOutputs<Router>;
