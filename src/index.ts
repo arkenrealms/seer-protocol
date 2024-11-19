@@ -27,17 +27,17 @@ export class SeerBase implements Types.Seer {
   application: any;
   filters: Record<string, any> = { applicationId: null };
 
-  async getRealms(
-    input: Types.RouterInput['getRealms'],
-    ctx: Types.ServiceContext
-  ): Promise<Types.RouterOutput['getRealms']> {
-    throw new Error('Not implemented');
-  }
+  // async getRealms(
+  //   input: Types.RouterInput['getRealms'],
+  //   ctx: Types.ServiceContext
+  // ): Promise<Types.RouterOutput['getRealms']> {
+  //   throw new Error('Not implemented');
+  // }
 
-  async updateRealm(
-    input: Types.RouterInput['updateRealm'],
-    ctx: Types.ServiceContext
-  ): Promise<Types.RouterOutput['updateRealm']> {
-    throw new Error('Not implemented');
-  }
+  // async updateRealm(
+  //   input: Types.RouterInput['updateRealm'],
+  //   ctx: Types.ServiceContext
+  // ): Promise<Types.RouterOutput['updateRealm']> {
+  //   throw new Error('Not implemented');
+  // }
 }

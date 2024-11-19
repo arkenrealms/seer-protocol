@@ -40,6 +40,8 @@ export type Seer = Arken.Application & {
   application: any;
   filters: Record<string, any>;
 
-  getRealms(input: RouterInput['getRealms'], ctx: ServiceContext): Promise<RouterOutput['getRealms']>;
-  updateRealm(input: RouterInput['updateRealm'], ctx: ServiceContext): Promise<RouterOutput['updateRealm']>;
+  // getTrades(input: RouterInput['getTrades'], ctx: ServiceContext): Promise<RouterOutput['getTrades']>;
+
+  // getRealms(input: RouterInput['getRealms'], ctx: ServiceContext): Promise<RouterOutput['getRealms']>;
+  // updateRealm(input: RouterInput['updateRealm'], ctx: ServiceContext): Promise<RouterOutput['updateRealm']>;
 };
