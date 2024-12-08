@@ -1,8 +1,11 @@
-import type { Application, ApplicationModelType, ApplicationServiceType } from '@arken/node/types';
 import type * as Arken from '@arken/node/types';
 import * as dotenv from 'dotenv';
 import { Router as Router2 } from './router';
 import type * as Types from './types';
+
+export * as Evolution from './modules/evolution';
+export * as Infinite from './modules/infinite';
+export * as Oasis from './modules/oasis';
 
 export type { Types };
 
@@ -12,8 +15,8 @@ dotenv.config();
 
 export class SeerBase implements Types.Seer {
   router: Router2;
-  service: ApplicationServiceType = {};
-  model: ApplicationModelType = {};
+  service: Types.ApplicationServiceType = {};
+  model: Types.ApplicationModelType = {};
   realms: Arken.Core.Types.Realm[] = [];
 
   server: any;

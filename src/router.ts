@@ -1,5 +1,6 @@
 import util from '@arken/node/util';
 import { initTRPC } from '@trpc/server';
+import { observable } from '@trpc/server/observable';
 import { serialize, deserialize } from '@arken/node/util/rpc';
 import { z } from 'zod';
 import { customErrorFormatter, hasRole } from '@arken/node/util/rpc';
@@ -25,6 +26,7 @@ import * as Skill from '@arken/node/modules/skill/skill.router';
 import * as Video from '@arken/node/modules/video/video.router';
 import * as Isles from './modules/isles/isles.router';
 import * as Evolution from './modules/evolution/evolution.router';
+import * as Infinite from './modules/infinite/infinite.router';
 import * as Oasis from './modules/oasis/oasis.router';
 import type * as Types from './types';
 
@@ -56,9 +58,10 @@ export const createRouter = () => {
     skill: Skill.createRouter(),
     video: Video.createRouter(),
 
-    evolution: Evolution.createRouter(t),
-    isles: Isles.createRouter(t),
-    oasis: Oasis.createRouter(t),
+    evolution: Evolution.createRouter(),
+    infinite: Infinite.createRouter(),
+    oasis: Oasis.createRouter(),
+    isles: Isles.createRouter(),
 
     info: procedure.query(({ input, ctx }) => {
       return { status: 1, data: { stuff: 1 } };
@@ -198,16 +201,6 @@ export const createRouter = () => {
       .mutation(({ input, ctx }) => {
         return { status: 1 };
       }),
-
-    getProfile: t.procedure.input(z.string()).query(({ input, ctx }) => {
-      console.log('getProfile', input);
-      if (input === '0x150F24A67d5541ee1F8aBce2b69046e25d64619c')
-        return { status: 1, data: { name: 'Maiev', status: 'Paused' } as Arken.Profile.Types.Profile };
-      if (input === '0xF7252D2a3b95B8069Dfc2Fadd5f4b39D3Ee71122')
-        return { status: 1, data: { name: 'Riccardo', status: 'Archived' } as Arken.Profile.Types.Profile };
-
-      return { status: 1, data: {} as Arken.Profile.Types.Profile };
-    }),
   });
 };
 

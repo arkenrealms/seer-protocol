@@ -1,8 +1,23 @@
-import type * as Arken from '@arken/node/types';
-import { z } from 'zod';
+import { z as zod } from 'zod';
+import { initTRPC } from '@trpc/server';
+import { customErrorFormatter, hasRole } from '@arken/node/util/rpc';
+import * as Arken from '@arken/node';
+import { Query, getQueryInput, inferRouterOutputs, inferRouterInputs } from '@arken/node/schema';
+import { RouterContext } from '../../types';
 
-export const createRouter = (t: any) =>
-  t.router({
+export const z = zod;
+export const t = initTRPC.context<RouterContext>().create();
+export const router = t.router;
+export const procedure = t.procedure;
+
+export const createRouter = () =>
+  router({
+    getPatrons: procedure
+      .use(hasRole('guest', t))
+      .use(customErrorFormatter(t))
+      .output(z.array(Arken.Profile.Schemas.Profile))
+      .query(({ input, ctx }) => (ctx.app.service.Oasis.getPatrons as any)(input, ctx)),
+
     interact: t.procedure
       .input(
         z.object({
@@ -47,3 +62,7 @@ export const createRouter = (t: any) =>
         return data;
       }),
   });
+
+export type Router = ReturnType<typeof createRouter>;
+export type RouterInput = inferRouterInputs<Router>;
+export type RouterOutput = inferRouterOutputs<Router>;

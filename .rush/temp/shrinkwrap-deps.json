@@ -1,7 +1,7 @@
 {
-  "../../packages/seer/packages/protocol": "../../packages/seer/packages/protocol:0AtxNZpKrt5v5e1oeHuq9268kHy7euECiE2QdKlYZIU=:",
-  "/@trpc/client/11.0.0-rc.648_@trpc+server@11.0.0-rc.648": "sha512-k4FfLKvJwbosUH8KYyZkC50RJHYtIyJECi5WhRXsvaf9a6lgrTlcA+osq815zYcAHo7wEgR9E9UdSTrpLdAQFQ==",
-  "/@trpc/server/11.0.0-rc.648": "sha512-nKW7FNM+QZrY/CVGlX3hFNIdUvbw6pwSJ+HzEF8GIeSJDKLHK7Ke1QJGI2mRW6oF9dCKMBXfuLaYY2dXfjfn7Q==",
+  "../../packages/seer/packages/protocol": "../../packages/seer/packages/protocol:JeGFD2HouiwSS9+dxDr6ugNpNLiI1n4mqSslTlmRqvA=:",
+  "/@trpc/client/11.0.0-rc.660_@trpc+server@11.0.0-rc.660": "sha512-bNpkZEfyMGKHynYFxdLpY8nJ1n7E3JHKcd4Pe2cagmpkzOEF9tFT3kzNf+eLI8XMG8196lTRR0J0W2/1Q8/cug==",
+  "/@trpc/server/11.0.0-rc.660": "sha512-QUapcZCNOpHT7ng9LceGc9ImkboWd0Go9ryrduZpL+p4jdfaC6409AQ3x4XEW6Wu3yBmZAn4CywCsDrDhjDy/w==",
   "/dotenv/16.4.5": "sha512-ZmdL2rui+eB2YwhsWzjInR8LldtZHGDoQ1ugH85ppHKwpUHL7j7rN0Ti9NCnGiQbhaZ11FpR+7ao1dNsmduNUg==",
   "/zod/3.23.8": "sha512-XBx9AXhXktjUqnepgTiE5flcKIYWi/rme0Eaj+5Y0lftuGBq+jyRu/md4WnuxqgP1ubdpNCsYEYPxrzVHD8d6g=="
 }

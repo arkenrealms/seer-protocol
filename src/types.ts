@@ -1,7 +1,29 @@
-import type * as Arken from '@arken/node/types';
+import * as Arken from '@arken/node';
 import { Router, RouterInput, RouterOutput } from './router';
+import * as Evolution from './modules/evolution';
+import * as Infinite from './modules/infinite';
+import * as Oasis from './modules/oasis';
 
 export type { Router, RouterInput, RouterOutput };
+
+export type ApplicationServiceType = Partial<{
+  Evolution: Evolution.Service;
+  Infinite: Infinite.Service;
+  Oasis: Oasis.Service;
+}> &
+  Arken.ApplicationServiceType;
+
+export type ApplicationModelType = Partial<Evolution.Types.Mappings & Infinite.Types.Mappings> &
+  Arken.ApplicationModelType;
+
+export interface Application {
+  model: ApplicationModelType;
+  service: ApplicationServiceType;
+}
+
+export type RouterContext = {
+  app: Application;
+} & Arken.RouterContext;
 
 export interface Client {
   id: string;
@@ -24,9 +46,9 @@ export interface ServiceContext {
   client: Client;
 }
 
-export type Seer = Arken.Application & {
-  service: Arken.ApplicationServiceType;
-  model: Arken.ApplicationModelType;
+export type Seer = Application & {
+  service: ApplicationServiceType;
+  model: ApplicationModelType;
   realms: Arken.Core.Types.Realm[];
 
   server: any;
@@ -39,9 +61,4 @@ export type Seer = Arken.Application & {
   applications: any;
   application: any;
   filters: Record<string, any>;
-
-  // getTrades(input: RouterInput['getTrades'], ctx: ServiceContext): Promise<RouterOutput['getTrades']>;
-
-  // getRealms(input: RouterInput['getRealms'], ctx: ServiceContext): Promise<RouterOutput['getRealms']>;
-  // updateRealm(input: RouterInput['updateRealm'], ctx: ServiceContext): Promise<RouterOutput['updateRealm']>;
 };
