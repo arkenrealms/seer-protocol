@@ -30,7 +30,7 @@ export class Service {
       },
       { $unwind: '$character.profile' },
     ]);
-
+    console.log(cubes);
     const profiles = cubes.map((ticket: any) => ticket.character?.profile);
 
     return profiles as Arken.Profile.Types.Profile[];

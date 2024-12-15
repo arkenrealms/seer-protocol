@@ -64,7 +64,7 @@ export const createRouter = () => {
     isles: Isles.createRouter(),
 
     info: procedure.query(({ input, ctx }) => {
-      return { status: 1, data: { stuff: 1 } };
+      return { stuff: 1 };
     }),
 
     // TODO: use protocol types
@@ -93,10 +93,13 @@ export const createRouter = () => {
         })
       )
       .mutation(({ input, ctx }) => {
-        let data = {};
+        let data: any = {
+          roundId: 1,
+        };
 
         if (input.data.applicationId === '668e4e805f9a03927caf883b') {
           data = {
+            ...data,
             maxClients: 100,
             stats: {
               totalObjects: 1000,
@@ -184,10 +187,7 @@ export const createRouter = () => {
           };
         }
 
-        return {
-          status: 1,
-          data,
-        };
+        return data;
       }),
 
     banProfile: procedure
@@ -198,9 +198,7 @@ export const createRouter = () => {
           banExpireDate: z.string(),
         })
       )
-      .mutation(({ input, ctx }) => {
-        return { status: 1 };
-      }),
+      .mutation(({ input, ctx }) => {}),
   });
 };
 

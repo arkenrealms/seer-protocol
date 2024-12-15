@@ -4,6 +4,12 @@ import { ARXError } from '@arken/node/util/rpc';
 import * as Arken from '@arken/node';
 
 export class Service {
+  async info(input: RouterInput['info'], ctx: RouterContext): Promise<RouterOutput['info']> {
+    console.log('Evolution.Service.info', input);
+
+    return { roundId: 1 }
+  }
+
   async saveRound(input: RouterInput['saveRound'], ctx: RouterContext): Promise<RouterOutput['saveRound']> {
     console.log('Evolution.Service.saveRound', input);
   }

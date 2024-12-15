@@ -12,6 +12,8 @@ export const procedure = t.procedure;
 
 export const createRouter = () =>
   router({
+    info: procedure.query(({ input, ctx }) => (ctx.app.service.Evolution.info as any)(input, ctx)),
+
     saveRound: procedure
       .use(hasRole('guest', t))
       .use(customErrorFormatter(t))
@@ -25,7 +27,7 @@ export const createRouter = () =>
         })
       )
       // .output(Arken.Profile.Schemas.Profile)
-      .query(({ input, ctx }) => (ctx.app.service.Evolution.saveRound as any)(input, ctx)),
+      .mutation(({ input, ctx }) => (ctx.app.service.Evolution.saveRound as any)(input, ctx)),
 
     interact: t.procedure
       .use(hasRole('guest', t))
