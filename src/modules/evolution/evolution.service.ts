@@ -7,7 +7,85 @@ export class Service {
   async info(input: RouterInput['info'], ctx: RouterContext): Promise<RouterOutput['info']> {
     console.log('Evolution.Service.info', input);
 
-    return { roundId: 1 }
+    let data: any = {
+      roundId: 1,
+      maxClients: 100,
+      rewardItemAmount: 0,
+      rewardWinnerAmount: 0,
+      rewardItemAmountPerLegitPlayer: 0,
+      rewardItemAmountMax: 0,
+      rewardWinnerAmountPerLegitPlayer: 0,
+      rewardWinnerAmountMax: 0,
+      drops: {
+        guardian: 0,
+        earlyAccess: 0,
+        trinket: 0,
+        santa: 0,
+      },
+      totalLegitPlayers: 0,
+      isBattleRoyale: false,
+      isGodParty: false,
+      level2open: false,
+      isRoundPaused: false,
+      gameMode: 'Deathmatch',
+      maxEvolves: 0,
+      pointsPerEvolve: 0,
+      pointsPerKill: 0,
+      decayPower: 0,
+      dynamicDecayPower: true,
+      baseSpeed: 0,
+      avatarSpeedMultiplier: {},
+      avatarDecayPower: {},
+      preventBadKills: false,
+      antifeed1: false,
+      antifeed2: false,
+      antifeed3: false,
+      noDecay: false,
+      noBoot: false,
+      rewardSpawnLoopSeconds: 0,
+      orbOnDeathPercent: 0,
+      orbTimeoutSeconds: 0,
+      orbCutoffSeconds: 0,
+      orbLookup: {},
+      roundLoopSeconds: 0,
+      fastLoopSeconds: 0,
+      leadercap: false,
+      hideMap: false,
+      checkPositionDistance: 0,
+      checkInterval: 0,
+      resetInterval: 0,
+      loggableEvents: [],
+      mapBoundary: {
+        x: { min: 0, max: 0 },
+        y: { min: 0, max: 0 },
+      },
+      spawnBoundary1: {
+        x: { min: 0, max: 0 },
+        y: { min: 0, max: 0 },
+      },
+      spawnBoundary2: {
+        x: { min: 0, max: 0 },
+        y: { min: 0, max: 0 },
+      },
+      rewards: {
+        tokens: [
+          {
+            type: 'rune',
+            symbol: 'solo',
+            quantity: 10000,
+          },
+        ],
+        items: [],
+        characters: [
+          {
+            type: 'character',
+            tokenId: '1',
+          },
+        ],
+      },
+    };
+
+    return data;
   }
 
   async saveRound(input: RouterInput['saveRound'], ctx: RouterContext): Promise<RouterOutput['saveRound']> {
