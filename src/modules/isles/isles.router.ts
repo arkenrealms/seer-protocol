@@ -1329,7 +1329,7 @@ export type RouterOutput = inferRouterOutputs<Router>;
 // import md5 from 'js-md5';
 // import { getClientSocket } from '@arken/node/util/websocket';
 // import { isValidRequest, getSignedRequest } from '@arken/node/util/web3';
-// import getUsername from '@arken/node/util/api/getOldUsername';
+// import getUsername from '@arken/node/legacy/getOldUsername';
 // import { z } from 'zod';
 
 // export async function monitorEvolutionRealms(app) {}

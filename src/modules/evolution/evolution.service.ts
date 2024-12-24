@@ -71,7 +71,17 @@ export class Service {
         tokens: [
           {
             type: 'rune',
-            symbol: 'solo',
+            symbol: 'pepe',
+            quantity: 10000,
+          },
+          {
+            type: 'rune',
+            symbol: 'doge',
+            quantity: 10000,
+          },
+          {
+            type: 'rune',
+            symbol: 'harold',
             quantity: 10000,
           },
         ],
