@@ -2,13 +2,16 @@ import type { RouterContext, RouterInput, RouterOutput } from './evolution.types
 import { getFilter } from '@arken/node/util/api';
 import { ARXError } from '@arken/node/util/rpc';
 import * as Arken from '@arken/node';
+import { generateShortId } from '@arken/node/util/db';
 
 export class Service {
   async info(input: RouterInput['info'], ctx: RouterContext): Promise<RouterOutput['info']> {
     console.log('Evolution.Service.info', input);
 
+    const evolutionData = await ctx.app.model.Data.find({ key: 'evolution' });
+
     let data: any = {
-      roundId: 1,
+      roundId: generateShortId(),
       maxClients: 100,
       rewardItemAmount: 0,
       rewardWinnerAmount: 0,
@@ -93,6 +96,7 @@ export class Service {
           },
         ],
       },
+      ...(evolutionData || {}),
     };
 
     return data;
@@ -100,6 +104,18 @@ export class Service {
 
   async saveRound(input: RouterInput['saveRound'], ctx: RouterContext): Promise<RouterOutput['saveRound']> {
     console.log('Evolution.Service.saveRound', input);
+
+    const evolutionData: any = await ctx.app.model.Data.find({ key: 'evolution' });
+
+    evolutionData.roundId = generateShortId();
+
+    await evolutionData.save();
+
+    // iterate clients, save rewards
+
+    return {
+      roundId: evolutionData.roundId,
+    };
   }
 
   async interact(input: RouterInput['interact'], ctx: RouterContext): Promise<RouterOutput['interact']> {
@@ -117,8 +133,8 @@ export class Service {
         ...data,
         objects: [
           {
-            id: 'adsad',
-            file: 'asdasdas.fbx',
+            id: 'axl',
+            file: 'axl.fbx',
             position: {
               x: 1000,
               y: 1000,

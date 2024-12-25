@@ -20,7 +20,6 @@ export const createRouter = () =>
       .input(
         z.object({
           shardId: z.string(),
-          roundId: z.string(),
           round: z.any(),
           rewardWinnerAmount: z.number(),
           lastClients: z.any(),
@@ -32,15 +31,7 @@ export const createRouter = () =>
     interact: t.procedure
       .use(hasRole('guest', t))
       .use(customErrorFormatter(t))
-      .input(
-        z.object({
-          shardId: z.string(),
-          roundId: z.string(),
-          round: z.any(),
-          rewardWinnerAmount: z.number(),
-          lastClients: z.any(),
-        })
-      )
+      .input(z.object({}))
       .mutation(({ input, ctx }) => (ctx.app.service.Evolution.saveRound as any)(input, ctx)),
 
     getScene: t.procedure
