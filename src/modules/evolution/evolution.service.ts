@@ -105,7 +105,7 @@ export class Service {
   async saveRound(input: RouterInput['saveRound'], ctx: RouterContext): Promise<RouterOutput['saveRound']> {
     console.log('Evolution.Service.saveRound', input);
 
-    const evolutionData: any = await ctx.app.model.Data.findOne({ key: 'evolution' });
+    const evolutionData: any = await ctx.app.model.Data.findOne({ key: 'evolution', mod: 'evolution' });
 
     evolutionData.roundId = generateShortId();
 
