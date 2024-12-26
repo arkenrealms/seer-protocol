@@ -333,6 +333,8 @@ export class Service {
   //   ]
   // }
   async saveRound(input: RouterInput['saveRound'], ctx: RouterContext): Promise<RouterOutput['saveRound']> {
+    if (!input) throw new Error('Input should not be void');
+
     console.log('Evolution.Service.saveRound', input);
 
     if (!ctx.client?.roles?.includes('admin')) throw new Error('Not authorized');
@@ -387,8 +389,13 @@ export class Service {
       9: Math.round(evolutionData.rewardWinnerAmount * 0.05 * 1000) / 1000,
     };
 
+    const winners = input.lastClients
+      // .filter((p) => p.lastUpdate >= fiveSecondsAgo)
+      .sort((a, b) => b.points - a.points);
+
     // iterate clients, save rewards
-    for (const client of input.lastClients) {
+    for (const index in winners) {
+      const client = winners[index];
       const profile = await ctx.app.model.Profile.findOne({ address: client.address });
 
       if (!profile.meta) profile.meta = {};
@@ -397,9 +404,9 @@ export class Service {
       if (!profile.meta.rewards.tokens['pepe']) profile.meta.rewards.tokens['pepe'] = 0;
       if (profile.meta.rewards.tokens['pepe'] < 0) profile.meta.rewards.tokens['pepe'] = 0;
 
-      profile.meta.rewards.tokens['pepe'] += rewardWinnerMap[index];
+      profile.meta.rewards.tokens['pepe'] += index <= 9 ? rewardWinnerMap[index] : 0;
 
-      for (const pickup of player.pickups) {
+      for (const pickup of client.pickups) {
         if (pickup.type === 'token') {
           // TODO: change to authoritative
           // if (pickup.quantity > input.round.lastClients.length * evolutionData.rewardItemAmountPerLegitPlayer * 2) {
@@ -462,7 +469,7 @@ export class Service {
 
     let data = {};
 
-    if (input.data.applicationId === '668e4e805f9a03927caf883b') {
+    if (input.applicationId === '668e4e805f9a03927caf883b') {
       data = {
         ...data,
         objects: [

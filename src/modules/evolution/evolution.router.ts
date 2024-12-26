@@ -37,7 +37,7 @@ export const createRouter = () =>
     getScene: t.procedure
       .use(hasRole('guest', t))
       .use(customErrorFormatter(t))
-      .input(z.object({}))
+      .input(z.object({ applicationId: z.string() }))
       .mutation(({ input, ctx }) => (ctx.app.service.Evolution.getScene as any)(input, ctx)),
   });
 
