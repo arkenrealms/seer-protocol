@@ -371,7 +371,7 @@ export class Service {
     };
 
     if (input.lastClients.length === 0) {
-      log('Round skipped');
+      console.log('Round skipped');
 
       return res;
     }
@@ -394,8 +394,8 @@ export class Service {
       .sort((a, b) => b.points - a.points);
 
     // iterate clients, save rewards
-    for (const index in winners) {
-      const client = winners[index];
+    for (const client of winners) {
+      const index = winners.findIndex((winner) => winner.address === client.address);
       const profile = await ctx.app.model.Profile.findOne({ address: client.address });
 
       if (!profile.meta) profile.meta = {};
