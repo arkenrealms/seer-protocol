@@ -32,18 +32,13 @@ export const createRouter = () =>
       .use(hasRole('guest', t))
       .use(customErrorFormatter(t))
       .input(z.object({}))
-      .mutation(({ input, ctx }) => (ctx.app.service.Evolution.saveRound as any)(input, ctx)),
+      .mutation(({ input, ctx }) => (ctx.app.service.Evolution.interact as any)(input, ctx)),
 
     getScene: t.procedure
       .use(hasRole('guest', t))
       .use(customErrorFormatter(t))
-      .input(
-        z.object({
-          data: z.any(),
-          signature: z.object({ hash: z.string(), address: z.string() }),
-        })
-      )
-      .mutation(({ input, ctx }) => (ctx.app.service.Evolution.saveRound as any)(input, ctx)),
+      .input(z.object({}))
+      .mutation(({ input, ctx }) => (ctx.app.service.Evolution.getScene as any)(input, ctx)),
   });
 
 export type Router = ReturnType<typeof createRouter>;

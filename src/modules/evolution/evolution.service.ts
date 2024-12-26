@@ -8,6 +8,8 @@ export class Service {
   async info(input: RouterInput['info'], ctx: RouterContext): Promise<RouterOutput['info']> {
     console.log('Evolution.Service.info', input);
 
+    if (!ctx.client?.roles?.includes('admin')) throw new Error('Not authorized');
+
     const evolutionData = await ctx.app.model.Data.find({ key: 'evolution' });
 
     let data: any = {
@@ -73,19 +75,22 @@ export class Service {
       rewards: {
         tokens: [
           {
-            type: 'rune',
+            type: 'token',
             symbol: 'pepe',
-            quantity: 10000,
+            quantity: 10000000,
+            value: 0.00002,
           },
           {
-            type: 'rune',
+            type: 'token',
             symbol: 'doge',
-            quantity: 10000,
+            quantity: 1000,
+            value: 0.3,
           },
           {
-            type: 'rune',
+            type: 'token',
             symbol: 'harold',
-            quantity: 10000,
+            quantity: 100000,
+            value: 0.013,
           },
         ],
         items: [],
@@ -102,20 +107,348 @@ export class Service {
     return data;
   }
 
+  //   lastClients: [
+  //     {
+  //       id: '5igEOh-6phUs2mXRAAAD',
+  //       name: 'returnportal',
+  //       joinedRoundAt: 1735182339862,
+  //       points: 32,
+  //       kills: 0,
+  //       killStreak: 0,
+  //       deaths: 0,
+  //       evolves: 2,
+  //       rewards: 0,
+  //       orbs: 0,
+  //       powerups: 30,
+  //       baseSpeed: 2.5,
+  //       decayPower: 1,
+  //       pickups: [],
+  //       xp: 80.20608,
+  //       maxHp: 100,
+  //       avatar: 1,
+  //       speed: 6.25,
+  //       cameraSize: 1.7599999999999991,
+  //       log: [Object],
+  //       shardId: '676cc7fe0ad5d12982059ed1'
+  //     }
+  //   ]
+  // {
+  //   "shardId": "676cca983a7ff7b07727361a",
+  //   "round": {
+  //     "id": "676ccad6040be4e1feb4fb07",
+  //     "startedAt": 1735183062,
+  //     "endedAt": 1735183092,
+  //     "clients": [
+  //       {
+  //         "id": "sa00CgPFKF606oOSAAAD",
+  //         "name": "returnportal",
+  //         "joinedRoundAt": 1735183062215,
+  //         "points": 0,
+  //         "kills": 0,
+  //         "killStreak": 0,
+  //         "deaths": 0,
+  //         "evolves": 1,
+  //         "rewards": 0,
+  //         "orbs": 0,
+  //         "powerups": 10,
+  //         "baseSpeed": 0.8,
+  //         "decayPower": 1,
+  //         "pickups": [],
+  //         "xp": 22.560000000000606,
+  //         "maxHp": 100,
+  //         "avatar": 0,
+  //         "speed": 3.2,
+  //         "cameraSize": 2.5,
+  //         "log": {
+  //           "kills": [],
+  //           "deaths": [],
+  //           "revenge": 0,
+  //           "resetPosition": 0,
+  //           "phases": 0,
+  //           "stuck": 0,
+  //           "collided": 0,
+  //           "timeoutDisconnect": 0,
+  //           "speedProblem": 0,
+  //           "clientDistanceProblem": 0,
+  //           "outOfBounds": 0,
+  //           "ranOutOfHealth": 0,
+  //           "notReallyTrying": 0,
+  //           "tooManyKills": 0,
+  //           "killingThemselves": 0,
+  //           "sameNetworkDisconnect": 0,
+  //           "connectedTooSoon": 0,
+  //           "clientDisconnected": 0,
+  //           "positionJump": 0,
+  //           "pauses": 0,
+  //           "connects": 0,
+  //           "path": "",
+  //           "positions": 368,
+  //           "spectating": 0,
+  //           "recentJoinProblem": 0,
+  //           "usernameProblem": 0,
+  //           "maintenanceJoin": 0,
+  //           "signatureProblem": 0,
+  //           "signinProblem": 0,
+  //           "versionProblem": 0,
+  //           "failedRealmCheck": 0,
+  //           "addressProblem": 0,
+  //           "replay": []
+  //         }
+  //       }
+  //     ],
+  //     "events": [],
+  //     "states": []
+  //   },
+  //   "rewardWinnerAmount": 100,
+  //   "lastClients": [
+  //     {
+  //       "id": "7qYr9V8pTyZtbUlRAAAB",
+  //       "name": "Unknown812",
+  //       "joinedRoundAt": 1735183032188,
+  //       "points": 0,
+  //       "kills": 0,
+  //       "killStreak": 0,
+  //       "deaths": 0,
+  //       "evolves": 0,
+  //       "rewards": 0,
+  //       "orbs": 0,
+  //       "powerups": 0,
+  //       "baseSpeed": 0.8,
+  //       "decayPower": 1,
+  //       "pickups": [],
+  //       "xp": 50,
+  //       "maxHp": 100,
+  //       "avatar": 0,
+  //       "speed": 2.4,
+  //       "cameraSize": 3,
+  //       "log": {
+  //         "kills": [],
+  //         "deaths": [],
+  //         "revenge": 0,
+  //         "resetPosition": 0,
+  //         "phases": 0,
+  //         "stuck": 0,
+  //         "collided": 0,
+  //         "timeoutDisconnect": 0,
+  //         "speedProblem": 0,
+  //         "clientDistanceProblem": 0,
+  //         "outOfBounds": 0,
+  //         "ranOutOfHealth": 0,
+  //         "notReallyTrying": 0,
+  //         "tooManyKills": 0,
+  //         "killingThemselves": 0,
+  //         "sameNetworkDisconnect": 0,
+  //         "connectedTooSoon": 0,
+  //         "clientDisconnected": 0,
+  //         "positionJump": 0,
+  //         "pauses": 0,
+  //         "connects": 0,
+  //         "path": "",
+  //         "positions": 0,
+  //         "spectating": 0,
+  //         "recentJoinProblem": 0,
+  //         "usernameProblem": 0,
+  //         "maintenanceJoin": 0,
+  //         "signatureProblem": 0,
+  //         "signinProblem": 0,
+  //         "versionProblem": 0,
+  //         "failedRealmCheck": 0,
+  //         "addressProblem": 0,
+  //         "replay": []
+  //       },
+  //       "shardId": "676cca983a7ff7b07727361a"
+  //     },
+  //     {
+  //       "id": "sa00CgPFKF606oOSAAAD",
+  //       "name": "returnportal",
+  //       "joinedRoundAt": 1735183032189,
+  //       "points": 68,
+  //       "kills": 0,
+  //       "killStreak": 0,
+  //       "deaths": 0,
+  //       "evolves": 7,
+  //       "rewards": 1,
+  //       "orbs": 0,
+  //       "powerups": 56,
+  //       "baseSpeed": 0.8,
+  //       "decayPower": 1,
+  //       "pickups": [
+  //         {
+  //           "type": "token",
+  //           "symbol": "pepe",
+  //           "quantity": 1,
+  //           "rewardItemType": 0,
+  //           "id": "676ccaa32b9c5454607eaa05",
+  //           "enabledDate": 1735183011161,
+  //           "rewardItemName": "pepe",
+  //           "position": {
+  //             "x": -9.420004,
+  //             "y": -6.517404
+  //           },
+  //           "winner": "returnportal"
+  //         }
+  //       ],
+  //       "xp": 93.60000000000002,
+  //       "maxHp": 100,
+  //       "avatar": 1,
+  //       "speed": 2.4,
+  //       "cameraSize": 3,
+  //       "log": {
+  //         "kills": [],
+  //         "deaths": [],
+  //         "revenge": 0,
+  //         "resetPosition": 0,
+  //         "phases": 0,
+  //         "stuck": 0,
+  //         "collided": 0,
+  //         "timeoutDisconnect": 0,
+  //         "speedProblem": 0,
+  //         "clientDistanceProblem": 0,
+  //         "outOfBounds": 0,
+  //         "ranOutOfHealth": 0,
+  //         "notReallyTrying": 0,
+  //         "tooManyKills": 0,
+  //         "killingThemselves": 0,
+  //         "sameNetworkDisconnect": 0,
+  //         "connectedTooSoon": 0,
+  //         "clientDisconnected": 0,
+  //         "positionJump": 0,
+  //         "pauses": 0,
+  //         "connects": 0,
+  //         "path": "",
+  //         "positions": 368,
+  //         "spectating": 0,
+  //         "recentJoinProblem": 0,
+  //         "usernameProblem": 0,
+  //         "maintenanceJoin": 0,
+  //         "signatureProblem": 0,
+  //         "signinProblem": 0,
+  //         "versionProblem": 0,
+  //         "failedRealmCheck": 0,
+  //         "addressProblem": 0,
+  //         "replay": []
+  //       },
+  //       "shardId": "676cca983a7ff7b07727361a"
+  //     }
+  //   ]
+  // }
   async saveRound(input: RouterInput['saveRound'], ctx: RouterContext): Promise<RouterOutput['saveRound']> {
     console.log('Evolution.Service.saveRound', input);
 
+    if (!ctx.client?.roles?.includes('admin')) throw new Error('Not authorized');
+
     const evolutionData: any = await ctx.app.model.Data.findOne({ key: 'evolution', mod: 'evolution' });
+
+    if (input.round.id !== evolutionData.roundId) throw new Error('Invalid Round ID');
 
     evolutionData.roundId = generateShortId();
 
+    if (!evolutionData.rewards.tokens)
+      evolutionData.rewards.tokens = [
+        {
+          type: 'token',
+          symbol: 'pepe',
+          quantity: 10000000,
+        },
+        {
+          type: 'token',
+          symbol: 'doge',
+          quantity: 1000,
+        },
+        {
+          type: 'token',
+          symbol: 'harold',
+          quantity: 100000,
+        },
+      ];
+
     await evolutionData.save();
 
-    // iterate clients, save rewards
-
-    return {
+    const res = {
       roundId: evolutionData.roundId,
     };
+
+    if (input.lastClients.length === 0) {
+      log('Round skipped');
+
+      return res;
+    }
+
+    const rewardWinnerMap = {
+      0: Math.round(evolutionData.rewardWinnerAmount * 1 * 1000) / 1000,
+      1: Math.round(evolutionData.rewardWinnerAmount * 0.25 * 1000) / 1000,
+      2: Math.round(evolutionData.rewardWinnerAmount * 0.15 * 1000) / 1000,
+      3: Math.round(evolutionData.rewardWinnerAmount * 0.05 * 1000) / 1000,
+      4: Math.round(evolutionData.rewardWinnerAmount * 0.05 * 1000) / 1000,
+      5: Math.round(evolutionData.rewardWinnerAmount * 0.05 * 1000) / 1000,
+      6: Math.round(evolutionData.rewardWinnerAmount * 0.05 * 1000) / 1000,
+      7: Math.round(evolutionData.rewardWinnerAmount * 0.05 * 1000) / 1000,
+      8: Math.round(evolutionData.rewardWinnerAmount * 0.05 * 1000) / 1000,
+      9: Math.round(evolutionData.rewardWinnerAmount * 0.05 * 1000) / 1000,
+    };
+
+    // iterate clients, save rewards
+    for (const client of input.lastClients) {
+      const profile = await ctx.app.model.Profile.findOne({ address: client.address });
+
+      if (!profile.meta) profile.meta = {};
+      if (!profile.meta.rewards) profile.meta.rewards = {};
+      if (!profile.meta.rewards.tokens) profile.meta.rewards.tokens = {};
+      if (!profile.meta.rewards.tokens['pepe']) profile.meta.rewards.tokens['pepe'] = 0;
+      if (profile.meta.rewards.tokens['pepe'] < 0) profile.meta.rewards.tokens['pepe'] = 0;
+
+      profile.meta.rewards.tokens['pepe'] += rewardWinnerMap[index];
+
+      for (const pickup of player.pickups) {
+        if (pickup.type === 'token') {
+          // TODO: change to authoritative
+          if (pickup.quantity > input.round.lastClients.length * evolutionData.rewardItemAmountPerLegitPlayer * 2) {
+            log(
+              pickup.quantity,
+              evolutionData.rewardItemAmountPerLegitPlayer,
+              input.round.lastClients.length,
+              JSON.stringify(input.round.lastClients)
+            );
+            throw new Error('Big problem with item reward amount');
+          }
+
+          if (pickup.quantity > input.round.lastClients.length * evolutionData.rewardItemAmountMax) {
+            log(pickup.quantity, input.round.lastClients.length, evolutionData.rewardItemAmountMax);
+            throw new Error('Big problem with item reward amount 2');
+          }
+
+          const tokenSymbol = pickup.rewardItemName.toLowerCase();
+
+          if (!tokens.includes(tokenSymbol)) {
+            continue;
+          }
+
+          if (!profile.meta.rewards.tokens[tokenSymbol] || profile.meta.rewards.tokens[tokenSymbol] < 0.000000001) {
+            profile.meta.rewards.tokens[tokenSymbol] = 0;
+          }
+
+          profile.meta.rewards.tokens[tokenSymbol] += pickup.quantity;
+
+          // if (!profile.lifetimeRewards.tokens[tokenSymbol] || profile.lifetimeRewards.tokens[tokenSymbol] < 0.000000001) {
+          //   profile.lifetimeRewards.tokens[tokenSymbol] = 0
+          // }
+
+          // profile.lifetimeRewards.tokens[tokenSymbol] += pickup.quantity
+
+          // evolutionData.rewards.tokens[tokenSymbol.toLowerCase()] -= pickup.quantity
+
+          // app.db.oracle.outflow.evolutionRewards.tokens.week[tokenSymbol.toLowerCase()] += pickup.quantity
+        } else {
+          if (pickup.name === 'Santa Christmas 2024 Ticket') {
+            profile.meta.rewards.tokens['christmas2024'] += 1;
+          }
+        }
+      }
+
+      await profile.save();
+    }
+
+    return res;
   }
 
   async interact(input: RouterInput['interact'], ctx: RouterContext): Promise<RouterOutput['interact']> {
