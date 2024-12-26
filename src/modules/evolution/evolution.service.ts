@@ -323,12 +323,12 @@ export class Service {
 
     const evolutionData: any = await ctx.app.model.Data.findOne({ key: 'evolution', mod: 'evolution' });
 
-    if (input.round.id !== evolutionData.roundId) throw new Error('Invalid Round ID');
+    if (input.round.id !== evolutionData.data.roundId) throw new Error('Invalid Round ID');
 
-    evolutionData.roundId = generateShortId();
+    evolutionData.data.roundId = generateShortId();
 
-    if (!evolutionData.rewards.tokens)
-      evolutionData.rewards.tokens = [
+    if (!evolutionData.data.rewards.tokens)
+      evolutionData.data.rewards.tokens = [
         {
           type: 'token',
           symbol: 'pepe',
@@ -349,7 +349,7 @@ export class Service {
     await evolutionData.save();
 
     const res = {
-      roundId: evolutionData.roundId,
+      roundId: evolutionData.data.roundId,
     };
 
     if (input.clients.length === 0) {
@@ -359,16 +359,16 @@ export class Service {
     }
 
     const rewardWinnerMap = {
-      0: Math.round(evolutionData.rewardWinnerAmount * 1 * 1000) / 1000,
-      1: Math.round(evolutionData.rewardWinnerAmount * 0.25 * 1000) / 1000,
-      2: Math.round(evolutionData.rewardWinnerAmount * 0.15 * 1000) / 1000,
-      3: Math.round(evolutionData.rewardWinnerAmount * 0.05 * 1000) / 1000,
-      4: Math.round(evolutionData.rewardWinnerAmount * 0.05 * 1000) / 1000,
-      5: Math.round(evolutionData.rewardWinnerAmount * 0.05 * 1000) / 1000,
-      6: Math.round(evolutionData.rewardWinnerAmount * 0.05 * 1000) / 1000,
-      7: Math.round(evolutionData.rewardWinnerAmount * 0.05 * 1000) / 1000,
-      8: Math.round(evolutionData.rewardWinnerAmount * 0.05 * 1000) / 1000,
-      9: Math.round(evolutionData.rewardWinnerAmount * 0.05 * 1000) / 1000,
+      0: Math.round(evolutionData.data.rewardWinnerAmount * 1 * 1000) / 1000,
+      1: Math.round(evolutionData.data.rewardWinnerAmount * 0.25 * 1000) / 1000,
+      2: Math.round(evolutionData.data.rewardWinnerAmount * 0.15 * 1000) / 1000,
+      3: Math.round(evolutionData.data.rewardWinnerAmount * 0.05 * 1000) / 1000,
+      4: Math.round(evolutionData.data.rewardWinnerAmount * 0.05 * 1000) / 1000,
+      5: Math.round(evolutionData.data.rewardWinnerAmount * 0.05 * 1000) / 1000,
+      6: Math.round(evolutionData.data.rewardWinnerAmount * 0.05 * 1000) / 1000,
+      7: Math.round(evolutionData.data.rewardWinnerAmount * 0.05 * 1000) / 1000,
+      8: Math.round(evolutionData.data.rewardWinnerAmount * 0.05 * 1000) / 1000,
+      9: Math.round(evolutionData.data.rewardWinnerAmount * 0.05 * 1000) / 1000,
     };
 
     const winners = input.clients
@@ -391,24 +391,24 @@ export class Service {
       for (const pickup of client.pickups) {
         if (pickup.type === 'token') {
           // TODO: change to authoritative
-          // if (pickup.quantity > input.round.clients.length * evolutionData.rewardItemAmountPerLegitPlayer * 2) {
+          // if (pickup.quantity > input.round.clients.length * evolutionData.data.rewardItemAmountPerLegitPlayer * 2) {
           //   log(
           //     pickup.quantity,
-          //     evolutionData.rewardItemAmountPerLegitPlayer,
+          //     evolutionData.data.rewardItemAmountPerLegitPlayer,
           //     input.round.clients.length,
           //     JSON.stringify(input.round.clients)
           //   );
           //   throw new Error('Big problem with item reward amount');
           // }
 
-          // if (pickup.quantity > input.round.clients.length * evolutionData.rewardItemAmountMax) {
-          //   log(pickup.quantity, input.round.clients.length, evolutionData.rewardItemAmountMax);
+          // if (pickup.quantity > input.round.clients.length * evolutionData.data.rewardItemAmountMax) {
+          //   log(pickup.quantity, input.round.clients.length, evolutionData.data.rewardItemAmountMax);
           //   throw new Error('Big problem with item reward amount 2');
           // }
 
           const tokenSymbol = pickup.rewardItemName.toLowerCase();
 
-          if (!evolutionData.rewards.tokens.find((t) => t.symbol === tokenSymbol)) {
+          if (!evolutionData.data.rewards.tokens.find((t) => t.symbol === tokenSymbol)) {
             throw new Error('Problem finding a reward token');
             continue;
           }
@@ -425,7 +425,7 @@ export class Service {
 
           // profile.lifetimeRewards.tokens[tokenSymbol] += pickup.quantity
 
-          // evolutionData.rewards.tokens[tokenSymbol.toLowerCase()] -= pickup.quantity
+          // evolutionData.data.rewards.tokens[tokenSymbol.toLowerCase()] -= pickup.quantity
 
           // app.db.oracle.outflow.evolutionRewards.tokens.week[tokenSymbol.toLowerCase()] += pickup.quantity
         } else {
