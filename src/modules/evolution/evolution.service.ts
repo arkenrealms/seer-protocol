@@ -10,7 +10,7 @@ export class Service {
 
     if (!ctx.client?.roles?.includes('admin')) throw new Error('Not authorized');
 
-    const evolutionData = await ctx.app.model.Data.find({ key: 'evolution', mod: 'evolution' });
+    const evolutionData = await ctx.app.model.Data.findOne({ key: 'evolution', mod: 'evolution' });
 
     const data: any = {
       roundId: generateShortId(),

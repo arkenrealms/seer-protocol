@@ -22,7 +22,7 @@ export const createRouter = () =>
           shardId: z.string(),
           round: z.any(),
           rewardWinnerAmount: z.number(),
-          lastClients: z.any(),
+          clients: z.any(),
         })
       )
       // .output(Arken.Profile.Schemas.Profile)
