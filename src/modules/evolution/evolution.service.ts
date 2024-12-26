@@ -16,7 +16,7 @@ export class Service {
       roundId: generateShortId(),
       maxClients: 100,
       rewardItemAmount: 0,
-      rewardWinnerAmount: 0,
+      rewardWinnerAmount: 300,
       rewardItemAmountPerLegitPlayer: 0,
       rewardItemAmountMax: 0,
       rewardWinnerAmountPerLegitPlayer: 0,
