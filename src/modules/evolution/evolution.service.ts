@@ -111,7 +111,7 @@ export class Service {
 
     await evolutionData.save();
 
-    return evolutionData.toJSON();
+    return evolutionData.data;
   }
 
   // {
