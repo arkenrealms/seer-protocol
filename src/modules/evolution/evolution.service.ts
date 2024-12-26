@@ -104,14 +104,14 @@ export class Service {
     };
 
     for (const key in data) {
-      if (!evolutionData) {
-        evolutionData[key] = data[key];
+      if (!evolutionData.data[key]) {
+        evolutionData.data[key] = data[key];
       }
     }
 
     await evolutionData.save();
 
-    return evolutionData;
+    return evolutionData.toJSON();
   }
 
   // {
