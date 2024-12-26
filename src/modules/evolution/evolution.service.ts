@@ -402,24 +402,25 @@ export class Service {
       for (const pickup of player.pickups) {
         if (pickup.type === 'token') {
           // TODO: change to authoritative
-          if (pickup.quantity > input.round.lastClients.length * evolutionData.rewardItemAmountPerLegitPlayer * 2) {
-            log(
-              pickup.quantity,
-              evolutionData.rewardItemAmountPerLegitPlayer,
-              input.round.lastClients.length,
-              JSON.stringify(input.round.lastClients)
-            );
-            throw new Error('Big problem with item reward amount');
-          }
+          // if (pickup.quantity > input.round.lastClients.length * evolutionData.rewardItemAmountPerLegitPlayer * 2) {
+          //   log(
+          //     pickup.quantity,
+          //     evolutionData.rewardItemAmountPerLegitPlayer,
+          //     input.round.lastClients.length,
+          //     JSON.stringify(input.round.lastClients)
+          //   );
+          //   throw new Error('Big problem with item reward amount');
+          // }
 
-          if (pickup.quantity > input.round.lastClients.length * evolutionData.rewardItemAmountMax) {
-            log(pickup.quantity, input.round.lastClients.length, evolutionData.rewardItemAmountMax);
-            throw new Error('Big problem with item reward amount 2');
-          }
+          // if (pickup.quantity > input.round.lastClients.length * evolutionData.rewardItemAmountMax) {
+          //   log(pickup.quantity, input.round.lastClients.length, evolutionData.rewardItemAmountMax);
+          //   throw new Error('Big problem with item reward amount 2');
+          // }
 
           const tokenSymbol = pickup.rewardItemName.toLowerCase();
 
-          if (!tokens.includes(tokenSymbol)) {
+          if (!evolutionData.rewards.tokens.find((t) => t.symbol === tokenSymbol)) {
+            throw new Error('Problem finding a reward token');
             continue;
           }
 
