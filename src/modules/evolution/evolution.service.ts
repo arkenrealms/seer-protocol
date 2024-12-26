@@ -438,10 +438,14 @@ export class Service {
           // app.db.oracle.outflow.evolutionRewards.tokens.week[tokenSymbol.toLowerCase()] += pickup.quantity
         } else {
           if (pickup.name === 'Santa Christmas 2024 Ticket') {
+            if (!profile.meta.rewards.tokens['christmas2024']) profile.meta.rewards.tokens['christmas2024'] = 0;
+
             profile.meta.rewards.tokens['christmas2024'] += 1;
           }
         }
       }
+
+      profile.markModified('meta');
 
       await profile.save();
     }
