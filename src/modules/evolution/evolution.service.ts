@@ -10,9 +10,9 @@ export class Service {
 
     if (!ctx.client?.roles?.includes('admin')) throw new Error('Not authorized');
 
-    const evolutionData = await ctx.app.model.Data.find({ key: 'evolution' });
+    const evolutionData = await ctx.app.model.Data.find({ key: 'evolution', mod: 'evolution' });
 
-    let data: any = {
+    const data: any = {
       roundId: generateShortId(),
       maxClients: 100,
       rewardItemAmount: 0,
@@ -101,37 +101,19 @@ export class Service {
           },
         ],
       },
-      ...(evolutionData || {}),
     };
 
-    return data;
+    for (const key in data) {
+      if (!evolutionData) {
+        evolutionData[key] = data[key];
+      }
+    }
+
+    await evolutionData.save();
+
+    return evolutionData;
   }
 
-  //   lastClients: [
-  //     {
-  //       id: '5igEOh-6phUs2mXRAAAD',
-  //       name: 'returnportal',
-  //       joinedRoundAt: 1735182339862,
-  //       points: 32,
-  //       kills: 0,
-  //       killStreak: 0,
-  //       deaths: 0,
-  //       evolves: 2,
-  //       rewards: 0,
-  //       orbs: 0,
-  //       powerups: 30,
-  //       baseSpeed: 2.5,
-  //       decayPower: 1,
-  //       pickups: [],
-  //       xp: 80.20608,
-  //       maxHp: 100,
-  //       avatar: 1,
-  //       speed: 6.25,
-  //       cameraSize: 1.7599999999999991,
-  //       log: [Object],
-  //       shardId: '676cc7fe0ad5d12982059ed1'
-  //     }
-  //   ]
   // {
   //   "shardId": "676cca983a7ff7b07727361a",
   //   "round": {
@@ -389,7 +371,7 @@ export class Service {
       9: Math.round(evolutionData.rewardWinnerAmount * 0.05 * 1000) / 1000,
     };
 
-    const winners = input.lastClients
+    const winners = input.clients
       // .filter((p) => p.lastUpdate >= fiveSecondsAgo)
       .sort((a, b) => b.points - a.points);
 
@@ -409,18 +391,18 @@ export class Service {
       for (const pickup of client.pickups) {
         if (pickup.type === 'token') {
           // TODO: change to authoritative
-          // if (pickup.quantity > input.round.lastClients.length * evolutionData.rewardItemAmountPerLegitPlayer * 2) {
+          // if (pickup.quantity > input.round.clients.length * evolutionData.rewardItemAmountPerLegitPlayer * 2) {
           //   log(
           //     pickup.quantity,
           //     evolutionData.rewardItemAmountPerLegitPlayer,
-          //     input.round.lastClients.length,
-          //     JSON.stringify(input.round.lastClients)
+          //     input.round.clients.length,
+          //     JSON.stringify(input.round.clients)
           //   );
           //   throw new Error('Big problem with item reward amount');
           // }
 
-          // if (pickup.quantity > input.round.lastClients.length * evolutionData.rewardItemAmountMax) {
-          //   log(pickup.quantity, input.round.lastClients.length, evolutionData.rewardItemAmountMax);
+          // if (pickup.quantity > input.round.clients.length * evolutionData.rewardItemAmountMax) {
+          //   log(pickup.quantity, input.round.clients.length, evolutionData.rewardItemAmountMax);
           //   throw new Error('Big problem with item reward amount 2');
           // }
 
