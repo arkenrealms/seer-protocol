@@ -15,12 +15,12 @@ export class Service {
     evolutionData.data = {
       roundId: generateShortId(),
       maxClients: 100,
-      rewardItemAmount: 0,
+      rewardItemAmount: 1,
       rewardWinnerAmount: 300,
-      rewardItemAmountPerLegitPlayer: 0,
-      rewardItemAmountMax: 0,
-      rewardWinnerAmountPerLegitPlayer: 0,
-      rewardWinnerAmountMax: 0,
+      rewardItemAmountPerLegitPlayer: 0.001,
+      rewardItemAmountMax: 1,
+      rewardWinnerAmountPerLegitPlayer: 0.001,
+      rewardWinnerAmountMax: 300,
       drops: {
         guardian: 0,
         earlyAccess: 0,
