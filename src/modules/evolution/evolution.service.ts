@@ -110,7 +110,7 @@ export class Service {
     //   }
     // }
 
-    // evolutionData.markModified('data')
+    evolutionData.markModified('data');
 
     await evolutionData.save();
 
@@ -328,7 +328,10 @@ export class Service {
 
     if (input.round.id !== evolutionData.data.roundId) throw new Error('Invalid Round ID');
 
-    evolutionData.data.roundId = generateShortId();
+    evolutionData.data = {
+      ...evolutionData.data,
+      roundId: generateShortId(),
+    };
 
     if (!evolutionData.data.rewards.tokens)
       evolutionData.data.rewards.tokens = [
@@ -348,6 +351,8 @@ export class Service {
           quantity: 100000,
         },
       ];
+
+    evolutionData.markModified('data');
 
     await evolutionData.save();
 
