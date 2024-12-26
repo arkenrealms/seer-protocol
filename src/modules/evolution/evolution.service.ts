@@ -12,7 +12,7 @@ export class Service {
 
     const evolutionData = await ctx.app.model.Data.findOne({ key: 'evolution', mod: 'evolution' });
 
-    const data: any = {
+    evolutionData.data = {
       roundId: generateShortId(),
       maxClients: 100,
       rewardItemAmount: 0,
@@ -101,13 +101,16 @@ export class Service {
           },
         ],
       },
+      ...evolutionData.data,
     };
 
-    for (const key in data) {
-      if (!evolutionData.data[key]) {
-        evolutionData.data[key] = data[key];
-      }
-    }
+    // for (const key in data) {
+    //   if (!evolutionData.data[key]) {
+    //     evolutionData.data[key] = data[key];
+    //   }
+    // }
+
+    // evolutionData.markModified('data')
 
     await evolutionData.save();
 
