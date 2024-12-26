@@ -352,7 +352,7 @@ export class Service {
       roundId: evolutionData.roundId,
     };
 
-    if (input.lastClients.length === 0) {
+    if (input.clients.length === 0) {
       console.log('Round skipped');
 
       return res;
