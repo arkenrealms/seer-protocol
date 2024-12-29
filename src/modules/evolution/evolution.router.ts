@@ -45,8 +45,6 @@ export const createRouter = () =>
         z.object({
           shardId: z.string(),
           round: z.any(),
-          rewardWinnerAmount: z.number(),
-          clients: z.any(),
         })
       )
       // .output(Arken.Profile.Schemas.Profile)
