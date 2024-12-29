@@ -14,6 +14,30 @@ export const createRouter = () =>
   router({
     info: procedure.query(({ input, ctx }) => (ctx.app.service.Evolution.info as any)(input, ctx)),
 
+    getPayments: procedure
+      .use(hasRole('user', t))
+      .use(customErrorFormatter(t))
+      .query(({ input, ctx }) => (ctx.app.service.Evolution.getPayments as any)(input, ctx)),
+
+    processPayments: procedure
+      .use(hasRole('admin', t))
+      .use(customErrorFormatter(t))
+      .mutation(({ input, ctx }) => (ctx.app.service.Evolution.processPayments as any)(input, ctx)),
+
+    createPaymentRequest: procedure
+      .use(hasRole('user', t))
+      .use(customErrorFormatter(t))
+      .input(
+        z.object({
+          tokens: z.any(),
+          amounts: z.any(),
+          tokenIds: z.any(),
+          itemIds: z.any(),
+          to: z.any(),
+        })
+      )
+      .mutation(({ input, ctx }) => (ctx.app.service.Evolution.createPaymentRequest as any)(input, ctx)),
+
     saveRound: procedure
       .use(hasRole('guest', t))
       .use(customErrorFormatter(t))

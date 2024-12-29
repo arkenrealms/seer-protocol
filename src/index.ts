@@ -28,6 +28,10 @@ export class SeerBase implements Types.Seer {
   services: any;
   applications: any;
   application: any;
+  contracts: any;
+  contractInfo: any;
+  contractMetadata: any;
+  signers: any;
   filters: Record<string, any> = { applicationId: null };
 
   // async getRealms(

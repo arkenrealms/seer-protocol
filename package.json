@@ -8,7 +8,10 @@
     "@trpc/client": "next",
     "@trpc/server": "next",
     "zod": "^3",
-    "dotenv": "^16"
+    "dotenv": "^16",
+    "web3": "^1"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "@types/web3": "^1"
+  }
 }

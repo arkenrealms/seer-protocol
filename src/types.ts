@@ -16,13 +16,29 @@ export type ApplicationServiceType = Partial<{
 export type ApplicationModelType = Partial<Evolution.Types.Mappings & Infinite.Types.Mappings> &
   Arken.ApplicationModelType;
 
-export interface Application {
-  model: ApplicationModelType;
+export type Seer = {
   service: ApplicationServiceType;
-}
+  model: ApplicationModelType;
+  realms: Arken.Core.Types.Realm[];
+
+  server: any;
+  http: any;
+  https: any;
+  isHttps: boolean;
+  cache: any;
+  db: any;
+  services: any;
+  applications: any;
+  application: any;
+  filters: Record<string, any>;
+  contracts: any;
+  contractInfo: any;
+  contractMetadata: any;
+  signers: any;
+};
 
 export type RouterContext = {
-  app: Application;
+  app: Seer;
 } & Arken.RouterContext;
 
 export interface Client {
@@ -45,20 +61,3 @@ export interface Client {
 export interface ServiceContext {
   client: Client;
 }
-
-export type Seer = Application & {
-  service: ApplicationServiceType;
-  model: ApplicationModelType;
-  realms: Arken.Core.Types.Realm[];
-
-  server: any;
-  http: any;
-  https: any;
-  isHttps: boolean;
-  cache: any;
-  db: any;
-  services: any;
-  applications: any;
-  application: any;
-  filters: Record<string, any>;
-};
