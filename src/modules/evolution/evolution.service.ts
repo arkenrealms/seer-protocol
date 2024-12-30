@@ -332,7 +332,7 @@ export class Service {
       '0x8aeedc8d20a349736940cff5aa6ced3bc7ccbf8f',
     ];
 
-    const session = await ctx.app.db.startSession();
+    const session = await ctx.app.db.mongoose.startSession();
     session.startTransaction();
 
     const payments = await ctx.app.model.Payment.find({ status: 'Processing' }).populate('owner');
@@ -762,7 +762,7 @@ export class Service {
 
     if (input.round.id !== evolutionData.data.roundId) throw new Error('Invalid Round ID');
 
-    const session = await ctx.app.db.startSession();
+    const session = await ctx.app.db.mongoose.startSession();
     session.startTransaction();
 
     try {
@@ -873,7 +873,7 @@ export class Service {
 
             // evolutionData.data.rewards.tokens[tokenSymbol.toLowerCase()] -= pickup.quantity
 
-            // app.db.oracle.outflow.evolutionRewards.tokens.week[tokenSymbol.toLowerCase()] += pickup.quantity
+            // app.db.mongoose.oracle.outflow.evolutionRewards.tokens.week[tokenSymbol.toLowerCase()] += pickup.quantity
           } else {
             if (pickup.name === 'Santa Christmas 2024 Ticket') {
               if (!profile.meta.rewards.tokens['christmas2024']) profile.meta.rewards.tokens['christmas2024'] = 0;
