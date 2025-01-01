@@ -153,12 +153,15 @@ export class Service {
     // };
 
     for (const key in input) {
+      console.log('Setting', key, input[key]);
       game.meta[key] = input[key];
     }
 
     game.meta = { ...game.meta };
 
     await game.save();
+
+    return game.meta;
   }
 
   async updateGameStats(
