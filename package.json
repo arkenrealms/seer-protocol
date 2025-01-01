@@ -5,8 +5,8 @@
   "scripts": {},
   "dependencies": {
     "@arken/node": "workspace:*",
-    "@trpc/client": "next",
-    "@trpc/server": "next",
+    "@trpc/client": "11.0.0-rc.678",
+    "@trpc/server": "11.0.0-rc.678",
     "zod": "^3",
     "dotenv": "^16",
     "web3": "^1",
