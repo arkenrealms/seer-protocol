@@ -93,9 +93,7 @@ export class Service {
   async updateConfig(input: RouterInput['updateConfig'], ctx: RouterContext): Promise<RouterOutput['updateConfig']> {
     if (!input) throw new Error('Input should not be void');
 
-    const { Game, GameStat } = ctx.app.model;
-
-    const game = await Game.findOne({ key: 'evolution-isles' }).exec();
+    const game = await ctx.app.model.Game.findOne({ key: 'evolution-isles' });
 
     // if (!game.meta)
     // game.meta = {
@@ -158,6 +156,7 @@ export class Service {
     }
 
     game.meta = { ...game.meta };
+    game.markModified('meta');
 
     await game.save();
 
@@ -404,9 +403,7 @@ export class Service {
 
     // await gameData.save();
 
-    const { Game, GameStat } = ctx.app.model;
-
-    const game = await Game.findOne({ key: 'evolution-isles' }).exec();
+    const game = await ctx.app.model.Game.findOne({ key: 'evolution-isles' });
 
     return game.meta;
   }
@@ -1106,7 +1103,7 @@ export class Service {
 
     if (!ctx.client?.roles?.includes('admin')) throw new Error('Not authorized');
 
-    const game = await ctx.app.model.Game.findOne({ key: 'evolution' }).exec();
+    const game = await ctx.app.model.Game.findOne({ key: 'evolution-isles' }).exec();
 
     if (input.round.id !== game.meta.roundId) throw new Error('Invalid Round ID');
 
