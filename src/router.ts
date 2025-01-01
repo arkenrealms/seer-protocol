@@ -31,7 +31,7 @@ import * as Oasis from './modules/oasis/oasis.router';
 import type * as Types from './types';
 
 export type RouterContext = {
-  app: Types.Seer;
+  app: Types.ApplicationType;
 };
 export const t = initTRPC.context<RouterContext>().create();
 export const router = t.router;

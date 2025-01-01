@@ -14,6 +14,22 @@ export const createRouter = () =>
   router({
     info: procedure.query(({ input, ctx }) => (ctx.app.service.Evolution.info as any)(input, ctx)),
 
+    updateConfig: procedure
+      .use(hasRole('admin', t))
+      .use(customErrorFormatter(t))
+      .input(z.any())
+      .mutation(({ input, ctx }) => (ctx.app.service.Evolution.updateConfig as any)(input, ctx)),
+
+    updateGameStats: procedure
+      .use(hasRole('admin', t))
+      .use(customErrorFormatter(t))
+      .mutation(({ input, ctx }) => (ctx.app.service.Evolution.updateGameStats as any)(input, ctx)),
+
+    monitorChest: procedure
+      .use(hasRole('admin', t))
+      .use(customErrorFormatter(t))
+      .mutation(({ input, ctx }) => (ctx.app.service.Evolution.monitorChest as any)(input, ctx)),
+
     getPayments: procedure
       .use(hasRole('user', t))
       .use(customErrorFormatter(t))

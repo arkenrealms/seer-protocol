@@ -3,11 +3,15 @@ import * as Arken from '@arken/node';
 import { generateShortId } from '@arken/node/util/db';
 import contractInfo from '@arken/node/legacy/contractInfo';
 import { ARXError } from '@arken/node/util/rpc';
-import { getAddress } from '@arken/node/util/web3';
+import { iterateBlocks, getAddress, getSignedRequest } from '@arken/node/util/web3';
+import { sleep } from '@arken/node/util/time';
+import * as ethers from 'ethers';
 import Web3 from 'web3';
+import dayjs from 'dayjs';
 import { getTime, log, logError, random, toLong } from '@arken/node/util';
 import { getTokenIdFromItem, normalizeItem } from '@arken/node/util/decoder';
 import { awaitEnter } from '@arken/node/util/process';
+import { Schema, serialize } from 'borsh';
 
 const allowedAdminAddresses = [
   '0xa987f487639920A3c2eFe58C8FBDedB96253ed9B',
@@ -86,116 +90,322 @@ function getTokenIdsFromItems(requestedItems) {
 }
 
 export class Service {
+  async updateConfig(input: RouterInput['updateConfig'], ctx: RouterContext): Promise<RouterOutput['updateConfig']> {
+    if (!input) throw new Error('Input should not be void');
+
+    const { Game, GameStat } = ctx.app.model;
+
+    const game = await Game.findOne({ key: 'evolution-isles' }).exec();
+
+    // if (!game.meta)
+    // game.meta = {
+    //   noDecay: false,
+    //   isBattleRoyale: false,
+    //   roundLoopSeconds: 0,
+    //   totalLegitPlayers: 0,
+    //   checkPositionDistance: 0,
+    //   baseSpeed: 0,
+    //   maxClients: 100,
+    //   rewardItemAmount: 1,
+    //   mapBoundary: { x: { min: 0, max: 0 }, y: { min: 0, max: 0 } },
+    //   orbTimeoutSeconds: 0,
+    //   preventBadKills: false,
+    //   rewardWinnerAmountMax: 300,
+    //   maxEvolves: 0,
+    //   spawnBoundary1: { x: { min: 0, max: 0 }, y: { min: 0, max: 0 } },
+    //   isRoundPaused: false,
+    //   gameMode: 'Deathmatch',
+    //   antifeed1: false,
+    //   level2open: false,
+    //   rewardWinnerAmount: 1000,
+    //   orbCutoffSeconds: 0,
+    //   antifeed2: false,
+    //   rewardSpawnLoopSeconds: 0,
+    //   rewardItemAmountPerLegitPlayer: 0.0010000000000000000208,
+    //   antifeed3: false,
+    //   checkInterval: 0,
+    //   isGodParty: false,
+    //   pointsPerEvolve: 0,
+    //   pointsPerKill: 0,
+    //   loggableEvents: [],
+    //   drops: { guardian: 0, santa: 0, earlyAccess: 0, trinket: 0 },
+    //   hideMap: false,
+    //   rewards: {
+    //     characters: [{ type: 'character', tokenId: '1' }],
+    //     items: [],
+    //     tokens: [
+    //       { symbol: 'pepe', value: 0.000020000000000000001636, quantity: 10000000, type: 'token' },
+    //       { symbol: 'doge', value: 0.2999999999999999889, quantity: 0, type: 'token' },
+    //       { symbol: 'harold', value: 0.012999999999999999403, quantity: 100000, type: 'token' },
+    //     ],
+    //   },
+    //   decayPower: 0,
+    //   spawnBoundary2: { x: { max: 0, min: 0 }, y: { min: 0, max: 0 } },
+    //   rewardWinnerAmountPerLegitPlayer: 0.0010000000000000000208,
+    //   dynamicDecayPower: true,
+    //   leadercap: false,
+    //   rewardItemAmountMax: 1,
+    //   resetInterval: 0,
+    //   orbOnDeathPercent: 0,
+    //   roundId: '6774d64608c05476fc257d1a',
+    //   noBoot: false,
+    //   fastLoopSeconds: 0,
+    // };
+
+    for (const key in input) {
+      game.meta[key] = input[key];
+    }
+
+    game.meta = { ...game.meta };
+
+    await game.save();
+  }
+
+  async updateGameStats(
+    input: RouterInput['updateGameStats'],
+    ctx: RouterContext
+  ): Promise<RouterOutput['updateGameStats']> {
+    const { Game, GameStat } = ctx.app.model;
+
+    const game = await Game.findOne({ key: 'evolution' }).populate('stat').exec();
+    let latestRecord = game.stat;
+
+    try {
+      if (latestRecord) {
+        const dayAgo = dayjs().subtract(1, 'day');
+
+        // Unset the latest record if it's older than one day, so a new one is created
+        if (!dayjs(latestRecord.createdDate).isAfter(dayAgo)) {
+          latestRecord = undefined;
+        }
+      }
+    } catch (e) {
+      console.log('Error getting latest stat record', e);
+    }
+
+    const meta: any = {
+      clientCount: game.meta.clientCount,
+    };
+
+    if (latestRecord) {
+      await GameStat.updateOne(
+        { _id: latestRecord.id },
+        {
+          ...latestRecord,
+          meta,
+        }
+      ).exec();
+    } else {
+      const gameStat = await GameStat.create({
+        gameId: game.id,
+        meta,
+      });
+
+      game.statId = gameStat.id;
+    }
+
+    game.meta = { ...game.meta };
+
+    await game.save();
+  }
+
+  async getAllChestEvents(app, retry = false) {
+    if (app.data.chest.updating) return;
+
+    log('[Chest] Updating');
+
+    app.data.chest.updating = true;
+
+    try {
+      const payments = await app.model.Payment.find();
+
+      const iface = new ethers.Interface(app.contractMetadata.ArkenChest.abi);
+
+      // @ts-ignore
+      async function processLog(log2, updateConfig = true) {
+        try {
+          const e = iface.parseLog(log2);
+
+          console.log(e.name, e);
+          const profile = await app.model.Profile.findOne({ address: e.args.to });
+
+          const payment = await app.model.Payment.findOne({ id: e.args.requestId });
+
+          if (!payment) {
+            throw new Error('Could not find a payment that appeared onchain.');
+          }
+
+          payment.status = 'Completed';
+        } catch (ex) {
+          log(ex);
+          log('Error parsing log: ', log2);
+          await sleep(1000);
+        }
+      }
+
+      const blockNumber = await app.web3.eth.getBlockNumber();
+
+      if (parseInt(blockNumber) > 10000) {
+        const events = ['ItemsSent(address,uint256,string)'];
+
+        for (const event of events) {
+          await iterateBlocks(
+            app,
+            `Chest Events: ${event}`,
+            getAddress(app.contractInfo.chest),
+            app.data.chest.lastBlock[event] || 15000000,
+            blockNumber,
+            app.contracts.chest.filters[event](),
+            processLog,
+            async function (blockNumber2) {
+              app.data.chest.lastBlock[event] = blockNumber2;
+              // await saveConfig()
+            }
+          );
+        }
+      } else {
+        log('Error parsing block number', blockNumber);
+      }
+
+      log('Finished getting events');
+    } catch (e) {
+      log('Error', e);
+      await sleep(1000);
+    }
+
+    app.data.chest.updating = false;
+    app.data.chest.updatedDate = new Date().toString();
+    app.data.chest.updatedTimestamp = new Date().getTime();
+
+    if (retry) {
+      setTimeout(() => this.getAllChestEvents(app, retry), 5 * 60 * 1000);
+    }
+  }
+
+  async monitorChest(input: RouterInput['monitorChest'], ctx: RouterContext): Promise<RouterOutput['monitorChest']> {
+    ctx.app.data.chest = {};
+
+    await this.getAllChestEvents(ctx.app);
+
+    ctx.app.contracts.chest.on('ItemsSent', async () => {
+      await this.getAllChestEvents(ctx.app);
+    });
+  }
+
   async info(input: RouterInput['info'], ctx: RouterContext): Promise<RouterOutput['info']> {
     console.log('Evolution.Service.info', input);
 
     if (!ctx.client?.roles?.includes('admin')) throw new Error('Not authorized');
 
-    const evolutionData = await ctx.app.model.Data.findOne({ key: 'evolution', mod: 'evolution' });
+    // const gameData = await ctx.app.model.Data.findOne({ key: 'evolution', mod: 'evolution' });
 
-    evolutionData.data = {
-      roundId: generateShortId(),
-      maxClients: 100,
-      rewardItemAmount: 1,
-      rewardWinnerAmount: 300,
-      rewardItemAmountPerLegitPlayer: 0.001,
-      rewardItemAmountMax: 1,
-      rewardWinnerAmountPerLegitPlayer: 0.001,
-      rewardWinnerAmountMax: 300,
-      drops: {
-        guardian: 0,
-        earlyAccess: 0,
-        trinket: 0,
-        santa: 0,
-      },
-      totalLegitPlayers: 0,
-      isBattleRoyale: false,
-      isGodParty: false,
-      level2open: false,
-      isRoundPaused: false,
-      gameMode: 'Deathmatch',
-      maxEvolves: 0,
-      pointsPerEvolve: 0,
-      pointsPerKill: 0,
-      decayPower: 0,
-      dynamicDecayPower: true,
-      baseSpeed: 0,
-      avatarSpeedMultiplier: {},
-      avatarDecayPower: {},
-      preventBadKills: false,
-      antifeed1: false,
-      antifeed2: false,
-      antifeed3: false,
-      noDecay: false,
-      noBoot: false,
-      rewardSpawnLoopSeconds: 0,
-      orbOnDeathPercent: 0,
-      orbTimeoutSeconds: 0,
-      orbCutoffSeconds: 0,
-      orbLookup: {},
-      roundLoopSeconds: 0,
-      fastLoopSeconds: 0,
-      leadercap: false,
-      hideMap: false,
-      checkPositionDistance: 0,
-      checkInterval: 0,
-      resetInterval: 0,
-      loggableEvents: [],
-      mapBoundary: {
-        x: { min: 0, max: 0 },
-        y: { min: 0, max: 0 },
-      },
-      spawnBoundary1: {
-        x: { min: 0, max: 0 },
-        y: { min: 0, max: 0 },
-      },
-      spawnBoundary2: {
-        x: { min: 0, max: 0 },
-        y: { min: 0, max: 0 },
-      },
-      rewards: {
-        tokens: [
-          {
-            type: 'token',
-            symbol: 'pepe',
-            quantity: 10000000,
-            value: 0.00002,
-          },
-          {
-            type: 'token',
-            symbol: 'doge',
-            quantity: 1000,
-            value: 0.3,
-          },
-          {
-            type: 'token',
-            symbol: 'harold',
-            quantity: 100000,
-            value: 0.013,
-          },
-        ],
-        items: [],
-        characters: [
-          {
-            type: 'character',
-            tokenId: '1',
-          },
-        ],
-      },
-      ...evolutionData.data,
-    };
+    // gameData.data = {
+    //   roundId: generateShortId(),
+    //   maxClients: 100,
+    //   rewardItemAmount: 1,
+    //   rewardWinnerAmount: 300,
+    //   rewardItemAmountPerLegitPlayer: 0.001,
+    //   rewardItemAmountMax: 1,
+    //   rewardWinnerAmountPerLegitPlayer: 0.001,
+    //   rewardWinnerAmountMax: 300,
+    //   drops: {
+    //     guardian: 0,
+    //     earlyAccess: 0,
+    //     trinket: 0,
+    //     santa: 0,
+    //   },
+    //   totalLegitPlayers: 0,
+    //   isBattleRoyale: false,
+    //   isGodParty: false,
+    //   level2open: false,
+    //   isRoundPaused: false,
+    //   gameMode: 'Deathmatch',
+    //   maxEvolves: 0,
+    //   pointsPerEvolve: 0,
+    //   pointsPerKill: 0,
+    //   decayPower: 0,
+    //   dynamicDecayPower: true,
+    //   baseSpeed: 0,
+    //   avatarSpeedMultiplier: {},
+    //   avatarDecayPower: {},
+    //   preventBadKills: false,
+    //   antifeed1: false,
+    //   antifeed2: false,
+    //   antifeed3: false,
+    //   noDecay: false,
+    //   noBoot: false,
+    //   rewardSpawnLoopSeconds: 0,
+    //   orbOnDeathPercent: 0,
+    //   orbTimeoutSeconds: 0,
+    //   orbCutoffSeconds: 0,
+    //   orbLookup: {},
+    //   roundLoopSeconds: 0,
+    //   fastLoopSeconds: 0,
+    //   leadercap: false,
+    //   hideMap: false,
+    //   checkPositionDistance: 0,
+    //   checkInterval: 0,
+    //   resetInterval: 0,
+    //   loggableEvents: [],
+    //   mapBoundary: {
+    //     x: { min: 0, max: 0 },
+    //     y: { min: 0, max: 0 },
+    //   },
+    //   spawnBoundary1: {
+    //     x: { min: 0, max: 0 },
+    //     y: { min: 0, max: 0 },
+    //   },
+    //   spawnBoundary2: {
+    //     x: { min: 0, max: 0 },
+    //     y: { min: 0, max: 0 },
+    //   },
+    //   rewards: {
+    //     tokens: [
+    //       {
+    //         type: 'token',
+    //         symbol: 'pepe',
+    //         quantity: 10000000,
+    //         value: 0.00002,
+    //       },
+    //       {
+    //         type: 'token',
+    //         symbol: 'doge',
+    //         quantity: 1000,
+    //         value: 0.3,
+    //       },
+    //       {
+    //         type: 'token',
+    //         symbol: 'harold',
+    //         quantity: 100000,
+    //         value: 0.013,
+    //       },
+    //     ],
+    //     items: [],
+    //     characters: [
+    //       {
+    //         type: 'character',
+    //         tokenId: '1',
+    //       },
+    //     ],
+    //   },
+    //   ...gameData.data,
+    // };
 
     // for (const key in data) {
-    //   if (!evolutionData.data[key]) {
-    //     evolutionData.data[key] = data[key];
+    //   if (!gameData.data[key]) {
+    //     gameData.data[key] = data[key];
     //   }
     // }
 
-    evolutionData.markModified('data');
+    // gameData.markModified('data');
 
-    await evolutionData.save();
+    // await gameData.save();
 
-    return evolutionData.data;
+    const { Game, GameStat } = ctx.app.model;
+
+    const game = await Game.findOne({ key: 'evolution-isles' }).exec();
+
+    return game.meta;
   }
 
   async getPayments(input: RouterInput['getPayments'], ctx: RouterContext): Promise<RouterOutput['getPayments']> {
@@ -205,7 +415,7 @@ export class Service {
 
     const payments = await ctx.app.model.Payment.find({
       ownerId: ctx.client.profile.id,
-    });
+    }).sort({ createdDate: -1 });
 
     return payments;
   }
@@ -218,9 +428,16 @@ export class Service {
 
     console.log('Profile.Service.createPaymentRequest', input);
 
+    const existingPayment = await ctx.app.model.Payment.findOne({
+      ownerId: ctx.client.profile.id,
+      status: 'Processing',
+    });
+
+    if (existingPayment) throw new Error('Payment is already processing');
+
     await ctx.app.model.Payment.updateMany({ ownerId: ctx.client.profile.id }, { $set: { status: 'Voided' } });
 
-    const payment = await ctx.app.model.Payment.create({
+    await ctx.app.model.Payment.create({
       // applicationId: this.cache.Application.Arken.id,
       // name: ctx.client.profile.name,
       status: 'Processing',
@@ -238,34 +455,306 @@ export class Service {
     });
   }
 
-  // async approvePaymentRequest(
-  //   input: RouterInput['approvePaymentRequest'],
-  //   ctx: RouterContext
-  // ): Promise<RouterOutput['approvePaymentRequest']> {
-  //   const payment = await ctx.app.model.Payment.findOne({ id: input.paymentId });
-  //   const profile = await ctx.app.model.Profile.findOne({ address: input.address });
+  async processBinanceSmartChainPayment(payment: any, ctx: any) {
+    const items = await ctx.app.model.Item.find({ key: { $in: payment.meta.itemIds || [] } });
 
-  //   // if (!profile.meta?.rewardHistory) profile.meta?.rewardHistory = []
+    // #region Build ItemData
+    let rewardData: ItemData = {} as any;
 
-  //   // for (const item of input.items) {
-  //   //   profile.meta.rewardHistory.push({
-  //   //     id: input.id,
-  //   //     item: JSON.parse(JSON.stringify(profile.meta.rewards.items[item.key])),
-  //   //     quantity: item.quantity,
-  //   //     timestamp: new Date().getTime(),
-  //   //   })
+    const tokenDecimals: Record<string, number> = {
+      '0xbA2aE424d960c26247Dd6c32edC70B295c744C43': 8,
+    };
 
-  //   //   delete profile.meta.rewards.items[item.key]
-  //   // }
+    // payment.meta.tokenAddresses = ['0xbA2aE424d960c26247Dd6c32edC70B295c744C43'];
+    // payment.meta.tokenAmounts = [1];
 
-  //   // if (!profile.meta.claimRequests) profile.meta.claimRequests = []
+    /*
+     * `payment.tokenAddresses` contains the contract addresses of the tokens the user is claiming.
+     *
+     * If the user isn't claiming any tokens (only item mints), this is the empty array.
+     */
+    rewardData.tokenAddresses = payment.meta.tokenAddresses;
+    /*
+     * `payment.tokenAmounts` contains the amounts (in wei) of the tokens the user is claiming.
+     *
+     * If the user isn't claiming any tokens (only item mints), this is the empty array.
+     *
+     * The length of this array must equal the length of `payment.tokenAddresses` and must be ordered the same.
+     */
+    rewardData.tokenAmounts = (payment.meta.tokenAddresses || []).map(
+      (r, i) =>
+        toLong((payment.meta.tokenAmounts[i] + '').slice(0, tokenDecimals[r] || 16), tokenDecimals[r] || 16) + ''
+    );
+    /*
+     * `payment.tokenIds` contains the token ids of any reward items (trinkets, Santa hats, cubes, etc.) the user
+     * is claiming.
+     *
+     * If the user isn't claiming any item mints (only tokens), this is the empty array.
+     *
+     * The contract will ensure token uniqueness, but the three digit serial should be randomised to prevent excess
+     * gas spending.
+     */
 
-  //   // let claimRequest = profile.meta.claimRequests.find((c) => c.requestId === input.requestId)
+    rewardData.tokenIds = ctx.client.roles.includes('admin') ? getTokenIdsFromItems(items) : [];
+    /*
+     * `payment.itemIds` contains the item ids of any reward items (trinkets, Santa hats, cubes, etc.) the user
+     * is claiming.
+     *
+     * If the user isn't claiming any item mints (only tokens), this is the empty array.
+     *
+     * The length of this array must equal the length of `payment.tokenIds` and must be ordered the same.
+     */
+    rewardData.itemIds = ctx.client.roles.includes('admin') ? items.map((requestedItem) => requestedItem.id) : [];
 
-  //   payment.updatedDate = new Date();
+    rewardData.purportedSigner = ctx.app.signers.wallet.address; // '0x81F8C054667046171C0EAdC73063Da557a828d6f'; // arken dev 2 #0
 
-  //   payment.status = 'Approved';
-  // }
+    /*
+     * `payment.to` contains the address of the user who should receive the rewards.
+     */
+    rewardData.to = payment.meta.to;
+
+    /*
+     * Get next nonce and expiry for the user who should receive the rewards.
+     */
+    const nextNonceAndExpiry = await ctx.app.contracts.bsc.chest.getNextNonceAndExpiry(rewardData.to);
+    const nonce = nextNonceAndExpiry.nextNonce.toNumber();
+    const expiry = nextNonceAndExpiry.expiry.toNumber();
+
+    rewardData.nonce = nonce;
+    rewardData.expiry = expiry;
+
+    /*
+     * RE request id: suggest it's the keccak256 hash of all rewardData structure, but we can make it something else
+     * if needed (think you mentioned doing something similar to AWS's payment ids at one point)
+     */
+    rewardData.requestId = payment.id + ''; // (ctx.app.web3.bsc as Web3).utils.keccak256(JSON.stringify(rewardData));
+
+    /* --- IMPORTANT ---
+     *
+     * We need to store mappings between address and nonce pairs and the rewards we're authorising issuance of.
+     *
+     * Let's say this is the first time the user has claimed.
+     *
+     * We get the next nonce from the contract and see it is 0, as expected. The user is eligible for 5 Tir and a
+     * mysterious trinket (for example). We need to store the mapping between (user's address, nonce 0) and the
+     * reward. When we can then issue a permit for the user to get 5 Tir and their trinket.
+     *
+     * Let's say the user doesn't use their permit, but hits the service again. We look up the fact that the nonce is
+     * still 0 in the contract, and we can reissue another permit ad libitum. It doesn't matter if the user comes back
+     * and requests a million permits - as soon as they give one of them to the contract and make a claim, the nonce
+     * counter increments, and all of the other permits are invalidated. So even if someone thinks they're being
+     * clever, gets ten permits, stores then, then submits them at once, only one will succeed.
+     *
+     * What we *do* need to be careful of is what happens when we check the nonce with the contract and it's now 1.
+     * That means one of the tickets went through. Now we need to compare it against the stored nonce for the user,
+     * see that it's higher than the stored number, take the mapped reward and ask the coordinator to subtract those
+     * rewards from the user's pending balance. Then, assuming there's anything left, we can issue the permit for
+     * whatever is new under the new nonce.
+     *
+     * I'll skip the logic for this as I haven't had a chance to familiarise myself properly with the coordinator,
+     * and just assume the nonce check is ok here.
+     */
+    const domain = {
+      name: 'ArkenChest',
+      version: '1',
+      chainId: 56,
+      verifyingContract: getAddress(contractInfo.chest),
+    };
+
+    const rewardDataTypes = {
+      // EIP712Domain: [
+      //     { name: 'name', type: 'string' },
+      //     { name: 'version', type: 'string' },
+      //     { name: 'chainId', type: 'uint256' },
+      //     { name: 'verifyingContract', type: 'address' },
+      // ],
+      ItemData: [
+        { name: 'tokenAddresses', type: 'address[]' },
+        { name: 'tokenAmounts', type: 'uint256[]' },
+        { name: 'tokenIds', type: 'uint256[]' },
+        { name: 'itemIds', type: 'uint16[]' },
+
+        { name: 'purportedSigner', type: 'address' },
+        { name: 'to', type: 'address' },
+        { name: 'nonce', type: 'uint256' },
+        { name: 'expiry', type: 'uint256' },
+        { name: 'requestId', type: 'string' },
+      ],
+    };
+
+    // const profile = await ctx.app.model.Profile.findOne({ id: payment.ownerId });
+
+    for (const i in payment.meta.tokenAddresses) {
+      const address = payment.meta.tokenAddresses[i];
+      const key = contractAddressToKey[address];
+      const value = payment.owner.meta.rewards.tokens[key];
+
+      payment.owner.meta.rewards.tokens[key] -= rewardData.tokenAmounts[i];
+
+      if (payment.owner.meta.rewards.tokens[key] < 0.000000001) payment.owner.meta.rewards.tokens[key] = 0;
+    }
+
+    payment.owner.meta = { ...payment.owner.meta };
+
+    console.log(payment.owner.meta.rewards);
+
+    await ctx.app.model.Profile.updateOne({ id: payment.ownerId }, { $set: { meta: payment.owner.meta } });
+
+    // TODO: refetch profile and confirm balances?
+
+    const signature = await ctx.app.signers.wallet._signTypedData(domain, rewardDataTypes, rewardData);
+
+    // This should be the calldata we need to return to the user
+    payment.meta.signedData = ctx.app.contracts.bsc.chest.interface.encodeFunctionData('sendItems', [
+      rewardData,
+      signature,
+    ]);
+  }
+
+  async processSolanaPayment(payment: any, ctx: any) {
+    const anchor = require('@project-serum/anchor');
+    const { PublicKey, Keypair, SystemProgram } = anchor.web3;
+    const fs = require('fs');
+    const nacl = require('tweetnacl');
+    const bs58 = require('bs58');
+
+    // Configure the client to use the Solana cluster
+    const provider = anchor.AnchorProvider.env();
+    anchor.setProvider(provider);
+
+    // Load authority keypair (authorized signer)
+    const authoritySecret = JSON.parse(process.env.SOLANA_CHEST_AUTHORITY);
+    const authority = Keypair.fromSecretKey(new Uint8Array(authoritySecret));
+
+    // Define token mint and from token account
+    const tokenMint = '3vgopg7xm3EWkXfxmWPUpcf7g939hecfqg18sLuXDzVt'; // Replace with your existing token mint address
+
+    // Define recipient
+    const recipient = '9hdMuARXF4VXg3LsJJirkye8QNjY79iznTzNRtL7JFYa'; // Replace with recipient's public key
+
+    const items = await ctx.app.model.Item.find({ key: { $in: payment.meta.itemIds || [] } });
+
+    // #region Build ItemData
+    let rewardData: ItemData = {} as any;
+
+    const tokenDecimals: Record<string, number> = {
+      '0xbA2aE424d960c26247Dd6c32edC70B295c744C43': 8,
+    };
+
+    // payment.meta.tokenAddresses = ['0xbA2aE424d960c26247Dd6c32edC70B295c744C43'];
+    // payment.meta.tokenAmounts = [1];
+
+    /*
+     * `payment.tokenAddresses` contains the contract addresses of the tokens the user is claiming.
+     *
+     * If the user isn't claiming any tokens (only item mints), this is the empty array.
+     */
+    rewardData.tokenAddresses = payment.meta.tokenAddresses;
+    /*
+     * `payment.tokenAmounts` contains the amounts (in wei) of the tokens the user is claiming.
+     *
+     * If the user isn't claiming any tokens (only item mints), this is the empty array.
+     *
+     * The length of this array must equal the length of `payment.tokenAddresses` and must be ordered the same.
+     */
+    rewardData.tokenAmounts = (payment.meta.tokenAddresses || []).map(
+      (r, i) =>
+        toLong((payment.meta.tokenAmounts[i] + '').slice(0, tokenDecimals[r] || 16), tokenDecimals[r] || 16) + ''
+    );
+    /*
+     * `payment.tokenIds` contains the token ids of any reward items (trinkets, Santa hats, cubes, etc.) the user
+     * is claiming.
+     *
+     * If the user isn't claiming any item mints (only tokens), this is the empty array.
+     *
+     * The contract will ensure token uniqueness, but the three digit serial should be randomised to prevent excess
+     * gas spending.
+     */
+
+    rewardData.tokenIds = ctx.client.roles.includes('admin') ? getTokenIdsFromItems(items) : [];
+    /*
+     * `payment.itemIds` contains the item ids of any reward items (trinkets, Santa hats, cubes, etc.) the user
+     * is claiming.
+     *
+     * If the user isn't claiming any item mints (only tokens), this is the empty array.
+     *
+     * The length of this array must equal the length of `payment.tokenIds` and must be ordered the same.
+     */
+    rewardData.itemIds = ctx.client.roles.includes('admin') ? items.map((requestedItem) => requestedItem.id) : [];
+
+    rewardData.purportedSigner = ctx.app.signers.wallet.address; // '0x81F8C054667046171C0EAdC73063Da557a828d6f'; // arken dev 2 #0
+
+    /*
+     * `payment.to` contains the address of the user who should receive the rewards.
+     */
+    rewardData.to = payment.meta.to;
+
+    /*
+     * Get next nonce and expiry for the user who should receive the rewards.
+     */
+    const nextNonceAndExpiry = await ctx.app.contracts.bsc.chest.getNextNonceAndExpiry(rewardData.to);
+    const nonce = nextNonceAndExpiry.nextNonce.toNumber();
+    const expiry = nextNonceAndExpiry.expiry.toNumber();
+
+    rewardData.nonce = nonce;
+
+    // Define ItemData
+    const itemData = {
+      token_addresses: [tokenMint],
+      token_amounts: [1], // Amounts corresponding to each token address
+      token_ids: [], // Ignored as per instructions
+      item_ids: [], // Ignored as per instructions
+      purported_signer: authority.publicKey,
+      to: recipient,
+      nonce: 0, // Fetch current nonce from state if necessary
+      expiry: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
+      request_id: payment.id + '',
+    };
+
+    // Serialize ItemData using Borsh
+    class ItemDataSchema {
+      token_addresses: string[];
+      token_amounts: number[];
+      token_ids: number[];
+      item_ids: number[];
+      purported_signer: string;
+      to: string;
+      nonce: number;
+      expiry: number;
+      request_id: string;
+
+      constructor(fields: Partial<ItemDataSchema>) {
+        Object.assign(this, fields);
+      }
+    }
+
+    const schema: any = new Map([
+      [
+        ItemDataSchema,
+        {
+          kind: 'struct',
+          fields: [
+            ['token_addresses', ['pubkey']],
+            ['token_amounts', ['u64']],
+            ['token_ids', ['u64']],
+            ['item_ids', ['u16']],
+            ['purported_signer', 'pubkey'],
+            ['to', 'pubkey'],
+            ['nonce', 'u64'],
+            ['expiry', 'u64'],
+            ['request_id', 'string'],
+          ],
+        },
+      ],
+    ]);
+
+    const message = serialize(schema, new ItemDataSchema(itemData));
+
+    // Sign the message with the authorized signer
+    const signature = nacl.sign.detached(message, authority.secretKey);
+
+    payment.meta.signedData = Array.from(signature);
+  }
 
   async processPayments(
     input: RouterInput['processPayments'],
@@ -340,6 +829,8 @@ export class Service {
     const totals = {};
 
     for (const payment of payments) {
+      console.log('Payment to: ' + payment.meta.to);
+
       for (const i in payment.meta.tokenAddresses) {
         const address = payment.meta.tokenAddresses[i];
         const key = contractAddressToKey[address];
@@ -347,12 +838,12 @@ export class Service {
         if (!totals[key]) totals[key] = 0;
         totals[key] += payment.meta.tokenAmounts[i];
       }
+
+      console.log('Totals: ', totals);
     }
 
-    console.log('Totals: ', totals);
-
     // await awaitEnter('Approve?');
-    return;
+    // return;
 
     for (const payment of payments) {
       try {
@@ -369,147 +860,13 @@ export class Service {
         const problem = isClaimProblem(payment);
         if (problem) throw new Error(problem);
 
-        const items = await ctx.app.model.Item.find({ key: { $in: payment.meta.itemIds || [] } });
+        if (!payment.meta.network) payment.meta.network = 'bsc';
 
-        // #region Build ItemData
-        let rewardData: ItemData = {} as any;
-
-        const tokenDecimals: Record<string, number> = {
-          '0xbA2aE424d960c26247Dd6c32edC70B295c744C43': 8,
-        };
-
-        // payment.meta.tokenAddresses = ['0xbA2aE424d960c26247Dd6c32edC70B295c744C43'];
-        // payment.meta.tokenAmounts = [1];
-
-        /*
-         * `payment.tokenAddresses` contains the contract addresses of the tokens the user is claiming.
-         *
-         * If the user isn't claiming any tokens (only item mints), this is the empty array.
-         */
-        rewardData.tokenAddresses = payment.meta.tokenAddresses;
-        /*
-         * `payment.tokenAmounts` contains the amounts (in wei) of the tokens the user is claiming.
-         *
-         * If the user isn't claiming any tokens (only item mints), this is the empty array.
-         *
-         * The length of this array must equal the length of `payment.tokenAddresses` and must be ordered the same.
-         */
-        rewardData.tokenAmounts = (payment.meta.tokenAddresses || []).map(
-          (r, i) =>
-            toLong((payment.meta.tokenAmounts[i] + '').slice(0, tokenDecimals[r] || 16), tokenDecimals[r] || 16) + ''
-        );
-        /*
-         * `payment.tokenIds` contains the token ids of any reward items (trinkets, Santa hats, cubes, etc.) the user
-         * is claiming.
-         *
-         * If the user isn't claiming any item mints (only tokens), this is the empty array.
-         *
-         * The contract will ensure token uniqueness, but the three digit serial should be randomised to prevent excess
-         * gas spending.
-         */
-
-        rewardData.tokenIds = ctx.client.roles.includes('admin') ? getTokenIdsFromItems(items) : [];
-        /*
-         * `payment.itemIds` contains the item ids of any reward items (trinkets, Santa hats, cubes, etc.) the user
-         * is claiming.
-         *
-         * If the user isn't claiming any item mints (only tokens), this is the empty array.
-         *
-         * The length of this array must equal the length of `payment.tokenIds` and must be ordered the same.
-         */
-        rewardData.itemIds = ctx.client.roles.includes('admin') ? items.map((requestedItem) => requestedItem.id) : [];
-
-        rewardData.purportedSigner = ctx.app.signers.wallet.address; // '0x81F8C054667046171C0EAdC73063Da557a828d6f'; // arken dev 2 #0
-
-        /*
-         * `payment.to` contains the address of the user who should receive the rewards.
-         */
-        rewardData.to = payment.meta.to;
-
-        /*
-         * Get next nonce and expiry for the user who should receive the rewards.
-         */
-        const nextNonceAndExpiry = await ctx.app.contracts.bsc.chest.getNextNonceAndExpiry(rewardData.to);
-        const nonce = nextNonceAndExpiry.nextNonce.toNumber();
-        const expiry = nextNonceAndExpiry.expiry.toNumber();
-
-        rewardData.nonce = nonce;
-        rewardData.expiry = expiry;
-
-        /*
-         * RE request id: suggest it's the keccak256 hash of all rewardData structure, but we can make it something else
-         * if needed (think you mentioned doing something similar to AWS's payment ids at one point)
-         */
-        rewardData.requestId = (ctx.app.web3.bsc as Web3).utils.keccak256(JSON.stringify(rewardData));
-
-        /* --- IMPORTANT ---
-         *
-         * We need to store mappings between address and nonce pairs and the rewards we're authorising issuance of.
-         *
-         * Let's say this is the first time the user has claimed.
-         *
-         * We get the next nonce from the contract and see it is 0, as expected. The user is eligible for 5 Tir and a
-         * mysterious trinket (for example). We need to store the mapping between (user's address, nonce 0) and the
-         * reward. When we can then issue a permit for the user to get 5 Tir and their trinket.
-         *
-         * Let's say the user doesn't use their permit, but hits the service again. We look up the fact that the nonce is
-         * still 0 in the contract, and we can reissue another permit ad libitum. It doesn't matter if the user comes back
-         * and requests a million permits - as soon as they give one of them to the contract and make a claim, the nonce
-         * counter increments, and all of the other permits are invalidated. So even if someone thinks they're being
-         * clever, gets ten permits, stores then, then submits them at once, only one will succeed.
-         *
-         * What we *do* need to be careful of is what happens when we check the nonce with the contract and it's now 1.
-         * That means one of the tickets went through. Now we need to compare it against the stored nonce for the user,
-         * see that it's higher than the stored number, take the mapped reward and ask the coordinator to subtract those
-         * rewards from the user's pending balance. Then, assuming there's anything left, we can issue the permit for
-         * whatever is new under the new nonce.
-         *
-         * I'll skip the logic for this as I haven't had a chance to familiarise myself properly with the coordinator,
-         * and just assume the nonce check is ok here.
-         */
-        const domain = {
-          name: 'ArkenChest',
-          version: '1',
-          chainId: 56,
-          verifyingContract: getAddress(contractInfo.chest),
-        };
-
-        const rewardDataTypes = {
-          // EIP712Domain: [
-          //     { name: 'name', type: 'string' },
-          //     { name: 'version', type: 'string' },
-          //     { name: 'chainId', type: 'uint256' },
-          //     { name: 'verifyingContract', type: 'address' },
-          // ],
-          ItemData: [
-            { name: 'tokenAddresses', type: 'address[]' },
-            { name: 'tokenAmounts', type: 'uint256[]' },
-            { name: 'tokenIds', type: 'uint256[]' },
-            { name: 'itemIds', type: 'uint16[]' },
-
-            { name: 'purportedSigner', type: 'address' },
-            { name: 'to', type: 'address' },
-            { name: 'nonce', type: 'uint256' },
-            { name: 'expiry', type: 'uint256' },
-            { name: 'requestId', type: 'string' },
-          ],
-        };
-
-        // const profile = await ctx.app.model.Profile.findOne({ id: payment.ownerId });
-
-        for (const i in payment.meta.tokenAddresses) {
-          const address = payment.meta.tokenAddresses[i];
-          const key = contractAddressToKey[address];
-          const value = payment.owner.meta.rewards.tokens[key];
-
-          payment.owner.meta.rewards.tokens[key] -= rewardData.tokenAmounts[i];
-
-          if (payment.owner.meta.rewards.tokens[key] < 0.000000001) payment.owner.meta.rewards.tokens[key] = 0;
+        if (payment.meta.network === 'bsc') {
+          this.processBinanceSmartChainPayment(payment, ctx);
+        } else if (payment.meta.network === 'solana') {
+          this.processSolanaPayment(payment, ctx);
         }
-
-        payment.owner.meta = { ...payment.owner.meta };
-
-        console.log(payment.owner.meta.rewards);
 
         const profile = await ctx.app.model.Profile.findOne({ _id: payment.ownerId });
 
@@ -517,19 +874,7 @@ export class Service {
 
         await profile.save();
 
-        // await ctx.app.model.Profile.updateOne({ id: payment.ownerId }, { $set: { meta: payment.owner.meta } });
-
-        // TODO: refetch profile and confirm balances?
-
         await ctx.app.model.Payment.updateMany({ ownerId: payment.ownerId }, { $set: { status: 'Voided' } });
-
-        const signature = await ctx.app.signers.wallet._signTypedData(domain, rewardDataTypes, rewardData);
-
-        // This should be the calldata we need to return to the user
-        payment.meta.signedData = ctx.app.contracts.bsc.chest.interface.encodeFunctionData('sendItems', [
-          rewardData,
-          signature,
-        ]);
 
         // payment.owner.meta = ctx.client.profile.meta;
         payment.status = 'Processed';
@@ -758,21 +1103,24 @@ export class Service {
 
     if (!ctx.client?.roles?.includes('admin')) throw new Error('Not authorized');
 
-    const evolutionData: any = await ctx.app.model.Data.findOne({ key: 'evolution', mod: 'evolution' });
+    const game = await ctx.app.model.Game.findOne({ key: 'evolution' }).exec();
 
-    if (input.round.id !== evolutionData.data.roundId) throw new Error('Invalid Round ID');
+    if (input.round.id !== game.meta.roundId) throw new Error('Invalid Round ID');
 
     const session = await ctx.app.db.mongoose.startSession();
     session.startTransaction();
 
+    const gameRound = await ctx.app.model.GameRound.create({ gameId: game.id, meta: input.round });
+
     try {
-      evolutionData.data = {
-        ...evolutionData.data,
+      game.meta = {
+        ...game.meta,
+        clientCount: input.round.clients.length,
         roundId: generateShortId(),
       };
 
-      if (!evolutionData.data.rewards.tokens)
-        evolutionData.data.rewards.tokens = [
+      if (!game.meta.rewards.tokens)
+        game.meta.rewards.tokens = [
           {
             type: 'token',
             symbol: 'pepe',
@@ -790,31 +1138,31 @@ export class Service {
           },
         ];
 
-      evolutionData.markModified('data');
+      game.markModified('data');
 
-      await evolutionData.save();
+      await game.save();
 
       const res = {
-        roundId: evolutionData.data.roundId,
+        roundId: game.meta.roundId,
       };
 
       if (input.round.clients.length === 0) {
-        console.log('Round skipped');
+        console.log('No clients. Round skipped.');
 
         return res;
       }
 
       const rewardWinnerMap = {
-        0: Math.round(evolutionData.data.rewardWinnerAmount * 1 * 1000) / 1000,
-        1: Math.round(evolutionData.data.rewardWinnerAmount * 0.25 * 1000) / 1000,
-        2: Math.round(evolutionData.data.rewardWinnerAmount * 0.15 * 1000) / 1000,
-        3: Math.round(evolutionData.data.rewardWinnerAmount * 0.05 * 1000) / 1000,
-        4: Math.round(evolutionData.data.rewardWinnerAmount * 0.05 * 1000) / 1000,
-        5: Math.round(evolutionData.data.rewardWinnerAmount * 0.05 * 1000) / 1000,
-        6: Math.round(evolutionData.data.rewardWinnerAmount * 0.05 * 1000) / 1000,
-        7: Math.round(evolutionData.data.rewardWinnerAmount * 0.05 * 1000) / 1000,
-        8: Math.round(evolutionData.data.rewardWinnerAmount * 0.05 * 1000) / 1000,
-        9: Math.round(evolutionData.data.rewardWinnerAmount * 0.05 * 1000) / 1000,
+        0: Math.round(game.meta.rewardWinnerAmount * 1 * 1000) / 1000,
+        1: Math.round(game.meta.rewardWinnerAmount * 0.25 * 1000) / 1000,
+        2: Math.round(game.meta.rewardWinnerAmount * 0.15 * 1000) / 1000,
+        3: Math.round(game.meta.rewardWinnerAmount * 0.05 * 1000) / 1000,
+        4: Math.round(game.meta.rewardWinnerAmount * 0.05 * 1000) / 1000,
+        5: Math.round(game.meta.rewardWinnerAmount * 0.05 * 1000) / 1000,
+        6: Math.round(game.meta.rewardWinnerAmount * 0.05 * 1000) / 1000,
+        7: Math.round(game.meta.rewardWinnerAmount * 0.05 * 1000) / 1000,
+        8: Math.round(game.meta.rewardWinnerAmount * 0.05 * 1000) / 1000,
+        9: Math.round(game.meta.rewardWinnerAmount * 0.05 * 1000) / 1000,
       };
 
       const winners = input.round.clients
@@ -837,24 +1185,24 @@ export class Service {
         for (const pickup of client.pickups) {
           if (pickup.type === 'token') {
             // TODO: change to authoritative
-            // if (pickup.quantity > input.round.clients.length * evolutionData.data.rewardItemAmountPerLegitPlayer * 2) {
+            // if (pickup.quantity > input.round.clients.length * game.meta.rewardItemAmountPerLegitPlayer * 2) {
             //   log(
             //     pickup.quantity,
-            //     evolutionData.data.rewardItemAmountPerLegitPlayer,
+            //     game.meta.rewardItemAmountPerLegitPlayer,
             //     input.round.clients.length,
             //     JSON.stringify(input.round.clients)
             //   );
             //   throw new Error('Big problem with item reward amount');
             // }
 
-            // if (pickup.quantity > input.round.clients.length * evolutionData.data.rewardItemAmountMax) {
-            //   log(pickup.quantity, input.round.clients.length, evolutionData.data.rewardItemAmountMax);
+            // if (pickup.quantity > input.round.clients.length * game.meta.rewardItemAmountMax) {
+            //   log(pickup.quantity, input.round.clients.length, game.meta.rewardItemAmountMax);
             //   throw new Error('Big problem with item reward amount 2');
             // }
 
             const tokenSymbol = pickup.rewardItemName.toLowerCase();
 
-            if (!evolutionData.data.rewards.tokens.find((t) => t.symbol === tokenSymbol)) {
+            if (!game.meta.rewards.tokens.find((t) => t.symbol === tokenSymbol)) {
               throw new Error('Problem finding a reward token');
               continue;
             }
@@ -871,7 +1219,7 @@ export class Service {
 
             // profile.lifetimeRewards.tokens[tokenSymbol] += pickup.quantity
 
-            // evolutionData.data.rewards.tokens[tokenSymbol.toLowerCase()] -= pickup.quantity
+            // game.meta.rewards.tokens[tokenSymbol.toLowerCase()] -= pickup.quantity
 
             // app.db.mongoose.oracle.outflow.evolutionRewards.tokens.week[tokenSymbol.toLowerCase()] += pickup.quantity
           } else {
