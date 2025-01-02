@@ -1119,25 +1119,6 @@ export class Service {
         roundId: generateShortId(),
       };
 
-      if (!game.meta.rewards.tokens)
-        game.meta.rewards.tokens = [
-          {
-            type: 'token',
-            symbol: 'pepe',
-            quantity: 10000000,
-          },
-          {
-            type: 'token',
-            symbol: 'doge',
-            quantity: 1000,
-          },
-          {
-            type: 'token',
-            symbol: 'harold',
-            quantity: 100000,
-          },
-        ];
-
       game.markModified('data');
 
       await game.save();
@@ -1146,94 +1127,92 @@ export class Service {
         roundId: game.meta.roundId,
       };
 
-      if (input.round.clients.length === 0) {
-        console.log('No clients. Round skipped.');
+      if (input.round.clients.length > 0) {
+        const rewardWinnerMap = {
+          0: Math.round(game.meta.rewardWinnerAmount * 1 * 1000) / 1000,
+          1: Math.round(game.meta.rewardWinnerAmount * 0.25 * 1000) / 1000,
+          2: Math.round(game.meta.rewardWinnerAmount * 0.15 * 1000) / 1000,
+          3: Math.round(game.meta.rewardWinnerAmount * 0.05 * 1000) / 1000,
+          4: Math.round(game.meta.rewardWinnerAmount * 0.05 * 1000) / 1000,
+          5: Math.round(game.meta.rewardWinnerAmount * 0.05 * 1000) / 1000,
+          6: Math.round(game.meta.rewardWinnerAmount * 0.05 * 1000) / 1000,
+          7: Math.round(game.meta.rewardWinnerAmount * 0.05 * 1000) / 1000,
+          8: Math.round(game.meta.rewardWinnerAmount * 0.05 * 1000) / 1000,
+          9: Math.round(game.meta.rewardWinnerAmount * 0.05 * 1000) / 1000,
+        };
 
-        return res;
-      }
+        const winners = input.round.clients
+          // .filter((p) => p.lastUpdate >= fiveSecondsAgo)
+          .sort((a, b) => b.points - a.points);
 
-      const rewardWinnerMap = {
-        0: Math.round(game.meta.rewardWinnerAmount * 1 * 1000) / 1000,
-        1: Math.round(game.meta.rewardWinnerAmount * 0.25 * 1000) / 1000,
-        2: Math.round(game.meta.rewardWinnerAmount * 0.15 * 1000) / 1000,
-        3: Math.round(game.meta.rewardWinnerAmount * 0.05 * 1000) / 1000,
-        4: Math.round(game.meta.rewardWinnerAmount * 0.05 * 1000) / 1000,
-        5: Math.round(game.meta.rewardWinnerAmount * 0.05 * 1000) / 1000,
-        6: Math.round(game.meta.rewardWinnerAmount * 0.05 * 1000) / 1000,
-        7: Math.round(game.meta.rewardWinnerAmount * 0.05 * 1000) / 1000,
-        8: Math.round(game.meta.rewardWinnerAmount * 0.05 * 1000) / 1000,
-        9: Math.round(game.meta.rewardWinnerAmount * 0.05 * 1000) / 1000,
-      };
+        // iterate clients, save rewards
+        for (const client of winners) {
+          const index = winners.findIndex((winner) => winner.address === client.address);
+          const profile = await ctx.app.model.Profile.findOne({ address: client.address });
 
-      const winners = input.round.clients
-        // .filter((p) => p.lastUpdate >= fiveSecondsAgo)
-        .sort((a, b) => b.points - a.points);
+          if (!profile.meta) profile.meta = {};
+          if (!profile.meta.rewards) profile.meta.rewards = {};
+          if (!profile.meta.rewards.tokens) profile.meta.rewards.tokens = {};
+          if (!profile.meta.rewards.tokens['pepe']) profile.meta.rewards.tokens['pepe'] = 0;
+          if (profile.meta.rewards.tokens['pepe'] < 0) profile.meta.rewards.tokens['pepe'] = 0;
 
-      // iterate clients, save rewards
-      for (const client of winners) {
-        const index = winners.findIndex((winner) => winner.address === client.address);
-        const profile = await ctx.app.model.Profile.findOne({ address: client.address });
+          profile.meta.rewards.tokens['pepe'] += index <= 9 ? rewardWinnerMap[index] : 0;
 
-        if (!profile.meta) profile.meta = {};
-        if (!profile.meta.rewards) profile.meta.rewards = {};
-        if (!profile.meta.rewards.tokens) profile.meta.rewards.tokens = {};
-        if (!profile.meta.rewards.tokens['pepe']) profile.meta.rewards.tokens['pepe'] = 0;
-        if (profile.meta.rewards.tokens['pepe'] < 0) profile.meta.rewards.tokens['pepe'] = 0;
+          for (const pickup of client.pickups) {
+            if (pickup.type === 'token') {
+              // TODO: change to authoritative
+              // if (pickup.quantity > input.round.clients.length * game.meta.rewardItemAmountPerLegitPlayer * 2) {
+              //   log(
+              //     pickup.quantity,
+              //     game.meta.rewardItemAmountPerLegitPlayer,
+              //     input.round.clients.length,
+              //     JSON.stringify(input.round.clients)
+              //   );
+              //   throw new Error('Big problem with item reward amount');
+              // }
 
-        profile.meta.rewards.tokens['pepe'] += index <= 9 ? rewardWinnerMap[index] : 0;
+              // if (pickup.quantity > input.round.clients.length * game.meta.rewardItemAmountMax) {
+              //   log(pickup.quantity, input.round.clients.length, game.meta.rewardItemAmountMax);
+              //   throw new Error('Big problem with item reward amount 2');
+              // }
 
-        for (const pickup of client.pickups) {
-          if (pickup.type === 'token') {
-            // TODO: change to authoritative
-            // if (pickup.quantity > input.round.clients.length * game.meta.rewardItemAmountPerLegitPlayer * 2) {
-            //   log(
-            //     pickup.quantity,
-            //     game.meta.rewardItemAmountPerLegitPlayer,
-            //     input.round.clients.length,
-            //     JSON.stringify(input.round.clients)
-            //   );
-            //   throw new Error('Big problem with item reward amount');
-            // }
+              const tokenSymbol = pickup.rewardItemName.toLowerCase();
 
-            // if (pickup.quantity > input.round.clients.length * game.meta.rewardItemAmountMax) {
-            //   log(pickup.quantity, input.round.clients.length, game.meta.rewardItemAmountMax);
-            //   throw new Error('Big problem with item reward amount 2');
-            // }
+              if (!game.meta.rewards.tokens.find((t) => t.symbol === tokenSymbol)) {
+                throw new Error('Problem finding a reward token');
+                continue;
+              }
 
-            const tokenSymbol = pickup.rewardItemName.toLowerCase();
+              if (!profile.meta.rewards.tokens[tokenSymbol] || profile.meta.rewards.tokens[tokenSymbol] < 0.000000001) {
+                profile.meta.rewards.tokens[tokenSymbol] = 0;
+              }
 
-            if (!game.meta.rewards.tokens.find((t) => t.symbol === tokenSymbol)) {
-              throw new Error('Problem finding a reward token');
-              continue;
-            }
+              profile.meta.rewards.tokens[tokenSymbol] += pickup.quantity;
 
-            if (!profile.meta.rewards.tokens[tokenSymbol] || profile.meta.rewards.tokens[tokenSymbol] < 0.000000001) {
-              profile.meta.rewards.tokens[tokenSymbol] = 0;
-            }
+              // if (!profile.lifetimeRewards.tokens[tokenSymbol] || profile.lifetimeRewards.tokens[tokenSymbol] < 0.000000001) {
+              //   profile.lifetimeRewards.tokens[tokenSymbol] = 0
+              // }
 
-            profile.meta.rewards.tokens[tokenSymbol] += pickup.quantity;
+              // profile.lifetimeRewards.tokens[tokenSymbol] += pickup.quantity
 
-            // if (!profile.lifetimeRewards.tokens[tokenSymbol] || profile.lifetimeRewards.tokens[tokenSymbol] < 0.000000001) {
-            //   profile.lifetimeRewards.tokens[tokenSymbol] = 0
-            // }
+              // game.meta.rewards.tokens[tokenSymbol.toLowerCase()] -= pickup.quantity
 
-            // profile.lifetimeRewards.tokens[tokenSymbol] += pickup.quantity
+              // app.db.mongoose.oracle.outflow.evolutionRewards.tokens.week[tokenSymbol.toLowerCase()] += pickup.quantity
+            } else {
+              if (pickup.name === 'Santa Christmas 2024 Ticket') {
+                if (!profile.meta.rewards.tokens['christmas2024']) profile.meta.rewards.tokens['christmas2024'] = 0;
 
-            // game.meta.rewards.tokens[tokenSymbol.toLowerCase()] -= pickup.quantity
-
-            // app.db.mongoose.oracle.outflow.evolutionRewards.tokens.week[tokenSymbol.toLowerCase()] += pickup.quantity
-          } else {
-            if (pickup.name === 'Santa Christmas 2024 Ticket') {
-              if (!profile.meta.rewards.tokens['christmas2024']) profile.meta.rewards.tokens['christmas2024'] = 0;
-
-              profile.meta.rewards.tokens['christmas2024'] += 1;
+                profile.meta.rewards.tokens['christmas2024'] += 1;
+              }
             }
           }
+
+          profile.markModified('meta');
+
+          await profile.save();
         }
-
-        profile.markModified('meta');
-
-        await profile.save();
+      } else {
+        console.log('No clients this round.');
       }
 
       await session.commitTransaction();
