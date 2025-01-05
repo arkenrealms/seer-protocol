@@ -36,6 +36,8 @@
     "no-undef": "error",
     "no-empty-pattern": "warn",
     "react/prop-types": "warn",
+    "promise/no-floating-promises": "warn",
+    "@typescript-eslint/await-thenable": "warn",
     // "no-console": ["warn", { "allow": ["info", "warn", "error"] }],
     "no-plusplus": 0,
     // "prefer-destructuring": ["warn", { "object": true, "array": false }],

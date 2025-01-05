@@ -37,12 +37,9 @@ function isClaimProblem(payment) {
 
   for (const index in payment.meta.tokenAmounts) {
     const tokenAmount = payment.meta.tokenAmounts[index];
-    const tokenAddress = payment.meta.tokenAddresses[index];
+    const tokenKey = payment.meta.tokenKeys[index];
 
-    if (
-      !payment.owner.meta.rewards ||
-      payment.owner.meta.rewards.tokens[contractAddressToKey[tokenAddress]] < tokenAmount
-    ) {
+    if (!payment.owner.meta.rewards || payment.owner.meta.rewards.tokens[tokenKey] < tokenAmount) {
       return 'Profile does not have enough funds for this payment';
     }
   }
@@ -420,6 +417,17 @@ export class Service {
     return payments;
   }
 
+  async cancelPaymentRequest(
+    input: RouterInput['cancelPaymentRequest'],
+    ctx: RouterContext
+  ): Promise<RouterOutput['cancelPaymentRequest']> {
+    if (!input) throw new ARXError('NO_INPUT');
+
+    console.log('Profile.Service.cancelPaymentRequest', input);
+
+    await ctx.app.model.Payment.updateMany({ ownerId: ctx.client.profile.id }, { $set: { status: 'Voided' } });
+  }
+
   async createPaymentRequest(
     input: RouterInput['createPaymentRequest'],
     ctx: RouterContext
@@ -443,14 +451,13 @@ export class Service {
       status: 'Processing',
       ownerId: ctx.client.profile.id,
       meta: {
-        tokenAddresses: input.tokens.map((token) =>
-          token === 'usd' ? ctx.app.contractInfo.bsc.busd[56] : ctx.app.contractInfo.bsc[token][56]
-        ),
-        tokenAmounts: input.amounts,
+        chain: input.chain,
+        tokenKeys: input.tokenKeys,
+        tokenAmounts: input.tokenAmounts,
         to: input.to,
-        tokenIds: input.tokenIds || [],
-        itemIds: input.itemIds || [],
-        signedData: null,
+        // tokenIds: input.tokenIds || [],
+        // itemIds: input.itemIds || [],
+        // signedData: null,
       },
     });
   }
@@ -473,7 +480,9 @@ export class Service {
      *
      * If the user isn't claiming any tokens (only item mints), this is the empty array.
      */
-    rewardData.tokenAddresses = payment.meta.tokenAddresses;
+    rewardData.tokenAddresses = payment.meta.tokenKeys.map((token) =>
+      token === 'usd' ? ctx.app.contractInfo.bsc.busd[56] : ctx.app.contractInfo.bsc[token][56]
+    );
     /*
      * `payment.tokenAmounts` contains the amounts (in wei) of the tokens the user is claiming.
      *
@@ -481,7 +490,7 @@ export class Service {
      *
      * The length of this array must equal the length of `payment.tokenAddresses` and must be ordered the same.
      */
-    rewardData.tokenAmounts = (payment.meta.tokenAddresses || []).map(
+    rewardData.tokenAmounts = (rewardData.tokenAddresses || []).map(
       (r, i) =>
         toLong((payment.meta.tokenAmounts[i] + '').slice(0, tokenDecimals[r] || 16), tokenDecimals[r] || 16) + ''
     );
@@ -584,23 +593,35 @@ export class Service {
 
     // const profile = await ctx.app.model.Profile.findOne({ id: payment.ownerId });
 
-    for (const i in payment.meta.tokenAddresses) {
-      const address = payment.meta.tokenAddresses[i];
-      const key = contractAddressToKey[address];
+    for (const i in payment.meta.tokenKeys) {
+      const key = payment.meta.tokenKeys[i];
+
+      if (!contractInfo[key]) throw new Error('Invalid token');
+
       const value = payment.owner.meta.rewards.tokens[key];
 
-      payment.owner.meta.rewards.tokens[key] -= rewardData.tokenAmounts[i];
+      if (!payment.owner.meta.rewards.tokens[key]) throw new Error('Invalid reward token');
 
-      if (payment.owner.meta.rewards.tokens[key] < 0.000000001) payment.owner.meta.rewards.tokens[key] = 0;
+      console.log(
+        payment.owner.meta.rewards.tokens,
+        payment.owner.meta.rewards.tokens[key],
+        payment.meta.tokenAmounts[i]
+      );
+
+      payment.owner.meta.rewards.tokens[key] -= payment.meta.tokenAmounts[i];
+
+      if (payment.owner.meta.rewards.tokens[key] < -0.000000001) {
+        console.log(payment.owner.meta.rewards.tokens[key]);
+        throw new Error('Invalid reward amount');
+
+        // payment.owner.meta.rewards.tokens[key] = 0;
+      }
     }
 
-    payment.owner.meta = { ...payment.owner.meta };
-
-    console.log(payment.owner.meta.rewards);
-
-    await ctx.app.model.Profile.updateOne({ id: payment.ownerId }, { $set: { meta: payment.owner.meta } });
+    // payment.owner.meta = { ...payment.owner.meta };
 
     // TODO: refetch profile and confirm balances?
+    console.log(222, domain, rewardDataTypes, rewardData);
 
     const signature = await ctx.app.signers.wallet._signTypedData(domain, rewardDataTypes, rewardData);
 
@@ -609,6 +630,7 @@ export class Service {
       rewardData,
       signature,
     ]);
+    console.log(333, payment.meta.signedData);
   }
 
   async processSolanaPayment(payment: any, ctx: any) {
@@ -863,21 +885,43 @@ export class Service {
         if (!payment.meta.network) payment.meta.network = 'bsc';
 
         if (payment.meta.network === 'bsc') {
-          this.processBinanceSmartChainPayment(payment, ctx);
+          await this.processBinanceSmartChainPayment(payment, ctx);
         } else if (payment.meta.network === 'solana') {
-          this.processSolanaPayment(payment, ctx);
+          await this.processSolanaPayment(payment, ctx);
         }
+        console.log(payment.meta.signedData);
+        if (!payment.meta.signedData) {
+          console.error('No signed set was set, aborting', payment);
+
+          await session.abortTransaction();
+
+          payment.status = 'Failed';
+
+          await payment.save();
+
+          break;
+        }
+
+        console.log(payment.owner.meta.rewards.tokens);
+
+        // await ctx.app.model.Profile.updateOne({ id: payment.ownerId + '' }, { $set: { meta: payment.owner.meta } });
 
         const profile = await ctx.app.model.Profile.findOne({ _id: payment.ownerId });
 
-        profile.meta = payment.owner.meta;
+        profile.meta = { ...payment.owner.meta };
+
+        profile.markModified('meta');
 
         await profile.save();
+
+        // const updatedProfile = await ctx.app.model.Profile.findOne({ _id: payment.ownerId });
 
         await ctx.app.model.Payment.updateMany({ ownerId: payment.ownerId }, { $set: { status: 'Voided' } });
 
         // payment.owner.meta = ctx.client.profile.meta;
         payment.status = 'Processed';
+
+        payment.meta = { ...payment.meta };
 
         payment.markModified('meta');
 
@@ -885,6 +929,7 @@ export class Service {
 
         await session.commitTransaction();
       } catch (e) {
+        console.log('Payment failed', e);
         payment.status = 'Failed';
         await payment.save();
 

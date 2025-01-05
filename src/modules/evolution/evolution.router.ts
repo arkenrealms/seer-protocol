@@ -40,15 +40,30 @@ export const createRouter = () =>
       .use(customErrorFormatter(t))
       .mutation(({ input, ctx }) => (ctx.app.service.Evolution.processPayments as any)(input, ctx)),
 
+    cancelPaymentRequest: procedure
+      .use(hasRole('user', t))
+      .use(customErrorFormatter(t))
+      .input(
+        z.object({
+          tokenKeys: z.any(),
+          tokenAmounts: z.any(),
+          // tokenIds: z.any(),
+          // itemIds: z.any(),
+          to: z.any(),
+        })
+      )
+      .mutation(({ input, ctx }) => (ctx.app.service.Evolution.cancelPaymentRequest as any)(input, ctx)),
+
     createPaymentRequest: procedure
       .use(hasRole('user', t))
       .use(customErrorFormatter(t))
       .input(
         z.object({
-          tokens: z.any(),
-          amounts: z.any(),
-          tokenIds: z.any(),
-          itemIds: z.any(),
+          chain: z.string(),
+          tokenKeys: z.any(),
+          tokenAmounts: z.any(),
+          // tokenIds: z.any(),
+          // itemIds: z.any(),
           to: z.any(),
         })
       )
