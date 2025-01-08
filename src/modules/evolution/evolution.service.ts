@@ -218,7 +218,7 @@ export class Service {
     try {
       const payments = await app.model.Payment.find();
 
-      const iface = new ethers.Interface(app.contractMetadata.ArkenChest.abi);
+      const iface = new ethers.Interface(app.contractMetadata.bsc.ArkenChest.abi);
 
       // @ts-ignore
       async function processLog(log2, updateConfig = true) {
@@ -242,7 +242,7 @@ export class Service {
         }
       }
 
-      const blockNumber = await app.web3.eth.getBlockNumber();
+      const blockNumber = await app.web3.bsc.eth.getBlockNumber();
 
       if (parseInt(blockNumber) > 10000) {
         const events = ['ItemsSent(address,uint256,string)'];
@@ -251,10 +251,10 @@ export class Service {
           await iterateBlocks(
             app,
             `Chest Events: ${event}`,
-            getAddress(app.contractInfo.chest),
+            getAddress(app.contractInfo.bsc.chest),
             app.data.chest.lastBlock[event] || 15000000,
             blockNumber,
-            app.contracts.chest.filters[event](),
+            app.contracts.bsc.chest.filters[event](),
             processLog,
             async function (blockNumber2) {
               app.data.chest.lastBlock[event] = blockNumber2;
@@ -282,11 +282,15 @@ export class Service {
   }
 
   async monitorChest(input: RouterInput['monitorChest'], ctx: RouterContext): Promise<RouterOutput['monitorChest']> {
-    ctx.app.data.chest = {};
+    ctx.app.data.chest = {
+      lastBlock: {
+        'ItemsSent(address,uint256,string)': 45299534,
+      },
+    };
 
     await this.getAllChestEvents(ctx.app);
 
-    ctx.app.contracts.chest.on('ItemsSent', async () => {
+    ctx.app.contracts.bsc.chest.on('ItemsSent', async () => {
       await this.getAllChestEvents(ctx.app);
     });
   }
