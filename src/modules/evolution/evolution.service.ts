@@ -460,6 +460,17 @@ export class Service {
         // signedData: null,
       },
     });
+
+    const notice = await ctx.app.model.Conversation.create({
+      profileId: ctx.app.cache.Profile.admin.id,
+    });
+
+    await ctx.app.model.Message.create({
+      name: 'Payment Created',
+      content: `Payment request by ${ctx.client.profile.name} (${ctx.client.profile.address})
+      Details: ${JSON.stringify(input, null, 2)}`,
+      conversationId: notice.id,
+    });
   }
 
   async processBinanceSmartChainPayment(payment: any, ctx: any) {
