@@ -9,6 +9,7 @@ import * as ethers from 'ethers';
 import Web3 from 'web3';
 import dayjs from 'dayjs';
 import { getTime, log, logError, random, toLong } from '@arken/node/util';
+import { getFilter } from '@arken/node/util/api';
 import { getTokenIdFromItem, normalizeItem } from '@arken/node/util/decoder';
 import { awaitEnter } from '@arken/node/util/process';
 import { Schema, serialize } from 'borsh';
@@ -409,8 +410,136 @@ export class Service {
     return game.meta;
   }
 
+  async monitorParties(
+    input: RouterInput['monitorParties'],
+    ctx: RouterContext
+  ): Promise<RouterOutput['monitorParties']> {
+    async function processParties() {
+      const parties = await ctx.app.model.Party.find().populate('members');
+
+      log('Total Parties: ' + parties.length);
+
+      // Remove empty parties
+      // Remove players who have been offline for X length
+      // Check requirements
+      // Check other issues
+
+      setTimeout(processParties, 60 * 60 * 1000);
+    }
+
+    processParties();
+  }
+
+  async getParties(input: RouterInput['getParties'], ctx: RouterContext): Promise<RouterOutput['getParties']> {
+    if (!input) throw new ARXError('NO_INPUT');
+
+    log('Evolution.Service.getParties', input);
+
+    const filter = getFilter(input);
+    const parties = await ctx.app.model.Party.find(filter).populate('members').lean();
+
+    return parties;
+  }
+
+  async createParty(input: RouterInput['createParty'], ctx: RouterContext): Promise<RouterOutput['createParty']> {
+    if (!input) throw new ARXError('NO_INPUT');
+
+    log('Evolution.Service.createParty', input);
+
+    const profile = await ctx.app.model.Profile.findById(ctx.client.profile.id);
+
+    if (profile.partyId) throw new Error('Already in a party');
+
+    const party = await ctx.app.model.Party.create({
+      name: profile.name,
+      targetAreaId: null,
+      limit: 6,
+      isPublic: true,
+      isVisibleToEnemies: true,
+      isApprovalRequired: false,
+      isNonLeaderInviteAllowed: false,
+      isCombatEnabled: true,
+      isFriendlyFireEnabled: true,
+      isLocalQuestShared: true,
+      isGlobalQuestShared: true,
+      isMergeEnabled: false,
+      isRejoinEnabled: false,
+      itemDistribution: 'Random',
+      leaderId: profile.id,
+      powerRequired: 1,
+      levelRequired: 1,
+      approvalMethod: 'Auto Accept',
+      // memberIds: [profile.id],
+      // assistantIds: [],
+      // pendingMemberIds: [],
+      // blockedMemberIds: [],
+    });
+
+    profile.partyId = ctx.client.profile.partyId = party.id;
+
+    await profile.save();
+
+    return {
+      id: party.id,
+    };
+  }
+
+  async joinParty(input: RouterInput['joinParty'], ctx: RouterContext): Promise<RouterOutput['joinParty']> {
+    if (!input) throw new ARXError('NO_INPUT');
+
+    log('Evolution.Service.joinParty', input);
+
+    // TODO: if no ID, matchmaking
+
+    const filter = getFilter(input);
+    const party = await ctx.app.model.Party.findOne(filter).populate('members');
+
+    if (!party) throw new Error('Party does not exist');
+
+    if (party.members.length >= party.limit) throw new Error('Party is full');
+
+    const profile = await ctx.app.model.Profile.findById(ctx.client.profile.id);
+
+    if (party.members.find((m) => m.id === profile.id)) throw new Error('Already in this party');
+
+    if (profile.partyId) throw new Error('Already in a party');
+
+    profile.partyId = ctx.client.profile.partyId = party.id;
+
+    await profile.save();
+
+    return {
+      id: party.id,
+    };
+  }
+
+  async leaveParty(input: RouterInput['leaveParty'], ctx: RouterContext): Promise<RouterOutput['leaveParty']> {
+    if (!input) throw new ARXError('NO_INPUT');
+
+    log('Evolution.Service.leaveParty', input);
+
+    const filter = getFilter(input);
+    const party = await ctx.app.model.Party.findOne(filter).populate('members');
+
+    if (!party) throw new Error('Party does not exist');
+
+    const profile = await ctx.app.model.Profile.findById(ctx.client.profile.id);
+
+    if (profile.partyId) throw new Error('Not in a party');
+
+    if (!party.members.find((m) => m.id === profile.id)) throw new Error('Not in this party');
+
+    profile.partyId = ctx.client.profile.partyId = undefined;
+
+    await profile.save();
+
+    return {
+      id: party.id,
+    };
+  }
+
   async getPayments(input: RouterInput['getPayments'], ctx: RouterContext): Promise<RouterOutput['getPayments']> {
-    console.log('Profile.Service.getPayments', input);
+    log('Evolution.Service.getPayments', input);
 
     if (!ctx.client.profile) return [];
 
@@ -427,7 +556,7 @@ export class Service {
   ): Promise<RouterOutput['cancelPaymentRequest']> {
     if (!input) throw new ARXError('NO_INPUT');
 
-    console.log('Profile.Service.cancelPaymentRequest', input);
+    log('Evolution.Service.cancelPaymentRequest', input);
 
     await ctx.app.model.Payment.updateMany({ ownerId: ctx.client.profile.id }, { $set: { status: 'Voided' } });
   }
@@ -438,7 +567,7 @@ export class Service {
   ): Promise<RouterOutput['createPaymentRequest']> {
     if (!input) throw new ARXError('NO_INPUT');
 
-    console.log('Profile.Service.createPaymentRequest', input);
+    log('Evolution.Service.createPaymentRequest', input);
 
     const existingPayment = await ctx.app.model.Payment.findOne({
       ownerId: ctx.client.profile.id,
@@ -797,7 +926,7 @@ export class Service {
     input: RouterInput['processPayments'],
     ctx: RouterContext
   ): Promise<RouterOutput['processPayments']> {
-    console.log('Profile.Service.processPayments', input);
+    log('Evolution.Service.processPayments', input);
 
     const banList = [
       '0x3c261982d5721eeb91f23fa573a1d883118f7473',
@@ -861,7 +990,9 @@ export class Service {
     const session = await ctx.app.db.mongoose.startSession();
     session.startTransaction();
 
-    const payments = await ctx.app.model.Payment.find({ status: 'Processing' }).populate('owner');
+    const payments = await ctx.app.model.Payment.find({ status: { $in: ['Processing', 'Refunding'] } }).populate(
+      'owner'
+    );
 
     const totals = {};
 
@@ -884,12 +1015,58 @@ export class Service {
 
     for (const payment of payments) {
       try {
+        if (payment.meta?.signedData) {
+          console.log('Payment already processed');
+
+          continue;
+        }
+        console.log(payment.createdDate, dayjs().subtract(24, 'hour').toDate());
+        // Void any submit more than 24 hours ago (so there is 24 hours to finalize)
+        if (dayjs(payment.createdDate).isBefore(dayjs().subtract(24, 'hour'))) {
+          // payment.owner.meta.rewards = {};
+          // await payment.owner.save();
+
+          payment.status = 'Expired';
+          await payment.save();
+
+          continue;
+        }
+
         if (banList.includes(payment.owner.address.toLowerCase())) {
           payment.owner.meta.rewards = {};
           // await payment.owner.save();
 
           payment.status = 'Denied';
           await payment.save();
+
+          continue;
+        }
+
+        if (payment.status === 'Refunding') {
+          console.log('Refunding payment...');
+
+          for (const i in payment.meta.tokenKeys) {
+            const key = payment.meta.tokenKeys[i];
+
+            if (!contractInfo[key]) throw new Error('Invalid token');
+
+            if (!payment.owner.meta.rewards.tokens[key]) throw new Error('Invalid reward token');
+
+            payment.owner.meta.rewards.tokens[key] += payment.meta.tokenAmounts[i];
+          }
+
+          const profile = await ctx.app.model.Profile.findOne({ _id: payment.ownerId });
+
+          profile.meta = { ...payment.owner.meta };
+
+          profile.markModified('meta');
+
+          await profile.save();
+
+          payment.status = 'Refunded';
+          await payment.save();
+
+          console.log('Refunded.');
 
           continue;
         }
@@ -904,7 +1081,7 @@ export class Service {
         } else if (payment.meta.network === 'solana') {
           await this.processSolanaPayment(payment, ctx);
         }
-        console.log(payment.meta.signedData);
+
         if (!payment.meta.signedData) {
           console.error('No signed set was set, aborting', payment);
 

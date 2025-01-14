@@ -30,6 +30,39 @@ export const createRouter = () =>
       .use(customErrorFormatter(t))
       .mutation(({ input, ctx }) => (ctx.app.service.Evolution.monitorChest as any)(input, ctx)),
 
+    monitorParties: procedure
+      .use(hasRole('admin', t))
+      .use(customErrorFormatter(t))
+      .query(({ input, ctx }) => (ctx.app.service.Evolution.monitorParties as any)(input, ctx)),
+
+    getParties: procedure
+      .use(hasRole('user', t))
+      .use(customErrorFormatter(t))
+      .input(getQueryInput(Arken.Core.Schemas.Party))
+      .output(z.array(Arken.Core.Schemas.Party))
+      .query(({ input, ctx }) => (ctx.app.service.Evolution.getParties as any)(input, ctx)),
+
+    createParty: procedure
+      .use(hasRole('user', t))
+      .use(customErrorFormatter(t))
+      .input(getQueryInput(Arken.Core.Schemas.Party))
+      .output(Arken.Core.Schemas.Party.pick({ id: true }))
+      .mutation(({ input, ctx }) => (ctx.app.service.Evolution.createParty as any)(input, ctx)),
+
+    joinParty: procedure
+      .use(hasRole('user', t))
+      .use(customErrorFormatter(t))
+      .input(getQueryInput(Arken.Core.Schemas.Party))
+      .output(Arken.Core.Schemas.Party.pick({ id: true }))
+      .mutation(({ input, ctx }) => (ctx.app.service.Evolution.joinParty as any)(input, ctx)),
+
+    leaveParty: procedure
+      .use(hasRole('user', t))
+      .use(customErrorFormatter(t))
+      .input(getQueryInput(Arken.Core.Schemas.Party))
+      .output(Arken.Core.Schemas.Party.pick({ id: true }))
+      .mutation(({ input, ctx }) => (ctx.app.service.Evolution.leaveParty as any)(input, ctx)),
+
     getPayments: procedure
       .use(hasRole('user', t))
       .use(customErrorFormatter(t))
