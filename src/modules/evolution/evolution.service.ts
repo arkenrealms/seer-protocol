@@ -1383,8 +1383,8 @@ export class Service {
           .sort((a, b) => b.points - a.points);
 
         // iterate clients, save rewards
-        for (const client of winners) {
-          const index = winners.findIndex((winner) => winner.address === client.address);
+        for (const client of input.round.clients) {
+          const winnerIndex = winners.findIndex((winner) => winner.address === client.address);
           const profile = await ctx.app.model.Profile.findOne({ address: client.address });
 
           if (!profile.meta) profile.meta = {};
@@ -1393,7 +1393,7 @@ export class Service {
           if (!profile.meta.rewards.tokens['pepe']) profile.meta.rewards.tokens['pepe'] = 0;
           if (profile.meta.rewards.tokens['pepe'] < 0) profile.meta.rewards.tokens['pepe'] = 0;
 
-          profile.meta.rewards.tokens['pepe'] += index <= 9 ? rewardWinnerMap[index] : 0;
+          profile.meta.rewards.tokens['pepe'] += winnerIndex <= 9 ? rewardWinnerMap[winnerIndex] : 0;
 
           for (const pickup of client.pickups) {
             if (pickup.type === 'token') {
@@ -1443,6 +1443,12 @@ export class Service {
               }
             }
           }
+
+          if (!profile.meta.ap) profile.meta.ap = 0;
+          if (!profile.meta.bp) profile.meta.bp = 0;
+
+          profile.meta.ap += client.powerups;
+          profile.meta.bp += client.kills;
 
           profile.markModified('meta');
 
