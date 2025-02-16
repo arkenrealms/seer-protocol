@@ -12,7 +12,10 @@ export const procedure = t.procedure;
 
 export const createRouter = () =>
   router({
-    info: procedure.query(({ input, ctx }) => (ctx.app.service.Evolution.info as any)(input, ctx)),
+    info: procedure
+      .use(customErrorFormatter(t))
+      .input(z.any())
+      .query(({ input, ctx }) => (ctx.app.service.Evolution.info as any)(input, ctx)),
 
     updateConfig: procedure
       .use(hasRole('admin', t))
@@ -63,6 +66,17 @@ export const createRouter = () =>
       .output(Arken.Core.Schemas.Party.pick({ id: true }))
       .mutation(({ input, ctx }) => (ctx.app.service.Evolution.leaveParty as any)(input, ctx)),
 
+    updateSettings: procedure
+      .use(hasRole('user', t))
+      .use(customErrorFormatter(t))
+      .input(
+        z.object({
+          zoom: z.number().min(0).max(1).optional(),
+          opacity: z.number().min(0).max(1).optional(),
+        })
+      )
+      .query(({ input, ctx }) => (ctx.app.service.Evolution.updateSettings as any)(input, ctx)),
+
     getPayments: procedure
       .use(hasRole('user', t))
       .use(customErrorFormatter(t))
@@ -108,6 +122,7 @@ export const createRouter = () =>
       .input(
         z.object({
           shardId: z.string(),
+          gameKey: z.string(),
           round: z.any(),
         })
       )

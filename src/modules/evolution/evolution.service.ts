@@ -91,7 +91,7 @@ export class Service {
   async updateConfig(input: RouterInput['updateConfig'], ctx: RouterContext): Promise<RouterOutput['updateConfig']> {
     if (!input) throw new Error('Input should not be void');
 
-    const game = await ctx.app.model.Game.findOne({ key: 'evolution-isles' });
+    const game = await ctx.app.model.Game.findOne({ key: input.gameKey });
 
     // if (!game.meta)
     // game.meta = {
@@ -405,7 +405,7 @@ export class Service {
 
     // await gameData.save();
 
-    const game = await ctx.app.model.Game.findOne({ key: 'evolution-isles' });
+    const game = await ctx.app.model.Game.findOne({ key: input.gameKey });
 
     return game.meta;
   }
@@ -536,6 +536,32 @@ export class Service {
     return {
       id: party.id,
     };
+  }
+
+  async updateSettings(
+    input: RouterInput['updateSettings'],
+    ctx: RouterContext
+  ): Promise<RouterOutput['updateSettings']> {
+    log('Evolution.Service.updateSettings', input);
+
+    if (!ctx.client.profile) return;
+    if (!ctx.client.profile.meta.evolution) ctx.client.profile.meta.evolution = {};
+    if (!ctx.client.profile.meta.evolution.settings) ctx.client.profile.meta.evolution.settings = {};
+
+    const validKeys = ['zoom', 'opacity'];
+
+    // TODO: sanitize settings
+    const settings = input as unknown as Array<any>;
+
+    for (const key in settings) {
+      if (!validKeys.includes(key)) continue;
+
+      ctx.client.profile.meta.evolution.settings[key] = input[key];
+    }
+
+    ctx.client.profile.markModified('meta');
+
+    await ctx.client.profile.saveQueued();
   }
 
   async getPayments(input: RouterInput['getPayments'], ctx: RouterContext): Promise<RouterOutput['getPayments']> {
@@ -1340,23 +1366,35 @@ export class Service {
 
     if (!ctx.client?.roles?.includes('admin')) throw new Error('Not authorized');
 
-    const game = await ctx.app.model.Game.findOne({ key: 'evolution-isles' }).exec();
+    const game = await ctx.app.model.Game.findOne({ key: input.gameKey }).exec();
 
     if (input.round.id !== game.meta.roundId) throw new Error('Invalid Round ID');
 
     const session = await ctx.app.db.mongoose.startSession();
     session.startTransaction();
 
-    const gameRound = await ctx.app.model.GameRound.create({ gameId: game.id, meta: input.round });
-
     try {
+      const oldGameRound = await ctx.app.model.GameRound.findById(input.round.id);
+
+      if (oldGameRound) {
+        oldGameRound.meta = input.round;
+
+        oldGameRound.markModified('meta');
+
+        await oldGameRound.save();
+      } else {
+        log('Could not find game round: ', input.round.id);
+      }
+
+      const newGameRound = await ctx.app.model.GameRound.create({ gameId: game.id, meta: input.round });
+
       game.meta = {
         ...game.meta,
         clientCount: input.round.clients.length,
-        roundId: generateShortId(),
+        roundId: newGameRound._id.toString(), // generateShortId(),
       };
 
-      game.markModified('data');
+      game.markModified('meta');
 
       await game.save();
 
@@ -1454,6 +1492,8 @@ export class Service {
 
           await profile.save();
         }
+
+        await this.processWorldRecords(input, ctx);
       } else {
         console.log('No clients this round.');
       }
@@ -1466,6 +1506,103 @@ export class Service {
       throw error;
     } finally {
       session.endSession();
+    }
+  }
+
+  async processWorldRecords(input: RouterInput['saveRound'], ctx: RouterContext): Promise<RouterOutput['saveRound']> {
+    if (!input) throw new Error('Input should not be void');
+
+    console.log('Evolution.Service.processWorldRecords', input);
+
+    const game = await ctx.app.model.Game.findOne({ key: input.gameKey });
+
+    {
+      const record = await ctx.app.model.WorldRecord.findOne({
+        gameId: game.id,
+        name: `${input.round.gameMode} Points`,
+      })
+        .sort({ score: -1 })
+        .limit(1);
+
+      const winner = input.round.clients.sort((a, b) => b.points - a.points)[0];
+      const profile = await ctx.app.model.Profile.findOne({ address: winner.address });
+
+      if (!record || winner.points > record.score) {
+        await ctx.app.model.WorldRecord.create({
+          gameId: game.id,
+          holderId: profile.id,
+          score: winner.points,
+        });
+
+        // Announce to all game shards
+      }
+    }
+
+    {
+      const record = await ctx.app.model.WorldRecord.findOne({ gameId: game.id, name: 'Highest Score' })
+        .sort({ score: -1 })
+        .limit(1);
+
+      const winner = input.round.clients.sort((a, b) => b.points - a.points)[0];
+      const profile = await ctx.app.model.Profile.findOne({ address: winner.address });
+
+      if (!record || winner.points > record.score) {
+        await ctx.app.model.WorldRecord.create({
+          gameId: game.id,
+          holderId: profile.id,
+          score: winner.points,
+        });
+      }
+    }
+
+    // {
+    //   const record = await ctx.app.model.WorldRecord.findOne({ gameId: game.id, name: 'Quickest Kill' })
+    //     .sort({ score: -1 })
+    //     .limit(1);
+
+    //   const winner = input.round.clients.sort((a, b) => b.quickestKill - a.quickestKill)[0];
+    //   const profile = await ctx.app.model.Profile.findOne({ address: winner.address });
+
+    //   if (!record || winner.quickestKill < record.score) {
+    //     await ctx.app.model.WorldRecord.create({
+    //       gameId: game.id,
+    //       holderId: profile.id,
+    //     });
+    //   }
+    // }
+
+    // const record = await ctx.app.model.WorldRecord.findOne({
+    //   gameId: game.id,
+    //   name: 'Quickest Death',
+    // })
+    //   .sort({ score: -1 })
+    //   .limit(1);
+
+    // const winner = input.round.clients.sort((a, b) => b.quickestDeath - a.quickestDeath)[0];
+    // const profile = await ctx.app.model.Profile.findOne({ address: winner.address });
+
+    // if (!record || winner.quickestDeath < record.score) {
+    //   await ctx.app.model.WorldRecord.create({
+    //     gameId: game.id,
+    //     holderId: profile.id,
+    //   });
+    // }
+
+    {
+      const record = await ctx.app.model.WorldRecord.findOne({ gameId: game.id, name: 'Most Kills' })
+        .sort({ score: -1 })
+        .limit(1);
+
+      const winner = input.round.clients.sort((a, b) => b.kills - a.kills)[0];
+      const profile = await ctx.app.model.Profile.findOne({ address: winner.address });
+
+      if (!record || winner.kills > record.score) {
+        await ctx.app.model.WorldRecord.create({
+          gameId: game.id,
+          holderId: profile.id,
+          score: winner.kills,
+        });
+      }
     }
   }
 
