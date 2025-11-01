@@ -571,7 +571,9 @@ export class Service {
 
     const payments = await ctx.app.model.Payment.find({
       ownerId: ctx.client.profile.id,
-    }).sort({ createdDate: -1 });
+    })
+      .sort({ createdDate: -1 })
+      .lean();
 
     return payments;
   }
