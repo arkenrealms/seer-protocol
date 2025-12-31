@@ -24,6 +24,7 @@ import * as Profile from '@arken/node/modules/profile/profile.router';
 import * as Raffle from '@arken/node/modules/raffle/raffle.router';
 import * as Skill from '@arken/node/modules/skill/skill.router';
 import * as Video from '@arken/node/modules/video/video.router';
+import * as Trek from './modules/trek/trek.router';
 import * as Isles from './modules/isles/isles.router';
 import * as Evolution from './modules/evolution/evolution.router';
 import * as Infinite from './modules/infinite/infinite.router';
@@ -58,6 +59,7 @@ export const createRouter = () => {
     skill: Skill.createRouter(),
     video: Video.createRouter(),
 
+    trek: Trek.createRouter(),
     evolution: Evolution.createRouter(),
     infinite: Infinite.createRouter(),
     oasis: Oasis.createRouter(),

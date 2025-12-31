@@ -3,11 +3,13 @@ import { Router, RouterInput, RouterOutput } from './router';
 import * as Evolution from './modules/evolution';
 import * as Infinite from './modules/infinite';
 import * as Oasis from './modules/oasis';
+import * as Trek from './modules/trek';
 import type * as Types from './types';
 
 export type { Router, RouterInput, RouterOutput };
 
 export type ApplicationServiceType = Partial<{
+  Trek: Trek.Service;
   Evolution: Evolution.Service;
   Infinite: Infinite.Service;
   Oasis: Oasis.Service;
