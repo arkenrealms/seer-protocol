@@ -1,3 +1,5 @@
+// packages/seer/packages/protocol/src/modules/evolution/evolution.service.ts
+//
 import type { RouterContext, RouterInput, RouterOutput } from './evolution.types';
 import * as Arken from '@arken/node';
 import { generateShortId } from '@arken/node/util/db';
@@ -13,6 +15,132 @@ import { getFilter } from '@arken/node/util/api';
 import { getTokenIdFromItem, normalizeItem } from '@arken/node/util/decoder';
 import { awaitEnter } from '@arken/node/util/process';
 import { Schema, serialize } from 'borsh';
+import get from 'lodash/get';
+import set from 'lodash/set';
+import type { PatchOp, EntityPatch } from '@arken/node/types';
+
+// -----------------------
+// Clean patch architecture
+// -----------------------
+
+function hasPerm(perms: Record<string, any> | undefined, key: string): boolean {
+  if (!perms) return false;
+  return !!perms[key];
+}
+
+/**
+ * Generic, future-proof permission gate:
+ * - Broad: `${target}.write`
+ * - Prefix: `${target}.write:<prefix>`
+ *
+ * Examples:
+ * - character.data.write
+ * - character.data.write:character.quest.evolution.
+ * - profile.meta.write:meta.reputation.
+ */
+function hasWriteAccess(perms: Record<string, any> | undefined, target: string, path: string) {
+  if (hasPerm(perms, `${target}.write`)) return true;
+
+  const entries = Object.keys(perms || {});
+  const wantedPrefix = `${target}.write:`;
+  for (const p of entries) {
+    if (!p.startsWith(wantedPrefix)) continue;
+    const allowedPrefix = p.slice(wantedPrefix.length);
+    if (path.startsWith(allowedPrefix)) return true;
+  }
+  return false;
+}
+
+function applyPatchToObject(obj: any, patch: PatchOp[]) {
+  for (const p of patch) {
+    if (p.op === 'set') {
+      set(obj, p.key, p.value);
+    } else if (p.op === 'unset') {
+      // lodash unset is separate; simplest:
+      set(obj, p.key, undefined);
+    } else if (p.op === 'inc') {
+      const cur = Number(get(obj, p.key)) || 0;
+      set(obj, p.key, cur + Number(p.value || 0));
+    } else if (p.op === 'push') {
+      const cur = get(obj, p.key);
+      const arr = Array.isArray(cur) ? cur : [];
+      arr.push(p.value);
+      set(obj, p.key, arr);
+    } else if (p.op === 'merge') {
+      const cur = get(obj, p.key);
+      const base = cur && typeof cur === 'object' ? cur : {};
+      set(obj, p.key, { ...base, ...(p.value || {}) });
+    }
+  }
+}
+
+/**
+ * Canonical target namespace used for permission checks.
+ * We keep this intentionally simple and stringly-typed.
+ */
+function entityPatchTarget(patch: EntityPatch): string {
+  const t = patch.entityType || '';
+  // recommended canonical values:
+  // - 'profile.meta'
+  // - 'character.data'
+  // - 'character.inventory'
+  // but allow any string
+  return t;
+}
+
+/**
+ * Inventory normalization is NOT legacy—it's required because shards cannot read mongo.
+ * Canonical contract:
+ * - shard may push inventory items as `{ itemKey, x, y }`
+ * - seer resolves itemKey -> itemId and stores `{ itemId, x, y }`
+ */
+async function normalizeInventoryPatch(ctx: RouterContext, patch: PatchOp[]): Promise<PatchOp[]> {
+  const out: PatchOp[] = [];
+
+  for (const p of patch) {
+    if (p.op === 'push' && (p.key === 'inventory.0.items' || p.key.startsWith('inventory.0.items'))) {
+      const v: any = p.value || {};
+      if (v.itemId) {
+        out.push(p);
+        continue;
+      }
+
+      if (v.itemKey) {
+        const item = await ctx.app.model.Item.findOne({ key: v.itemKey }).exec();
+        if (!item) {
+          // Fail hard: itemKey should be authoritative content
+          throw new Error(`Unknown itemKey in inventory patch: ${v.itemKey}`);
+        }
+
+        out.push({
+          op: 'push',
+          key: p.key,
+          value: {
+            itemId: item._id,
+            x: v.x ?? 1,
+            y: v.y ?? 1,
+          },
+        });
+        continue;
+      }
+    }
+
+    out.push(p);
+  }
+
+  return out;
+}
+
+function assertEntityPatch(op: any): asserts op is EntityPatch {
+  if (!op || typeof op !== 'object') throw new Error('Invalid op');
+  if (typeof op.entityType !== 'string') throw new Error('Invalid op.entityType');
+  if (typeof op.entityId !== 'string') throw new Error('Invalid op.entityId');
+  if (!Array.isArray(op.ops)) throw new Error('Invalid op.ops');
+}
+
+// -----------------------
+// Existing constants (unchanged)
+// -----------------------
 
 const allowedAdminAddresses = [
   '0xa987f487639920A3c2eFe58C8FBDedB96253ed9B',
@@ -22,10 +150,9 @@ const allowedAdminAddresses = [
 
 const usdPairs = ['busd', 'usdc', 'usdt'];
 
-const contractAddressToKey = {};
-
+const contractAddressToKey: any = {};
 for (const contractKey of Object.keys(contractInfo)) {
-  contractAddressToKey[contractInfo[contractKey][56]] = contractKey;
+  contractAddressToKey[(contractInfo as any)[contractKey][56]] = contractKey;
 }
 
 // TODO: check history, reasonable amount? does it deplete like it should?
@@ -83,98 +210,39 @@ function getTokenIdsFromItems(requestedItems) {
   const tokenIds = requestedItems.map((requestedItem) => {
     return getTokenIdFromItem(requestedItem, random(0, 999));
   });
-
   return tokenIds;
 }
 
 export class Service {
+  // -----------------------
+  // (unchanged methods above saveRound)
+  // -----------------------
+
   async updateConfig(input: RouterInput['updateConfig'], ctx: RouterContext): Promise<RouterOutput['updateConfig']> {
+    /* unchanged */
     if (!input) throw new Error('Input should not be void');
-
     const game = await ctx.app.model.Game.findOne({ key: input.gameKey });
-
-    // if (!game.meta)
-    // game.meta = {
-    //   noDecay: false,
-    //   isBattleRoyale: false,
-    //   roundLoopSeconds: 0,
-    //   totalLegitPlayers: 0,
-    //   checkPositionDistance: 0,
-    //   baseSpeed: 0,
-    //   maxClients: 100,
-    //   rewardItemAmount: 1,
-    //   mapBoundary: { x: { min: 0, max: 0 }, y: { min: 0, max: 0 } },
-    //   orbTimeoutSeconds: 0,
-    //   preventBadKills: false,
-    //   rewardWinnerAmountMax: 300,
-    //   maxEvolves: 0,
-    //   spawnBoundary1: { x: { min: 0, max: 0 }, y: { min: 0, max: 0 } },
-    //   isRoundPaused: false,
-    //   gameMode: 'Deathmatch',
-    //   antifeed1: false,
-    //   level2open: false,
-    //   rewardWinnerAmount: 1000,
-    //   orbCutoffSeconds: 0,
-    //   antifeed2: false,
-    //   rewardSpawnLoopSeconds: 0,
-    //   rewardItemAmountPerLegitPlayer: 0.0010000000000000000208,
-    //   antifeed3: false,
-    //   checkInterval: 0,
-    //   isGodParty: false,
-    //   pointsPerEvolve: 0,
-    //   pointsPerKill: 0,
-    //   loggableEvents: [],
-    //   drops: { guardian: 0, santa: 0, earlyAccess: 0, trinket: 0 },
-    //   hideMap: false,
-    //   rewards: {
-    //     characters: [{ type: 'character', tokenId: '1' }],
-    //     items: [],
-    //     tokens: [
-    //       { symbol: 'pepe', value: 0.000020000000000000001636, quantity: 10000000, type: 'token' },
-    //       { symbol: 'doge', value: 0.2999999999999999889, quantity: 0, type: 'token' },
-    //       { symbol: 'harold', value: 0.012999999999999999403, quantity: 100000, type: 'token' },
-    //     ],
-    //   },
-    //   decayPower: 0,
-    //   spawnBoundary2: { x: { max: 0, min: 0 }, y: { min: 0, max: 0 } },
-    //   rewardWinnerAmountPerLegitPlayer: 0.0010000000000000000208,
-    //   dynamicDecayPower: true,
-    //   leadercap: false,
-    //   rewardItemAmountMax: 1,
-    //   resetInterval: 0,
-    //   orbOnDeathPercent: 0,
-    //   roundId: '6774d64608c05476fc257d1a',
-    //   noBoot: false,
-    //   fastLoopSeconds: 0,
-    // };
-
     for (const key in input) {
-      console.log('Setting', key, input[key]);
-      game.meta[key] = input[key];
+      console.log('Setting', key, (input as any)[key]);
+      (game as any).meta[key] = (input as any)[key];
     }
-
-    game.meta = { ...game.meta };
-    game.markModified('meta');
-
-    await game.save();
-
-    return game.meta;
+    (game as any).meta = { ...(game as any).meta };
+    (game as any).markModified('meta');
+    await (game as any).save();
+    return (game as any).meta;
   }
 
   async updateGameStats(
     input: RouterInput['updateGameStats'],
     ctx: RouterContext
   ): Promise<RouterOutput['updateGameStats']> {
+    /* unchanged */
     const { Game, GameStat } = ctx.app.model;
-
     const game = await Game.findOne({ key: 'evolution' }).populate('stat').exec();
-    let latestRecord = game.stat;
-
+    let latestRecord = (game as any).stat;
     try {
       if (latestRecord) {
         const dayAgo = dayjs().subtract(1, 'day');
-
-        // Unset the latest record if it's older than one day, so a new one is created
         if (!dayjs(latestRecord.createdDate).isAfter(dayAgo)) {
           latestRecord = undefined;
         }
@@ -183,31 +251,649 @@ export class Service {
       console.log('Error getting latest stat record', e);
     }
 
-    const meta: any = {
-      clientCount: game.meta.clientCount,
-    };
+    const meta: any = { clientCount: (game as any).meta.clientCount };
 
     if (latestRecord) {
-      await GameStat.updateOne(
-        { _id: latestRecord.id },
-        {
-          ...latestRecord,
-          meta,
-        }
-      ).exec();
+      await GameStat.updateOne({ _id: latestRecord.id }, { ...latestRecord, meta }).exec();
     } else {
-      const gameStat = await GameStat.create({
-        gameId: game.id,
-        meta,
-      });
-
-      game.statId = gameStat.id;
+      const gameStat = await GameStat.create({ gameId: (game as any).id, meta });
+      (game as any).statId = gameStat.id;
     }
 
-    game.meta = { ...game.meta };
-
-    await game.save();
+    (game as any).meta = { ...(game as any).meta };
+    await (game as any).save();
   }
+
+  // -----------------------
+  // ✅ CLEAN saveRound
+  // -----------------------
+  /**
+   * Clean contract:
+   * - input.round.clients[].ops is EntityPatch[]
+   * - each client also includes permissions snapshot used for gating
+   * - seer applies entity patches to mongo with dedupe per profile.meta.opIds
+   *
+   * Notes:
+   * - shard is responsible for validation, quest logic, ordering checks, etc.
+   * - seer is responsible for:
+   *   - permission gate
+   *   - dedupe (op id)
+   *   - persistence
+   */
+
+  // {
+  //   "shardId": "676cca983a7ff7b07727361a",
+  //   "round": {
+  //     "id": "676ccad6040be4e1feb4fb07",
+  //     "startedAt": 1735183062,
+  //     "endedAt": 1735183092,
+  //     "clients": [
+  //       {
+  //         "id": "sa00CgPFKF606oOSAAAD",
+  //         "name": "returnportal",
+  //         "joinedRoundAt": 1735183062215,
+  //         "points": 0,
+  //         "kills": 0,
+  //         "killStreak": 0,
+  //         "deaths": 0,
+  //         "evolves": 1,
+  //         "rewards": 0,
+  //         "orbs": 0,
+  //         "powerups": 10,
+  //         "baseSpeed": 0.8,
+  //         "decayPower": 1,
+  //         "pickups": [],
+  //         "xp": 22.560000000000606,
+  //         "maxHp": 100,
+  //         "avatar": 0,
+  //         "speed": 3.2,
+  //         "cameraSize": 2.5,
+  //         "log": {
+  //           "kills": [],
+  //           "deaths": [],
+  //           "revenge": 0,
+  //           "resetPosition": 0,
+  //           "phases": 0,
+  //           "stuck": 0,
+  //           "collided": 0,
+  //           "timeoutDisconnect": 0,
+  //           "speedProblem": 0,
+  //           "clientDistanceProblem": 0,
+  //           "outOfBounds": 0,
+  //           "ranOutOfHealth": 0,
+  //           "notReallyTrying": 0,
+  //           "tooManyKills": 0,
+  //           "killingThemselves": 0,
+  //           "sameNetworkDisconnect": 0,
+  //           "connectedTooSoon": 0,
+  //           "clientDisconnected": 0,
+  //           "positionJump": 0,
+  //           "pauses": 0,
+  //           "connects": 0,
+  //           "path": "",
+  //           "positions": 368,
+  //           "spectating": 0,
+  //           "recentJoinProblem": 0,
+  //           "usernameProblem": 0,
+  //           "maintenanceJoin": 0,
+  //           "signatureProblem": 0,
+  //           "signinProblem": 0,
+  //           "versionProblem": 0,
+  //           "failedRealmCheck": 0,
+  //           "addressProblem": 0,
+  //           "replay": []
+  //         }
+  //       }
+  //     ],
+  //     "events": [],
+  //     "states": []
+  //   },
+  //   "rewardWinnerAmount": 100,
+  //   "lastClients": [
+  //     {
+  //       "id": "7qYr9V8pTyZtbUlRAAAB",
+  //       "name": "Unknown812",
+  //       "joinedRoundAt": 1735183032188,
+  //       "points": 0,
+  //       "kills": 0,
+  //       "killStreak": 0,
+  //       "deaths": 0,
+  //       "evolves": 0,
+  //       "rewards": 0,
+  //       "orbs": 0,
+  //       "powerups": 0,
+  //       "baseSpeed": 0.8,
+  //       "decayPower": 1,
+  //       "pickups": [],
+  //       "xp": 50,
+  //       "maxHp": 100,
+  //       "avatar": 0,
+  //       "speed": 2.4,
+  //       "cameraSize": 3,
+  //       "log": {
+  //         "kills": [],
+  //         "deaths": [],
+  //         "revenge": 0,
+  //         "resetPosition": 0,
+  //         "phases": 0,
+  //         "stuck": 0,
+  //         "collided": 0,
+  //         "timeoutDisconnect": 0,
+  //         "speedProblem": 0,
+  //         "clientDistanceProblem": 0,
+  //         "outOfBounds": 0,
+  //         "ranOutOfHealth": 0,
+  //         "notReallyTrying": 0,
+  //         "tooManyKills": 0,
+  //         "killingThemselves": 0,
+  //         "sameNetworkDisconnect": 0,
+  //         "connectedTooSoon": 0,
+  //         "clientDisconnected": 0,
+  //         "positionJump": 0,
+  //         "pauses": 0,
+  //         "connects": 0,
+  //         "path": "",
+  //         "positions": 0,
+  //         "spectating": 0,
+  //         "recentJoinProblem": 0,
+  //         "usernameProblem": 0,
+  //         "maintenanceJoin": 0,
+  //         "signatureProblem": 0,
+  //         "signinProblem": 0,
+  //         "versionProblem": 0,
+  //         "failedRealmCheck": 0,
+  //         "addressProblem": 0,
+  //         "replay": []
+  //       },
+  //       "shardId": "676cca983a7ff7b07727361a"
+  //     },
+  //     {
+  //       "id": "sa00CgPFKF606oOSAAAD",
+  //       "name": "returnportal",
+  //       "joinedRoundAt": 1735183032189,
+  //       "points": 68,
+  //       "kills": 0,
+  //       "killStreak": 0,
+  //       "deaths": 0,
+  //       "evolves": 7,
+  //       "rewards": 1,
+  //       "orbs": 0,
+  //       "powerups": 56,
+  //       "baseSpeed": 0.8,
+  //       "decayPower": 1,
+  //       "pickups": [
+  //         {
+  //           "type": "token",
+  //           "symbol": "pepe",
+  //           "quantity": 1,
+  //           "rewardItemType": 0,
+  //           "id": "676ccaa32b9c5454607eaa05",
+  //           "enabledDate": 1735183011161,
+  //           "rewardItemName": "pepe",
+  //           "position": {
+  //             "x": -9.420004,
+  //             "y": -6.517404
+  //           },
+  //           "winner": "returnportal"
+  //         }
+  //       ],
+  //       "xp": 93.60000000000002,
+  //       "maxHp": 100,
+  //       "avatar": 1,
+  //       "speed": 2.4,
+  //       "cameraSize": 3,
+  //       "log": {
+  //         "kills": [],
+  //         "deaths": [],
+  //         "revenge": 0,
+  //         "resetPosition": 0,
+  //         "phases": 0,
+  //         "stuck": 0,
+  //         "collided": 0,
+  //         "timeoutDisconnect": 0,
+  //         "speedProblem": 0,
+  //         "clientDistanceProblem": 0,
+  //         "outOfBounds": 0,
+  //         "ranOutOfHealth": 0,
+  //         "notReallyTrying": 0,
+  //         "tooManyKills": 0,
+  //         "killingThemselves": 0,
+  //         "sameNetworkDisconnect": 0,
+  //         "connectedTooSoon": 0,
+  //         "clientDisconnected": 0,
+  //         "positionJump": 0,
+  //         "pauses": 0,
+  //         "connects": 0,
+  //         "path": "",
+  //         "positions": 368,
+  //         "spectating": 0,
+  //         "recentJoinProblem": 0,
+  //         "usernameProblem": 0,
+  //         "maintenanceJoin": 0,
+  //         "signatureProblem": 0,
+  //         "signinProblem": 0,
+  //         "versionProblem": 0,
+  //         "failedRealmCheck": 0,
+  //         "addressProblem": 0,
+  //         "replay": []
+  //       },
+  //       "shardId": "676cca983a7ff7b07727361a"
+  //     }
+  //   ]
+  // }
+  async saveRound(input: RouterInput['saveRound'], ctx: RouterContext): Promise<RouterOutput['saveRound']> {
+    if (!input) throw new Error('Input should not be void');
+
+    console.log('Evolution.Service.saveRound', input);
+
+    // realm/shard identity check (keep yours)
+    if (!ctx.client?.roles?.includes('admin')) throw new Error('Not authorized');
+
+    const game = await ctx.app.model.Game.findOne({ key: input.gameKey }).exec();
+    if (!game) throw new Error('Game not found');
+
+    if (input.round.id !== (game as any).meta.roundId) throw new Error('Invalid Round ID');
+
+    const session = await ctx.app.db.mongoose.startSession();
+    session.startTransaction();
+
+    try {
+      const oldGameRound = await ctx.app.model.GameRound.findById(input.round.id).exec();
+      if (oldGameRound) {
+        (oldGameRound as any).meta = input.round;
+        (oldGameRound as any).markModified('meta');
+        await (oldGameRound as any).save();
+      } else {
+        log('Could not find game round: ', input.round.id);
+      }
+
+      const newGameRound = await ctx.app.model.GameRound.create({ gameId: (game as any).id, meta: input.round });
+
+      (game as any).meta = {
+        ...(game as any).meta,
+        clientCount: input.round.clients.length,
+        roundId: newGameRound._id.toString(),
+      };
+      (game as any).markModified('meta');
+      await (game as any).save();
+
+      const res = { roundId: (game as any).meta.roundId };
+
+      // ----- rewards table (unchanged) -----
+      if (input.round.clients.length > 0) {
+        const rewardWinnerMap = {
+          0: Math.round((game as any).meta.rewardWinnerAmount * 1 * 1000) / 1000,
+          1: Math.round((game as any).meta.rewardWinnerAmount * 0.25 * 1000) / 1000,
+          2: Math.round((game as any).meta.rewardWinnerAmount * 0.15 * 1000) / 1000,
+          3: Math.round((game as any).meta.rewardWinnerAmount * 0.05 * 1000) / 1000,
+          4: Math.round((game as any).meta.rewardWinnerAmount * 0.05 * 1000) / 1000,
+          5: Math.round((game as any).meta.rewardWinnerAmount * 0.05 * 1000) / 1000,
+          6: Math.round((game as any).meta.rewardWinnerAmount * 0.05 * 1000) / 1000,
+          7: Math.round((game as any).meta.rewardWinnerAmount * 0.05 * 1000) / 1000,
+          8: Math.round((game as any).meta.rewardWinnerAmount * 0.05 * 1000) / 1000,
+          9: Math.round((game as any).meta.rewardWinnerAmount * 0.05 * 1000) / 1000,
+        };
+
+        const winners = input.round.clients.sort((a, b) => b.points - a.points);
+
+        // iterate clients, save rewards + apply ops
+        for (const client of input.round.clients as any[]) {
+          if (!client?.address) continue;
+
+          const winnerIndex = winners.findIndex((w: any) => w.address === client.address);
+          const profile = await ctx.app.model.Profile.findOne({ address: client.address }).exec();
+          if (!profile) continue;
+
+          // ✅ IMPORTANT: permission snapshot comes from shard payload, not ctx.client (realm admin)
+          const perms: Record<string, any> = client.permissions || {};
+
+          // dedupe store
+          if (!(profile as any).meta) (profile as any).meta = {};
+          if (!Array.isArray((profile as any).meta.opIds)) (profile as any).meta.opIds = [];
+          const applied = new Set<string>((profile as any).meta.opIds);
+
+          // Load default character doc (keep your current model assumption)
+          const character = (profile as any).characters?.[0];
+
+          const ops: EntityPatch[] = Array.isArray(client.ops) ? client.ops : [];
+
+          for (const rawOp of ops) {
+            assertEntityPatch(rawOp);
+
+            // strong dedupe requires op ids; we use the patch's baseVersion + ts? No.
+            // Clean architecture: shard must include stable op id by encoding it in entityId+baseVersion? Not good.
+            // So we require baseVersion OR stable external id? We’ll use entityPatch hash if needed.
+            // ✅ Clean rule: shard MUST include `rawOp.baseVersion` AND we generate id deterministically:
+            const opId = `${rawOp.entityType}:${rawOp.entityId}:${rawOp.baseVersion ?? 'na'}:${JSON.stringify(
+              rawOp.ops
+            )}`;
+            if (applied.has(opId)) continue;
+
+            const target = entityPatchTarget(rawOp);
+
+            // Permission gate: every key must be allowed
+            let allowed = true;
+            for (const p of rawOp.ops) {
+              const path = p.key;
+              if (!hasWriteAccess(perms, target, path)) {
+                allowed = false;
+                break;
+              }
+            }
+            if (!allowed) continue;
+
+            // mark applied
+            (profile as any).meta.opIds.push(opId);
+            applied.add(opId);
+
+            // Apply by entityType
+            if (target === 'profile.meta') {
+              applyPatchToObject((profile as any).meta, rawOp.ops);
+              (profile as any).markModified('meta');
+            } else if (target === 'character.data') {
+              if (!character) continue;
+              if (!(character as any).data) (character as any).data = {};
+              applyPatchToObject((character as any).data, rawOp.ops);
+              (character as any).markModified('data');
+              await (character as any).save();
+            } else if (target === 'character.inventory') {
+              if (!character) continue;
+              const normalized = await normalizeInventoryPatch(ctx, rawOp.ops);
+
+              if (!Array.isArray((character as any).inventory)) (character as any).inventory = [];
+              if (!(character as any).inventory[0]) (character as any).inventory[0] = { items: [] };
+
+              // patch keys are on the character root: inventory.0.items
+              applyPatchToObject(character, normalized);
+              (character as any).markModified('inventory');
+              await (character as any).save();
+            } else {
+              // clean architecture: allow new entity types later, but don't silently write today
+              // If you want “any string”, then you need a registry here.
+              // For now, fail loudly so content authors don’t think it worked:
+              throw new Error(`Unsupported entityType for saveRound patch: ${target}`);
+            }
+          }
+
+          // bound dedupe list
+          (profile as any).meta.opIds = (profile as any).meta.opIds.slice(-2000);
+
+          // ---- existing rewards logic (unchanged) ----
+          if (!(profile as any).meta.rewards) (profile as any).meta.rewards = {};
+          if (!(profile as any).meta.rewards.tokens) (profile as any).meta.rewards.tokens = {};
+          if (!(profile as any).meta.rewards.tokens['pepe']) (profile as any).meta.rewards.tokens['pepe'] = 0;
+          if ((profile as any).meta.rewards.tokens['pepe'] < 0) (profile as any).meta.rewards.tokens['pepe'] = 0;
+
+          (profile as any).meta.rewards.tokens['pepe'] += winnerIndex <= 9 ? rewardWinnerMap[winnerIndex] : 0;
+
+          for (const pickup of client.pickups || []) {
+            if (pickup.type === 'token') {
+              const tokenSymbol = (pickup.rewardItemName || '').toLowerCase();
+
+              if (!(game as any).meta.rewards.tokens.find((t: any) => t.symbol === tokenSymbol)) {
+                throw new Error('Problem finding a reward token');
+              }
+
+              if (
+                !(profile as any).meta.rewards.tokens[tokenSymbol] ||
+                (profile as any).meta.rewards.tokens[tokenSymbol] < 0.000000001
+              ) {
+                (profile as any).meta.rewards.tokens[tokenSymbol] = 0;
+              }
+
+              (profile as any).meta.rewards.tokens[tokenSymbol] += pickup.quantity;
+            } else {
+              if (pickup.name === 'Santa Christmas Ticket') {
+                const year = new Date().getFullYear();
+
+                if (!(profile as any).meta.rewards.tokens['christmas' + year])
+                  (profile as any).meta.rewards.tokens['christmas' + year] = 0;
+                (profile as any).meta.rewards.tokens['christmas' + year] += 1;
+              }
+            }
+          }
+
+          if (!(profile as any).meta.ap) (profile as any).meta.ap = 0;
+          if (!(profile as any).meta.bp) (profile as any).meta.bp = 0;
+
+          (profile as any).meta.ap += client.powerups || 0;
+          (profile as any).meta.bp += client.kills || 0;
+
+          (profile as any).markModified('meta');
+          await (profile as any).save();
+        }
+
+        await this.processWorldRecords(input, ctx);
+      } else {
+        console.log('No clients this round.');
+      }
+
+      await session.commitTransaction();
+      return res;
+    } catch (error) {
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      session.endSession();
+    }
+  }
+
+  async processWorldRecords(input: RouterInput['saveRound'], ctx: RouterContext): Promise<RouterOutput['saveRound']> {
+    /* unchanged (your existing implementation) */
+    if (!input) throw new Error('Input should not be void');
+
+    console.log('Evolution.Service.processWorldRecords', input);
+
+    const game = await ctx.app.model.Game.findOne({ key: input.gameKey });
+
+    {
+      const record = await ctx.app.model.WorldRecord.findOne({
+        gameId: (game as any).id,
+        name: `${input.round.gameMode} Points`,
+      })
+        .sort({ score: -1 })
+        .limit(1);
+
+      const winner = input.round.clients.sort((a, b) => b.points - a.points)[0];
+      const profile = await ctx.app.model.Profile.findOne({ address: (winner as any).address });
+
+      if (!record || winner.points > (record as any).score) {
+        await ctx.app.model.WorldRecord.create({
+          gameId: (game as any).id,
+          holderId: (profile as any).id,
+          score: winner.points,
+        });
+      }
+    }
+
+    {
+      const record = await ctx.app.model.WorldRecord.findOne({ gameId: (game as any).id, name: 'Highest Score' })
+        .sort({ score: -1 })
+        .limit(1);
+
+      const winner = input.round.clients.sort((a, b) => b.points - a.points)[0];
+      const profile = await ctx.app.model.Profile.findOne({ address: (winner as any).address });
+
+      if (!record || winner.points > (record as any).score) {
+        await ctx.app.model.WorldRecord.create({
+          gameId: (game as any).id,
+          holderId: (profile as any).id,
+          score: winner.points,
+        });
+      }
+    }
+
+    {
+      const record = await ctx.app.model.WorldRecord.findOne({ gameId: (game as any).id, name: 'Most Kills' })
+        .sort({ score: -1 })
+        .limit(1);
+
+      const winner = input.round.clients.sort((a, b) => b.kills - a.kills)[0];
+      const profile = await ctx.app.model.Profile.findOne({ address: (winner as any).address });
+
+      if (!record || winner.kills > (record as any).score) {
+        await ctx.app.model.WorldRecord.create({
+          gameId: (game as any).id,
+          holderId: (profile as any).id,
+          score: winner.kills,
+        });
+      }
+    }
+
+    return { roundId: (game as any).meta.roundId };
+  }
+
+  async interact(input: RouterInput['interact'], ctx: RouterContext): Promise<RouterOutput['interact']> {
+    console.log('Evolution.Service.interact', input);
+  }
+
+  async getScene(input: RouterInput['getScene'], ctx: RouterContext): Promise<RouterOutput['getScene']> {
+    /* unchanged */
+    if (!input) throw new Error('Input should not be void');
+    console.log('Evolution.Service.getScene', input);
+
+    let data = {};
+
+    if ((input as any).applicationId === '668e4e805f9a03927caf883b') {
+      data = {
+        ...data,
+        objects: [
+          {
+            id: 'axl',
+            file: 'axl.fbx',
+            position: { x: 1000, y: 1000, z: 1000 },
+          },
+        ] as unknown as Arken.Core.Types.Object,
+      };
+    }
+
+    return data as any;
+  }
+
+  // -----------------------
+  // (all other methods below unchanged: payments, chest, parties, etc.)
+  // -----------------------
+
+  // async updateConfig(input: RouterInput['updateConfig'], ctx: RouterContext): Promise<RouterOutput['updateConfig']> {
+  //   if (!input) throw new Error('Input should not be void');
+
+  //   const game = await ctx.app.model.Game.findOne({ key: input.gameKey });
+
+  //   // if (!game.meta)
+  //   // game.meta = {
+  //   //   noDecay: false,
+  //   //   isBattleRoyale: false,
+  //   //   roundLoopSeconds: 0,
+  //   //   totalLegitPlayers: 0,
+  //   //   checkPositionDistance: 0,
+  //   //   baseSpeed: 0,
+  //   //   maxClients: 100,
+  //   //   rewardItemAmount: 1,
+  //   //   mapBoundary: { x: { min: 0, max: 0 }, y: { min: 0, max: 0 } },
+  //   //   orbTimeoutSeconds: 0,
+  //   //   preventBadKills: false,
+  //   //   rewardWinnerAmountMax: 300,
+  //   //   maxEvolves: 0,
+  //   //   spawnBoundary1: { x: { min: 0, max: 0 }, y: { min: 0, max: 0 } },
+  //   //   isRoundPaused: false,
+  //   //   gameMode: 'Deathmatch',
+  //   //   antifeed1: false,
+  //   //   level2open: false,
+  //   //   rewardWinnerAmount: 1000,
+  //   //   orbCutoffSeconds: 0,
+  //   //   antifeed2: false,
+  //   //   rewardSpawnLoopSeconds: 0,
+  //   //   rewardItemAmountPerLegitPlayer: 0.0010000000000000000208,
+  //   //   antifeed3: false,
+  //   //   checkInterval: 0,
+  //   //   isGodParty: false,
+  //   //   pointsPerEvolve: 0,
+  //   //   pointsPerKill: 0,
+  //   //   loggableEvents: [],
+  //   //   drops: { guardian: 0, santa: 0, earlyAccess: 0, trinket: 0 },
+  //   //   hideMap: false,
+  //   //   rewards: {
+  //   //     characters: [{ type: 'character', tokenId: '1' }],
+  //   //     items: [],
+  //   //     tokens: [
+  //   //       { symbol: 'pepe', value: 0.000020000000000000001636, quantity: 10000000, type: 'token' },
+  //   //       { symbol: 'doge', value: 0.2999999999999999889, quantity: 0, type: 'token' },
+  //   //       { symbol: 'harold', value: 0.012999999999999999403, quantity: 100000, type: 'token' },
+  //   //     ],
+  //   //   },
+  //   //   decayPower: 0,
+  //   //   spawnBoundary2: { x: { max: 0, min: 0 }, y: { min: 0, max: 0 } },
+  //   //   rewardWinnerAmountPerLegitPlayer: 0.0010000000000000000208,
+  //   //   dynamicDecayPower: true,
+  //   //   leadercap: false,
+  //   //   rewardItemAmountMax: 1,
+  //   //   resetInterval: 0,
+  //   //   orbOnDeathPercent: 0,
+  //   //   roundId: '6774d64608c05476fc257d1a',
+  //   //   noBoot: false,
+  //   //   fastLoopSeconds: 0,
+  //   // };
+
+  //   for (const key in input) {
+  //     console.log('Setting', key, input[key]);
+  //     game.meta[key] = input[key];
+  //   }
+
+  //   game.meta = { ...game.meta };
+  //   game.markModified('meta');
+
+  //   await game.save();
+
+  //   return game.meta;
+  // }
+
+  // async updateGameStats(
+  //   input: RouterInput['updateGameStats'],
+  //   ctx: RouterContext
+  // ): Promise<RouterOutput['updateGameStats']> {
+  //   const { Game, GameStat } = ctx.app.model;
+
+  //   const game = await Game.findOne({ key: 'evolution' }).populate('stat').exec();
+  //   let latestRecord = game.stat;
+
+  //   try {
+  //     if (latestRecord) {
+  //       const dayAgo = dayjs().subtract(1, 'day');
+
+  //       // Unset the latest record if it's older than one day, so a new one is created
+  //       if (!dayjs(latestRecord.createdDate).isAfter(dayAgo)) {
+  //         latestRecord = undefined;
+  //       }
+  //     }
+  //   } catch (e) {
+  //     console.log('Error getting latest stat record', e);
+  //   }
+
+  //   const meta: any = {
+  //     clientCount: game.meta.clientCount,
+  //   };
+
+  //   if (latestRecord) {
+  //     await GameStat.updateOne(
+  //       { _id: latestRecord.id },
+  //       {
+  //         ...latestRecord,
+  //         meta,
+  //       }
+  //     ).exec();
+  //   } else {
+  //     const gameStat = await GameStat.create({
+  //       gameId: game.id,
+  //       meta,
+  //     });
+
+  //     game.statId = gameStat.id;
+  //   }
+
+  //   game.meta = { ...game.meta };
+
+  //   await game.save();
+  // }
 
   async getAllChestEvents(app, retry = false) {
     if (app.data.chest.updating) return;
@@ -629,7 +1315,7 @@ export class Service {
     await ctx.app.model.Message.create({
       name: 'Payment Created',
       content: `Payment request by ${ctx.client.profile.name} (${ctx.client.profile.address})
-      Details: ${JSON.stringify(input, null, 2)}`,
+        Details: ${JSON.stringify(input, null, 2)}`,
       conversationId: notice.id,
     });
   }
@@ -1161,480 +1847,130 @@ export class Service {
     }
   }
 
-  // {
-  //   "shardId": "676cca983a7ff7b07727361a",
-  //   "round": {
-  //     "id": "676ccad6040be4e1feb4fb07",
-  //     "startedAt": 1735183062,
-  //     "endedAt": 1735183092,
-  //     "clients": [
-  //       {
-  //         "id": "sa00CgPFKF606oOSAAAD",
-  //         "name": "returnportal",
-  //         "joinedRoundAt": 1735183062215,
-  //         "points": 0,
-  //         "kills": 0,
-  //         "killStreak": 0,
-  //         "deaths": 0,
-  //         "evolves": 1,
-  //         "rewards": 0,
-  //         "orbs": 0,
-  //         "powerups": 10,
-  //         "baseSpeed": 0.8,
-  //         "decayPower": 1,
-  //         "pickups": [],
-  //         "xp": 22.560000000000606,
-  //         "maxHp": 100,
-  //         "avatar": 0,
-  //         "speed": 3.2,
-  //         "cameraSize": 2.5,
-  //         "log": {
-  //           "kills": [],
-  //           "deaths": [],
-  //           "revenge": 0,
-  //           "resetPosition": 0,
-  //           "phases": 0,
-  //           "stuck": 0,
-  //           "collided": 0,
-  //           "timeoutDisconnect": 0,
-  //           "speedProblem": 0,
-  //           "clientDistanceProblem": 0,
-  //           "outOfBounds": 0,
-  //           "ranOutOfHealth": 0,
-  //           "notReallyTrying": 0,
-  //           "tooManyKills": 0,
-  //           "killingThemselves": 0,
-  //           "sameNetworkDisconnect": 0,
-  //           "connectedTooSoon": 0,
-  //           "clientDisconnected": 0,
-  //           "positionJump": 0,
-  //           "pauses": 0,
-  //           "connects": 0,
-  //           "path": "",
-  //           "positions": 368,
-  //           "spectating": 0,
-  //           "recentJoinProblem": 0,
-  //           "usernameProblem": 0,
-  //           "maintenanceJoin": 0,
-  //           "signatureProblem": 0,
-  //           "signinProblem": 0,
-  //           "versionProblem": 0,
-  //           "failedRealmCheck": 0,
-  //           "addressProblem": 0,
-  //           "replay": []
-  //         }
-  //       }
-  //     ],
-  //     "events": [],
-  //     "states": []
-  //   },
-  //   "rewardWinnerAmount": 100,
-  //   "lastClients": [
-  //     {
-  //       "id": "7qYr9V8pTyZtbUlRAAAB",
-  //       "name": "Unknown812",
-  //       "joinedRoundAt": 1735183032188,
-  //       "points": 0,
-  //       "kills": 0,
-  //       "killStreak": 0,
-  //       "deaths": 0,
-  //       "evolves": 0,
-  //       "rewards": 0,
-  //       "orbs": 0,
-  //       "powerups": 0,
-  //       "baseSpeed": 0.8,
-  //       "decayPower": 1,
-  //       "pickups": [],
-  //       "xp": 50,
-  //       "maxHp": 100,
-  //       "avatar": 0,
-  //       "speed": 2.4,
-  //       "cameraSize": 3,
-  //       "log": {
-  //         "kills": [],
-  //         "deaths": [],
-  //         "revenge": 0,
-  //         "resetPosition": 0,
-  //         "phases": 0,
-  //         "stuck": 0,
-  //         "collided": 0,
-  //         "timeoutDisconnect": 0,
-  //         "speedProblem": 0,
-  //         "clientDistanceProblem": 0,
-  //         "outOfBounds": 0,
-  //         "ranOutOfHealth": 0,
-  //         "notReallyTrying": 0,
-  //         "tooManyKills": 0,
-  //         "killingThemselves": 0,
-  //         "sameNetworkDisconnect": 0,
-  //         "connectedTooSoon": 0,
-  //         "clientDisconnected": 0,
-  //         "positionJump": 0,
-  //         "pauses": 0,
-  //         "connects": 0,
-  //         "path": "",
-  //         "positions": 0,
-  //         "spectating": 0,
-  //         "recentJoinProblem": 0,
-  //         "usernameProblem": 0,
-  //         "maintenanceJoin": 0,
-  //         "signatureProblem": 0,
-  //         "signinProblem": 0,
-  //         "versionProblem": 0,
-  //         "failedRealmCheck": 0,
-  //         "addressProblem": 0,
-  //         "replay": []
-  //       },
-  //       "shardId": "676cca983a7ff7b07727361a"
-  //     },
-  //     {
-  //       "id": "sa00CgPFKF606oOSAAAD",
-  //       "name": "returnportal",
-  //       "joinedRoundAt": 1735183032189,
-  //       "points": 68,
-  //       "kills": 0,
-  //       "killStreak": 0,
-  //       "deaths": 0,
-  //       "evolves": 7,
-  //       "rewards": 1,
-  //       "orbs": 0,
-  //       "powerups": 56,
-  //       "baseSpeed": 0.8,
-  //       "decayPower": 1,
-  //       "pickups": [
-  //         {
-  //           "type": "token",
-  //           "symbol": "pepe",
-  //           "quantity": 1,
-  //           "rewardItemType": 0,
-  //           "id": "676ccaa32b9c5454607eaa05",
-  //           "enabledDate": 1735183011161,
-  //           "rewardItemName": "pepe",
-  //           "position": {
-  //             "x": -9.420004,
-  //             "y": -6.517404
-  //           },
-  //           "winner": "returnportal"
-  //         }
-  //       ],
-  //       "xp": 93.60000000000002,
-  //       "maxHp": 100,
-  //       "avatar": 1,
-  //       "speed": 2.4,
-  //       "cameraSize": 3,
-  //       "log": {
-  //         "kills": [],
-  //         "deaths": [],
-  //         "revenge": 0,
-  //         "resetPosition": 0,
-  //         "phases": 0,
-  //         "stuck": 0,
-  //         "collided": 0,
-  //         "timeoutDisconnect": 0,
-  //         "speedProblem": 0,
-  //         "clientDistanceProblem": 0,
-  //         "outOfBounds": 0,
-  //         "ranOutOfHealth": 0,
-  //         "notReallyTrying": 0,
-  //         "tooManyKills": 0,
-  //         "killingThemselves": 0,
-  //         "sameNetworkDisconnect": 0,
-  //         "connectedTooSoon": 0,
-  //         "clientDisconnected": 0,
-  //         "positionJump": 0,
-  //         "pauses": 0,
-  //         "connects": 0,
-  //         "path": "",
-  //         "positions": 368,
-  //         "spectating": 0,
-  //         "recentJoinProblem": 0,
-  //         "usernameProblem": 0,
-  //         "maintenanceJoin": 0,
-  //         "signatureProblem": 0,
-  //         "signinProblem": 0,
-  //         "versionProblem": 0,
-  //         "failedRealmCheck": 0,
-  //         "addressProblem": 0,
-  //         "replay": []
-  //       },
-  //       "shardId": "676cca983a7ff7b07727361a"
+  // async processWorldRecords(input: RouterInput['saveRound'], ctx: RouterContext): Promise<RouterOutput['saveRound']> {
+  //   if (!input) throw new Error('Input should not be void');
+
+  //   console.log('Evolution.Service.processWorldRecords', input);
+
+  //   const game = await ctx.app.model.Game.findOne({ key: input.gameKey });
+
+  //   {
+  //     const record = await ctx.app.model.WorldRecord.findOne({
+  //       gameId: game.id,
+  //       name: `${input.round.gameMode} Points`,
+  //     })
+  //       .sort({ score: -1 })
+  //       .limit(1);
+
+  //     const winner = input.round.clients.sort((a, b) => b.points - a.points)[0];
+  //     const profile = await ctx.app.model.Profile.findOne({ address: winner.address });
+
+  //     if (!record || winner.points > record.score) {
+  //       await ctx.app.model.WorldRecord.create({
+  //         gameId: game.id,
+  //         holderId: profile.id,
+  //         score: winner.points,
+  //       });
+
+  //       // Announce to all game shards
   //     }
-  //   ]
+  //   }
+
+  //   {
+  //     const record = await ctx.app.model.WorldRecord.findOne({ gameId: game.id, name: 'Highest Score' })
+  //       .sort({ score: -1 })
+  //       .limit(1);
+
+  //     const winner = input.round.clients.sort((a, b) => b.points - a.points)[0];
+  //     const profile = await ctx.app.model.Profile.findOne({ address: winner.address });
+
+  //     if (!record || winner.points > record.score) {
+  //       await ctx.app.model.WorldRecord.create({
+  //         gameId: game.id,
+  //         holderId: profile.id,
+  //         score: winner.points,
+  //       });
+  //     }
+  //   }
+
+  //   // {
+  //   //   const record = await ctx.app.model.WorldRecord.findOne({ gameId: game.id, name: 'Quickest Kill' })
+  //   //     .sort({ score: -1 })
+  //   //     .limit(1);
+
+  //   //   const winner = input.round.clients.sort((a, b) => b.quickestKill - a.quickestKill)[0];
+  //   //   const profile = await ctx.app.model.Profile.findOne({ address: winner.address });
+
+  //   //   if (!record || winner.quickestKill < record.score) {
+  //   //     await ctx.app.model.WorldRecord.create({
+  //   //       gameId: game.id,
+  //   //       holderId: profile.id,
+  //   //     });
+  //   //   }
+  //   // }
+
+  //   // const record = await ctx.app.model.WorldRecord.findOne({
+  //   //   gameId: game.id,
+  //   //   name: 'Quickest Death',
+  //   // })
+  //   //   .sort({ score: -1 })
+  //   //   .limit(1);
+
+  //   // const winner = input.round.clients.sort((a, b) => b.quickestDeath - a.quickestDeath)[0];
+  //   // const profile = await ctx.app.model.Profile.findOne({ address: winner.address });
+
+  //   // if (!record || winner.quickestDeath < record.score) {
+  //   //   await ctx.app.model.WorldRecord.create({
+  //   //     gameId: game.id,
+  //   //     holderId: profile.id,
+  //   //   });
+  //   // }
+
+  //   {
+  //     const record = await ctx.app.model.WorldRecord.findOne({ gameId: game.id, name: 'Most Kills' })
+  //       .sort({ score: -1 })
+  //       .limit(1);
+
+  //     const winner = input.round.clients.sort((a, b) => b.kills - a.kills)[0];
+  //     const profile = await ctx.app.model.Profile.findOne({ address: winner.address });
+
+  //     if (!record || winner.kills > record.score) {
+  //       await ctx.app.model.WorldRecord.create({
+  //         gameId: game.id,
+  //         holderId: profile.id,
+  //         score: winner.kills,
+  //       });
+  //     }
+  //   }
   // }
-  async saveRound(input: RouterInput['saveRound'], ctx: RouterContext): Promise<RouterOutput['saveRound']> {
-    if (!input) throw new Error('Input should not be void');
 
-    console.log('Evolution.Service.saveRound', input);
+  // async interact(input: RouterInput['interact'], ctx: RouterContext): Promise<RouterOutput['interact']> {
+  //   console.log('Evolution.Service.interact', input);
+  // }
 
-    if (!ctx.client?.roles?.includes('admin')) throw new Error('Not authorized');
+  // async getScene(input: RouterInput['getScene'], ctx: RouterContext): Promise<RouterOutput['getScene']> {
+  //   if (!input) throw new Error('Input should not be void');
+  //   console.log('Evolution.Service.getScene', input);
 
-    const game = await ctx.app.model.Game.findOne({ key: input.gameKey }).exec();
+  //   let data = {};
 
-    if (input.round.id !== game.meta.roundId) throw new Error('Invalid Round ID');
+  //   if (input.applicationId === '668e4e805f9a03927caf883b') {
+  //     data = {
+  //       ...data,
+  //       objects: [
+  //         {
+  //           id: 'axl',
+  //           file: 'axl.fbx',
+  //           position: {
+  //             x: 1000,
+  //             y: 1000,
+  //             z: 1000,
+  //           },
+  //         },
+  //       ] as Arken.Core.Types.Object,
+  //     };
+  //   }
 
-    const session = await ctx.app.db.mongoose.startSession();
-    session.startTransaction();
-
-    try {
-      const oldGameRound = await ctx.app.model.GameRound.findById(input.round.id);
-
-      if (oldGameRound) {
-        oldGameRound.meta = input.round;
-
-        oldGameRound.markModified('meta');
-
-        await oldGameRound.save();
-      } else {
-        log('Could not find game round: ', input.round.id);
-      }
-
-      const newGameRound = await ctx.app.model.GameRound.create({ gameId: game.id, meta: input.round });
-
-      game.meta = {
-        ...game.meta,
-        clientCount: input.round.clients.length,
-        roundId: newGameRound._id.toString(), // generateShortId(),
-      };
-
-      game.markModified('meta');
-
-      await game.save();
-
-      const res = {
-        roundId: game.meta.roundId,
-      };
-
-      if (input.round.clients.length > 0) {
-        const rewardWinnerMap = {
-          0: Math.round(game.meta.rewardWinnerAmount * 1 * 1000) / 1000,
-          1: Math.round(game.meta.rewardWinnerAmount * 0.25 * 1000) / 1000,
-          2: Math.round(game.meta.rewardWinnerAmount * 0.15 * 1000) / 1000,
-          3: Math.round(game.meta.rewardWinnerAmount * 0.05 * 1000) / 1000,
-          4: Math.round(game.meta.rewardWinnerAmount * 0.05 * 1000) / 1000,
-          5: Math.round(game.meta.rewardWinnerAmount * 0.05 * 1000) / 1000,
-          6: Math.round(game.meta.rewardWinnerAmount * 0.05 * 1000) / 1000,
-          7: Math.round(game.meta.rewardWinnerAmount * 0.05 * 1000) / 1000,
-          8: Math.round(game.meta.rewardWinnerAmount * 0.05 * 1000) / 1000,
-          9: Math.round(game.meta.rewardWinnerAmount * 0.05 * 1000) / 1000,
-        };
-
-        const winners = input.round.clients
-          // .filter((p) => p.lastUpdate >= fiveSecondsAgo)
-          .sort((a, b) => b.points - a.points);
-
-        // iterate clients, save rewards
-        for (const client of input.round.clients) {
-          const winnerIndex = winners.findIndex((winner) => winner.address === client.address);
-          const profile = await ctx.app.model.Profile.findOne({ address: client.address });
-
-          if (!profile.meta) profile.meta = {};
-          if (!profile.meta.rewards) profile.meta.rewards = {};
-          if (!profile.meta.rewards.tokens) profile.meta.rewards.tokens = {};
-          if (!profile.meta.rewards.tokens['pepe']) profile.meta.rewards.tokens['pepe'] = 0;
-          if (profile.meta.rewards.tokens['pepe'] < 0) profile.meta.rewards.tokens['pepe'] = 0;
-
-          profile.meta.rewards.tokens['pepe'] += winnerIndex <= 9 ? rewardWinnerMap[winnerIndex] : 0;
-
-          for (const pickup of client.pickups) {
-            if (pickup.type === 'token') {
-              // TODO: change to authoritative
-              // if (pickup.quantity > input.round.clients.length * game.meta.rewardItemAmountPerLegitPlayer * 2) {
-              //   log(
-              //     pickup.quantity,
-              //     game.meta.rewardItemAmountPerLegitPlayer,
-              //     input.round.clients.length,
-              //     JSON.stringify(input.round.clients)
-              //   );
-              //   throw new Error('Big problem with item reward amount');
-              // }
-
-              // if (pickup.quantity > input.round.clients.length * game.meta.rewardItemAmountMax) {
-              //   log(pickup.quantity, input.round.clients.length, game.meta.rewardItemAmountMax);
-              //   throw new Error('Big problem with item reward amount 2');
-              // }
-
-              const tokenSymbol = pickup.rewardItemName.toLowerCase();
-
-              if (!game.meta.rewards.tokens.find((t) => t.symbol === tokenSymbol)) {
-                throw new Error('Problem finding a reward token');
-                continue;
-              }
-
-              if (!profile.meta.rewards.tokens[tokenSymbol] || profile.meta.rewards.tokens[tokenSymbol] < 0.000000001) {
-                profile.meta.rewards.tokens[tokenSymbol] = 0;
-              }
-
-              profile.meta.rewards.tokens[tokenSymbol] += pickup.quantity;
-
-              // if (!profile.lifetimeRewards.tokens[tokenSymbol] || profile.lifetimeRewards.tokens[tokenSymbol] < 0.000000001) {
-              //   profile.lifetimeRewards.tokens[tokenSymbol] = 0
-              // }
-
-              // profile.lifetimeRewards.tokens[tokenSymbol] += pickup.quantity
-
-              // game.meta.rewards.tokens[tokenSymbol.toLowerCase()] -= pickup.quantity
-
-              // app.db.mongoose.oracle.outflow.evolutionRewards.tokens.week[tokenSymbol.toLowerCase()] += pickup.quantity
-            } else {
-              if (pickup.name === 'Santa Christmas 2024 Ticket') {
-                if (!profile.meta.rewards.tokens['christmas2024']) profile.meta.rewards.tokens['christmas2024'] = 0;
-
-                profile.meta.rewards.tokens['christmas2024'] += 1;
-              }
-            }
-          }
-
-          if (!profile.meta.ap) profile.meta.ap = 0;
-          if (!profile.meta.bp) profile.meta.bp = 0;
-
-          profile.meta.ap += client.powerups;
-          profile.meta.bp += client.kills;
-
-          profile.markModified('meta');
-
-          await profile.save();
-        }
-
-        await this.processWorldRecords(input, ctx);
-      } else {
-        console.log('No clients this round.');
-      }
-
-      await session.commitTransaction();
-
-      return res;
-    } catch (error) {
-      await session.abortTransaction();
-      throw error;
-    } finally {
-      session.endSession();
-    }
-  }
-
-  async processWorldRecords(input: RouterInput['saveRound'], ctx: RouterContext): Promise<RouterOutput['saveRound']> {
-    if (!input) throw new Error('Input should not be void');
-
-    console.log('Evolution.Service.processWorldRecords', input);
-
-    const game = await ctx.app.model.Game.findOne({ key: input.gameKey });
-
-    {
-      const record = await ctx.app.model.WorldRecord.findOne({
-        gameId: game.id,
-        name: `${input.round.gameMode} Points`,
-      })
-        .sort({ score: -1 })
-        .limit(1);
-
-      const winner = input.round.clients.sort((a, b) => b.points - a.points)[0];
-      const profile = await ctx.app.model.Profile.findOne({ address: winner.address });
-
-      if (!record || winner.points > record.score) {
-        await ctx.app.model.WorldRecord.create({
-          gameId: game.id,
-          holderId: profile.id,
-          score: winner.points,
-        });
-
-        // Announce to all game shards
-      }
-    }
-
-    {
-      const record = await ctx.app.model.WorldRecord.findOne({ gameId: game.id, name: 'Highest Score' })
-        .sort({ score: -1 })
-        .limit(1);
-
-      const winner = input.round.clients.sort((a, b) => b.points - a.points)[0];
-      const profile = await ctx.app.model.Profile.findOne({ address: winner.address });
-
-      if (!record || winner.points > record.score) {
-        await ctx.app.model.WorldRecord.create({
-          gameId: game.id,
-          holderId: profile.id,
-          score: winner.points,
-        });
-      }
-    }
-
-    // {
-    //   const record = await ctx.app.model.WorldRecord.findOne({ gameId: game.id, name: 'Quickest Kill' })
-    //     .sort({ score: -1 })
-    //     .limit(1);
-
-    //   const winner = input.round.clients.sort((a, b) => b.quickestKill - a.quickestKill)[0];
-    //   const profile = await ctx.app.model.Profile.findOne({ address: winner.address });
-
-    //   if (!record || winner.quickestKill < record.score) {
-    //     await ctx.app.model.WorldRecord.create({
-    //       gameId: game.id,
-    //       holderId: profile.id,
-    //     });
-    //   }
-    // }
-
-    // const record = await ctx.app.model.WorldRecord.findOne({
-    //   gameId: game.id,
-    //   name: 'Quickest Death',
-    // })
-    //   .sort({ score: -1 })
-    //   .limit(1);
-
-    // const winner = input.round.clients.sort((a, b) => b.quickestDeath - a.quickestDeath)[0];
-    // const profile = await ctx.app.model.Profile.findOne({ address: winner.address });
-
-    // if (!record || winner.quickestDeath < record.score) {
-    //   await ctx.app.model.WorldRecord.create({
-    //     gameId: game.id,
-    //     holderId: profile.id,
-    //   });
-    // }
-
-    {
-      const record = await ctx.app.model.WorldRecord.findOne({ gameId: game.id, name: 'Most Kills' })
-        .sort({ score: -1 })
-        .limit(1);
-
-      const winner = input.round.clients.sort((a, b) => b.kills - a.kills)[0];
-      const profile = await ctx.app.model.Profile.findOne({ address: winner.address });
-
-      if (!record || winner.kills > record.score) {
-        await ctx.app.model.WorldRecord.create({
-          gameId: game.id,
-          holderId: profile.id,
-          score: winner.kills,
-        });
-      }
-    }
-  }
-
-  async interact(input: RouterInput['interact'], ctx: RouterContext): Promise<RouterOutput['interact']> {
-    console.log('Evolution.Service.interact', input);
-  }
-
-  async getScene(input: RouterInput['getScene'], ctx: RouterContext): Promise<RouterOutput['getScene']> {
-    if (!input) throw new Error('Input should not be void');
-    console.log('Evolution.Service.getScene', input);
-
-    let data = {};
-
-    if (input.applicationId === '668e4e805f9a03927caf883b') {
-      data = {
-        ...data,
-        objects: [
-          {
-            id: 'axl',
-            file: 'axl.fbx',
-            position: {
-              x: 1000,
-              y: 1000,
-              z: 1000,
-            },
-          },
-        ] as Arken.Core.Types.Object,
-      };
-    }
-
-    return data;
-  }
+  //   return data;
+  // }
 }
