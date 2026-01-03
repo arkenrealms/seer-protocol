@@ -35,8 +35,8 @@ import type { PatchOp, EntityPatch } from '@arken/node/types';
 // Inventory Sync Standard (shared contract)
 // -------------------------------
 export type InventorySyncOp =
-  | { op: 'add'; itemKey: string; qty?: number }
-  | { op: 'remove'; itemKey: string; qty?: number };
+  | { op: 'add'; itemKey: string; quantity?: number }
+  | { op: 'remove'; itemKey: string; quantity?: number };
 
 export type SyncCharacterInventoryPayload =
   | {
@@ -52,6 +52,40 @@ export type SyncCharacterInventoryPayload =
       reason?: string;
       source?: string;
     };
+
+// ✅ Sprites reward
+const SPRITES_ITEM_KEY = 'sprites';
+const SPRITES_ITEM_NAME = 'Sprites';
+
+async function ensureItemByKey(ctx: RouterContext, itemKey: string, name?: string) {
+  const Item = (ctx.app as any)?.model?.Item;
+  if (!Item) return null;
+
+  const found = await Item.findOne?.({ key: itemKey })?.exec?.();
+  if (found) return found;
+
+  // best-effort create / upsert (schema may require more fields)
+  try {
+    // Prefer upsert so repeated calls don't race
+    const res = await Item.findOneAndUpdate?.(
+      { key: itemKey },
+      {
+        $setOnInsert: {
+          key: itemKey,
+          name: name || itemKey,
+          status: 'Active',
+          meta: { name: name || itemKey },
+        },
+      },
+      { new: true, upsert: true }
+    )?.exec?.();
+
+    return res || (await Item.findOne?.({ key: itemKey })?.exec?.());
+  } catch (e) {
+    console.warn('[ensureItemByKey] failed to create item', itemKey, e);
+    return null;
+  }
+}
 
 // -------------------------------
 // Hardcoded “DB records” (for now)
@@ -95,6 +129,26 @@ export type TrekNode = {
   tags?: string[];
 };
 
+// ✅ UI-friendly effect/reward payload (for rendering tiles)
+export type TrekUiReward =
+  | { type: 'item'; id: string; qty?: number }
+  | { type: 'reward'; id?: string; label?: string; meta?: any };
+
+export type TrekUiEffect =
+  | { type: 'stat'; key: string; delta: number }
+  | { type: 'flag'; key: string; value: any }
+  | { type: 'buff'; key: string }
+  | { type: 'debuff'; key: string }
+  | { type: 'effect'; key?: string; label?: string; meta?: any };
+
+export type TrekHistoryEntry = {
+  nodeId: string;
+  at: string;
+  chosenChoiceId?: string;
+  rewards?: TrekUiReward[];
+  effects?: TrekUiEffect[];
+};
+
 export type TrekRun = {
   id: string;
   defKey: string;
@@ -110,7 +164,7 @@ export type TrekRun = {
   busyUntil?: string | null;
 
   nodes: Record<string, TrekNode>;
-  history: Array<{ nodeId: string; chosenChoiceId?: string; at: string }>;
+  history: TrekHistoryEntry[];
 };
 
 export type TrekUiChoice = {
@@ -146,22 +200,29 @@ export type TrekUiFeedItem = {
   nodeId?: string;
   choiceId?: string;
   createdDate?: string;
+
+  // ✅ drives your EffectGrid
+  rewards?: TrekUiReward[];
+  effects?: TrekUiEffect[];
 };
 
 export type TrekGetStateInput = {
   metaverseId?: string;
   trekId?: string; // maps to defKey
   defKey?: string; // allow direct usage too
+  characterId?: string;
 };
 
 export type TrekNextStopInput = {
   defKey?: string;
+  characterId?: string;
 };
 
 export type TrekChooseInput = {
   runId: string;
   nodeId: string;
   choiceId: string;
+  characterId?: string;
 };
 
 export type TrekGetStateResult = {
@@ -181,6 +242,25 @@ export type TrekChooseResult = {
   state: TrekUiState;
 };
 
+function resolveActiveCharacter(profile: any, inputCharacterId?: string) {
+  const chars = Array.isArray(profile?.characters) ? profile.characters : [];
+
+  // 1) explicit input wins
+  if (inputCharacterId) {
+    const hit = chars.find((c: any) => String(c?.id ?? c?._id) === String(inputCharacterId));
+    if (hit) return hit;
+  }
+
+  // 2) profile.data.activeCharacterId
+  const activeId = profile?.data?.activeCharacterId ? String(profile.data.activeCharacterId) : null;
+  if (activeId) {
+    const hit = chars.find((c: any) => String(c?.id ?? c?._id) === activeId);
+    if (hit) return hit;
+  }
+
+  // 3) fallback
+  return chars[0] ?? null;
+}
 // -------------------------------
 // Helpers: time, ids, rng, weighted
 // -------------------------------
@@ -274,6 +354,9 @@ function applyPatchToObject(obj: any, patch: PatchOp[]) {
 /**
  * Normalize inventory patch: push {itemKey} -> push {itemId}
  * Assumes inventory uses key path "inventory.0.items".
+ *
+ * ✅ Also supports "quantity" on push value by expanding into repeated items,
+ * since your inventory schema is per-item entry (not stacked).
  */
 async function normalizeInventoryPatch(ctx: RouterContext, patch: PatchOp[]) {
   const out: PatchOp[] = [];
@@ -281,19 +364,47 @@ async function normalizeInventoryPatch(ctx: RouterContext, patch: PatchOp[]) {
   for (const p of patch) {
     if (p.op === 'push' && (p.key === 'inventory.0.items' || p.key.startsWith('inventory.0.items'))) {
       const v = (p as any).value || {};
+
+      // already normalized
       if (v.itemId) {
-        out.push(p);
+        const q = Math.max(1, Number(v.quantity ?? 1));
+        for (let i = 0; i < q; i++) {
+          out.push({
+            op: 'push',
+            key: p.key,
+            value: { itemId: v.itemId, x: v.x ?? 1, y: v.y ?? 1, meta: v.meta ?? undefined },
+          });
+        }
         continue;
       }
-      if (v.itemKey) {
-        const item = await ctx.app.model.Item?.findOne?.({ key: v.itemKey })?.exec?.();
-        if (!item) continue;
 
-        out.push({
-          op: 'push',
-          key: p.key,
-          value: { itemId: item._id, x: v.x ?? 1, y: v.y ?? 1, meta: v.meta ?? undefined },
-        });
+      if (v.itemKey) {
+        const itemKey = String(v.itemKey);
+
+        // ✅ if missing, create it (Sprites etc.)
+        const item = await ensureItemByKey(ctx, itemKey, itemKey === SPRITES_ITEM_KEY ? SPRITES_ITEM_NAME : itemKey);
+
+        const q = Math.max(1, Number(v.quantity ?? 1));
+
+        if (item?._id) {
+          for (let i = 0; i < q; i++) {
+            out.push({
+              op: 'push',
+              key: p.key,
+              value: { itemId: item._id, x: v.x ?? 1, y: v.y ?? 1, meta: v.meta ?? undefined },
+            });
+          }
+        } else {
+          // ✅ fallback: keep itemKey in inventory if DB create failed
+          for (let i = 0; i < q; i++) {
+            out.push({
+              op: 'push',
+              key: p.key,
+              value: { itemKey, x: v.x ?? 1, y: v.y ?? 1, meta: v.meta ?? undefined },
+            });
+          }
+        }
+
         continue;
       }
     }
@@ -308,13 +419,25 @@ async function normalizeInventoryPatch(ctx: RouterContext, patch: PatchOp[]) {
 // Inventory sync emitter (server -> client hint)
 // -------------------------------
 async function emitSyncCharacterInventory(ctx: RouterContext, payload: SyncCharacterInventoryPayload) {
-  // You asked for this exact convention:
-  // ctx.client.emit.syncCharacterInventory.mutate(DATA_HERE)
+  // legacy hook (kept)
   try {
     await (ctx.client as any)?.emit?.syncCharacterInventory?.mutate?.(payload);
   } catch (e) {
     // never crash gameplay because a push failed
     console.warn('Trek.Service.emitSyncCharacterInventory failed', e);
+  }
+
+  // ✅ new universal sync channel (preferred)
+  try {
+    await (ctx.client as any)?.emit?.sync?.mutate?.({
+      kind: 'patch',
+      target: 'character.inventory',
+      patch: payload,
+      reason: payload.reason || 'inventoryChanged',
+    });
+  } catch (e) {
+    // also non-fatal
+    console.warn('Trek.Service.emit.sync failed', e);
   }
 }
 
@@ -324,27 +447,64 @@ function inventoryOpsFromEntityPatches(patches: EntityPatch[] | undefined): Inve
     if (ep?.entityType !== 'character.inventory' || !Array.isArray(ep.ops)) continue;
 
     for (const op of ep.ops as any[]) {
-      // Add item (push inventory.0.items { itemKey, x?, y? })
+      // Add item (push inventory.0.items { itemKey, x?, y?, quantity? })
       if (
         op?.op === 'push' &&
         (op.key === 'inventory.0.items' || String(op.key || '').startsWith('inventory.0.items')) &&
         op?.value?.itemKey
       ) {
-        ops.push({ op: 'add', itemKey: op.value.itemKey, qty: 1 });
+        ops.push({ op: 'add', itemKey: op.value.itemKey, quantity: Number(op.value.quantity ?? 1) });
       }
 
-      // Remove item (if you later add an explicit remove op; we support it in the standard now)
-      // Example future patch: { op: 'pull', key: 'inventory.0.items', value: { itemKey } }
+      // Remove item (future)
       if (
         op?.op === 'pull' &&
         (op.key === 'inventory.0.items' || String(op.key || '').startsWith('inventory.0.items'))
       ) {
         const itemKey = op?.value?.itemKey;
-        if (itemKey) ops.push({ op: 'remove', itemKey, qty: 1 });
+        if (itemKey) ops.push({ op: 'remove', itemKey, quantity: 1 });
       }
     }
   }
   return ops;
+}
+
+// -------------------------------
+// Extract UI effects/rewards from a choice (for EffectGrid tiles)
+// -------------------------------
+function extractUiRewardsAndEffectsFromChoice(choice: TrekNode['choices'][number]) {
+  const rewards: TrekUiReward[] = [];
+  const effects: TrekUiEffect[] = [];
+
+  for (const ep of choice.effects || []) {
+    const ops = Array.isArray(ep?.ops) ? (ep.ops as any[]) : [];
+
+    // Inventory → reward tiles
+    if (ep.entityType === 'character.inventory') {
+      for (const op of ops) {
+        if (
+          op?.op === 'push' &&
+          (op.key === 'inventory.0.items' || String(op.key || '').startsWith('inventory.0.items'))
+        ) {
+          const itemKey = op?.value?.itemKey;
+          const qty = Number(op?.value?.quantity ?? 1);
+          if (itemKey) rewards.push({ type: 'item', id: String(itemKey), qty: Number.isFinite(qty) ? qty : 1 });
+        }
+      }
+    }
+
+    // Generic inc/set → effect tiles (best-effort)
+    for (const op of ops) {
+      if (op?.op === 'inc' && op?.key) {
+        const delta = Number(op?.value ?? 0);
+        effects.push({ type: 'stat', key: String(op.key), delta: Number.isFinite(delta) ? delta : 0 });
+      } else if (op?.op === 'set' && op?.key) {
+        effects.push({ type: 'flag', key: String(op.key), value: op?.value });
+      }
+    }
+  }
+
+  return { rewards, effects };
 }
 
 // -------------------------------
@@ -403,7 +563,23 @@ function compileNode(params: {
 
   if (nodeType === 'dialog') {
     choices.push({ id: 'push', label: 'Push forward', effects: [], tags: ['flow'] });
-    choices.push({ id: 'rest', label: 'Rest briefly', effects: [], tags: ['flow'] });
+
+    // ✅ Rest briefly gives +5 Sprites (creates Sprites item if missing)
+    choices.push({
+      id: 'rest',
+      label: 'Rest briefly',
+      effects: [
+        mkPatch('character.inventory', characterId, [
+          {
+            op: 'push',
+            key: 'inventory.0.items',
+            value: { itemKey: SPRITES_ITEM_KEY, quantity: 5, x: 1, y: 1 }, // ✅ +5 Sprites
+          },
+        ]),
+      ],
+      tags: ['effect', 'reward'],
+    });
+
     choices.push({ id: 'scout', label: 'Scout the ridge', effects: [], tags: ['flow'] });
   }
 
@@ -525,6 +701,7 @@ function runToUiState(run: TrekRun): TrekUiState {
 
   const feed: TrekUiFeedItem[] = [];
 
+  // ✅ history feed items include rewards/effects computed at choose-time
   for (const h of run.history || []) {
     const n = run.nodes?.[h.nodeId];
     if (!n) continue;
@@ -537,9 +714,12 @@ function runToUiState(run: TrekRun): TrekUiState {
       nodeId: n.id,
       choiceId: h.chosenChoiceId,
       createdDate: n.createdDate,
+      rewards: h.rewards || [],
+      effects: h.effects || [],
     });
   }
 
+  // ✅ open node shows empty rewards/effects (until you choose)
   if (openNode) {
     feed.push({
       id: `open_${openNode.id}`,
@@ -549,6 +729,8 @@ function runToUiState(run: TrekRun): TrekUiState {
       text: openNode.presentation?.text || '',
       nodeId: openNode.id,
       createdDate: openNode.createdDate,
+      rewards: [],
+      effects: [],
     });
   }
 
@@ -593,7 +775,7 @@ export class Service {
     const profile = await ctx.app.model.Profile.findById(ctx.client.profile.id).populate('characters').exec();
     if (!profile) throw new Error('Profile not found');
 
-    const character = profile.characters?.[0];
+    const character = resolveActiveCharacter(profile, input?.characterId);
     if (!character) throw new Error('No character');
 
     if (!character.data) character.data = {};
@@ -642,7 +824,7 @@ export class Service {
     const profile = await ctx.app.model.Profile.findById(ctx.client.profile.id).populate('characters').exec();
     if (!profile) throw new Error('Profile not found');
 
-    const character = profile.characters?.[0];
+    const character = resolveActiveCharacter(profile, input?.characterId);
     if (!character) throw new Error('No character');
 
     if (!character.data) character.data = {};
@@ -704,8 +886,11 @@ export class Service {
     // keep it OPEN
     run.openNodeId = nodeId;
     run.stepIndex += 1;
+
+    // ✅ REQUIRED: create a history entry NOW so the OPEN node can later be annotated with chosen rewards/effects
+    // (and so the node appears in history immediately if you filter open nodes out on the client)
     run.history ||= [];
-    // run.history.push({ nodeId, at: nowIso() });
+    run.history.push({ nodeId, at: nowIso() });
 
     pruneRun(run, 100);
     setBusy(run, 3000);
@@ -730,7 +915,7 @@ export class Service {
     const profile = await ctx.app.model.Profile.findById(ctx.client.profile.id).populate('characters').exec();
     if (!profile) throw new Error('Profile not found');
 
-    const character = profile.characters?.[0];
+    const character = resolveActiveCharacter(profile, input?.characterId);
     if (!character) throw new Error('No character');
 
     if (!profile.meta) profile.meta = {};
@@ -749,6 +934,9 @@ export class Service {
 
     const choice = node.choices?.find((c) => c.id === input.choiceId);
     if (!choice) throw new Error('Choice not found');
+
+    // ✅ compute UI tiles payload BEFORE mutating/normalizing
+    const { rewards, effects } = extractUiRewardsAndEffectsFromChoice(choice);
 
     // detect inventory intent from effects (before normalization mutates them)
     const inventoryOps = inventoryOpsFromEntityPatches(choice.effects);
@@ -771,8 +959,25 @@ export class Service {
 
     // close node + record chosen choice
     run.openNodeId = null;
+
+    // ✅ attach choice + rewards/effects to the most recent history entry for this node
+    // (nextStop pushes {nodeId, at}; choose fills in the details)
     const last = run.history?.[run.history.length - 1];
-    if (last?.nodeId === input.nodeId) last.chosenChoiceId = input.choiceId;
+    if (last?.nodeId === input.nodeId) {
+      last.chosenChoiceId = input.choiceId;
+      last.rewards = rewards;
+      last.effects = effects;
+    } else {
+      // fallback (shouldn't happen, but keeps UI consistent)
+      run.history ||= [];
+      run.history.push({
+        nodeId: input.nodeId,
+        at: nowIso(),
+        chosenChoiceId: input.choiceId,
+        rewards,
+        effects,
+      });
+    }
 
     pruneRun(run, 100);
     setBusy(run, 3000);
@@ -783,8 +988,7 @@ export class Service {
     await profile.save();
     await character.save();
 
-    // If inventory was affected, emit a client sync hint.
-    // Use patch when we can infer specifics; otherwise ask for refresh.
+    // If inventory was affected, emit a client sync hint (patch).
     if (inventoryOps.length > 0) {
       await emitSyncCharacterInventory(ctx, {
         characterId: character.id.toString(),
@@ -793,23 +997,8 @@ export class Service {
         reason: 'trek.choice',
         source: 'trek.service.choose',
       });
-    } else {
-      // no-op
     }
 
     return { runId: run.id, state: runToUiState(run) };
   }
-
-  /**
-   * (Optional) Explicit server route to request client inventory convergence.
-   * You said "give me the service routes for that too (put it in trek.service.ts for now)" earlier.
-   *
-   * This does NOT mutate inventory; it only pushes a convergence hint to the client.
-   */
-  //   async syncCharacterInventory(input: SyncCharacterInventoryPayload, ctx: RouterContext) {
-  //     if (!ctx.client?.profile) throw new Error('Unauthorized');
-  //     if (!input?.characterId) throw new Error('Invalid input');
-
-  //     await emitSyncCharacterInventory(ctx, { ...input, source: input.source || 'trek.service.syncCharacterInventory' });
-  //   }
 }
