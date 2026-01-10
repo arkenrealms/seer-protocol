@@ -37,6 +37,7 @@ export class Application {
   contracts: any;
   contractInfo: any;
   contractMetadata: any;
+  ethersProvider: any;
   data: any;
   signers: any;
   filters: Record<string, any> = { applicationId: null };
