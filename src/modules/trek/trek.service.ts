@@ -7,6 +7,8 @@ import set from 'lodash/set';
 
 import type { RouterContext } from '../../types';
 import type { PatchOp, EntityPatch } from '@arken/node/types';
+import { applyPatchesWithInventoryViaMail, claimMailMessage } from '@arken/node/modules/core/mail/applyPatchesOrMail';
+import type { MailReward, MailEffect } from '@arken/node/modules/core/mail/applyPatchesOrMail';
 
 /**
  * Trek Service (server-authoritative)
@@ -131,8 +133,8 @@ export type TrekNode = {
 
 // ✅ UI-friendly effect/reward payload (for rendering tiles)
 export type TrekUiReward =
-  | { type: 'item'; id: string; qty?: number }
-  | { type: 'reward'; id?: string; label?: string; meta?: any };
+  | { type: 'item'; id: string; quantity?: number }
+  | { type: 'reward'; id?: string; label?: string; meta?: any; quantity?: number };
 
 export type TrekUiEffect =
   | { type: 'stat'; key: string; delta: number }
@@ -472,7 +474,7 @@ function inventoryOpsFromEntityPatches(patches: EntityPatch[] | undefined): Inve
 // -------------------------------
 // Extract UI effects/rewards from a choice (for EffectGrid tiles)
 // -------------------------------
-function extractUiRewardsAndEffectsFromChoice(choice: TrekNode['choices'][number]) {
+function extractRewardsAndEffectsFromChoice(choice: TrekNode['choices'][number]) {
   const rewards: TrekUiReward[] = [];
   const effects: TrekUiEffect[] = [];
 
@@ -487,8 +489,9 @@ function extractUiRewardsAndEffectsFromChoice(choice: TrekNode['choices'][number
           (op.key === 'inventory.0.items' || String(op.key || '').startsWith('inventory.0.items'))
         ) {
           const itemKey = op?.value?.itemKey;
-          const qty = Number(op?.value?.quantity ?? 1);
-          if (itemKey) rewards.push({ type: 'item', id: String(itemKey), qty: Number.isFinite(qty) ? qty : 1 });
+          const quantity = Number(op?.value?.quantity ?? 1);
+          if (itemKey)
+            rewards.push({ type: 'item', id: String(itemKey), quantity: Number.isFinite(quantity) ? quantity : 1 });
         }
       }
     }
@@ -935,40 +938,64 @@ export class Service {
     const choice = node.choices?.find((c) => c.id === input.choiceId);
     if (!choice) throw new Error('Choice not found');
 
-    // ✅ compute UI tiles payload BEFORE mutating/normalizing
-    const { rewards, effects } = extractUiRewardsAndEffectsFromChoice(choice);
+    // ✅ compute UI tiles BEFORE any mailing/claim
+    const { rewards, effects } = extractRewardsAndEffectsFromChoice(choice);
 
-    // detect inventory intent from effects (before normalization mutates them)
-    const inventoryOps = inventoryOpsFromEntityPatches(choice.effects);
+    // ✅ everything becomes claimable mail patches (bundled into ONE message)
+    const patches: EntityPatch[] = (choice.effects || []).map((p) => ({
+      ...p,
+      claimable: true, // your new convention: "mail any claimable patch"
+    }));
 
-    for (const patch of choice.effects || []) {
-      if (!patch?.entityType || !patch?.entityId || !Array.isArray(patch.ops)) continue;
+    // One dedupe key per choice so retries/double-clicks don't spam mail
+    const dedupeKey = `trek:${profile.id}:${character.id}:${run.id}:${node.id}:${choice.id}`;
 
-      if (patch.entityType === 'profile.meta') {
-        applyPatchToObject(profile.meta, patch.ops);
-        profile.markModified('meta');
-      } else if (patch.entityType === 'character.data') {
-        applyPatchToObject(character.data, patch.ops);
-        character.markModified('data');
-      } else if (patch.entityType === 'character.inventory') {
-        const normalizedOps = await normalizeInventoryPatch(ctx, patch.ops);
-        applyPatchToObject(character, normalizedOps);
-        character.markModified('inventory');
-      }
+    // 1) Write the mail message (posterity) — but do NOT rely on it staying unclaimed
+    const result = await applyPatchesWithInventoryViaMail({
+      ctx,
+      profile,
+      character,
+      patches,
+      mail: {
+        profileId: profile.id.toString(),
+        conversationKey: 'reports',
+        kind: 'mail',
+        source: 'trek.choice',
+        title: `Trek: ${node.presentation?.title ?? 'Update'}`,
+        body: `You chose: ${choice.label}`,
+        ui: {
+          rewards: rewards as MailReward[],
+          effects: effects as MailEffect[],
+        },
+        dedupeKey,
+      },
+    });
+
+    // 2) Auto-claim it immediately so the patches apply NOW
+    //    (message remains as history, but it's claimed)
+    if (result?.mailed?.messageId) {
+      await claimMailMessage({
+        ctx,
+        profile: profile,
+        character, // needed if any patch touches character.inventory or character.data
+        messageId: result.mailed.messageId,
+        // If claimMailMessage applies profile.meta too, it should load/save profile internally,
+        // OR you can pass profile as well if you extend the signature.
+      });
     }
 
-    // close node + record chosen choice
+    // ─────────────────────────────────────────────
+    // Trek run state still updates immediately
+    // ─────────────────────────────────────────────
+
     run.openNodeId = null;
 
-    // ✅ attach choice + rewards/effects to the most recent history entry for this node
-    // (nextStop pushes {nodeId, at}; choose fills in the details)
     const last = run.history?.[run.history.length - 1];
     if (last?.nodeId === input.nodeId) {
       last.chosenChoiceId = input.choiceId;
       last.rewards = rewards;
       last.effects = effects;
     } else {
-      // fallback (shouldn't happen, but keeps UI consistent)
       run.history ||= [];
       run.history.push({
         nodeId: input.nodeId,
@@ -985,19 +1012,9 @@ export class Service {
     set(character.data, runKey(run.id), run);
     character.markModified('data');
 
-    await profile.save();
+    // Important: claimMailMessage may have mutated character.inventory / character.data as well,
+    // but saving again is fine.
     await character.save();
-
-    // If inventory was affected, emit a client sync hint (patch).
-    if (inventoryOps.length > 0) {
-      await emitSyncCharacterInventory(ctx, {
-        characterId: character.id.toString(),
-        mode: 'patch',
-        ops: inventoryOps,
-        reason: 'trek.choice',
-        source: 'trek.service.choose',
-      });
-    }
 
     return { runId: run.id, state: runToUiState(run) };
   }
