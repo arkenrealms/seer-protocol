@@ -18,6 +18,7 @@ import { Schema, serialize } from 'borsh';
 import get from 'lodash/get';
 import set from 'lodash/set';
 import type { PatchOp, EntityPatch } from '@arken/node/types';
+import { applyPatchesWithInventoryViaMail } from '@arken/node/modules/core/mail/applyPatchesOrMail';
 
 // -----------------------
 // Clean patch architecture
@@ -541,8 +542,13 @@ export class Service {
           if (!client?.address) continue;
 
           const winnerIndex = winners.findIndex((w: any) => w.address === client.address);
-          const profile = await ctx.app.model.Profile.findOne({ address: client.address }).exec();
+
+          const profile = await ctx.app.model.Profile.findOne({ address: client.address })
+            .populate('characters')
+            .exec();
           if (!profile) continue;
+
+          const character = (profile as any).characters?.[0];
 
           // ✅ IMPORTANT: permission snapshot comes from shard payload, not ctx.client (realm admin)
           const perms: Record<string, any> = client.permissions || {};
@@ -552,18 +558,15 @@ export class Service {
           if (!Array.isArray((profile as any).meta.opIds)) (profile as any).meta.opIds = [];
           const applied = new Set<string>((profile as any).meta.opIds);
 
-          // Load default character doc (keep your current model assumption)
-          const character = (profile as any).characters?.[0];
-
+          // ─────────────────────────────────────────────
+          // 1) Collect ALL allowed shard patches (deduped) into ONE claim bundle
+          // ─────────────────────────────────────────────
+          const claimableOps: EntityPatch[] = [];
           const ops: EntityPatch[] = Array.isArray(client.ops) ? client.ops : [];
 
           for (const rawOp of ops) {
             assertEntityPatch(rawOp);
 
-            // strong dedupe requires op ids; we use the patch's baseVersion + ts? No.
-            // Clean architecture: shard must include stable op id by encoding it in entityId+baseVersion? Not good.
-            // So we require baseVersion OR stable external id? We’ll use entityPatch hash if needed.
-            // ✅ Clean rule: shard MUST include `rawOp.baseVersion` AND we generate id deterministically:
             const opId = `${rawOp.entityType}:${rawOp.entityId}:${rawOp.baseVersion ?? 'na'}:${JSON.stringify(
               rawOp.ops
             )}`;
@@ -582,77 +585,20 @@ export class Service {
             }
             if (!allowed) continue;
 
-            // mark applied
+            // mark applied (so retry won't re-mail)
             (profile as any).meta.opIds.push(opId);
             applied.add(opId);
 
-            // Apply by entityType
-            if (target === 'profile.meta') {
-              applyPatchToObject((profile as any).meta, rawOp.ops);
-              (profile as any).markModified('meta');
-            } else if (target === 'character.data') {
-              if (!character) continue;
-              if (!(character as any).data) (character as any).data = {};
-              applyPatchToObject((character as any).data, rawOp.ops);
-              (character as any).markModified('data');
-              await (character as any).save();
-            } else if (target === 'character.inventory') {
-              if (!character) continue;
-              const normalized = await normalizeInventoryPatch(ctx, rawOp.ops);
-
-              if (!Array.isArray((character as any).inventory)) (character as any).inventory = [];
-              if (!(character as any).inventory[0]) (character as any).inventory[0] = { items: [] };
-
-              // patch keys are on the character root: inventory.0.items
-              applyPatchToObject(character, normalized);
-              (character as any).markModified('inventory');
-              await (character as any).save();
-            } else {
-              // clean architecture: allow new entity types later, but don't silently write today
-              // If you want “any string”, then you need a registry here.
-              // For now, fail loudly so content authors don’t think it worked:
-              throw new Error(`Unsupported entityType for saveRound patch: ${target}`);
-            }
+            // ✅ mail-gate any patch (claimable)
+            claimableOps.push({ ...rawOp, claimable: true });
           }
 
           // bound dedupe list
           (profile as any).meta.opIds = (profile as any).meta.opIds.slice(-2000);
 
-          // ---- existing rewards logic (unchanged) ----
-          if (!(profile as any).meta.rewards) (profile as any).meta.rewards = {};
-          if (!(profile as any).meta.rewards.tokens) (profile as any).meta.rewards.tokens = {};
-          if (!(profile as any).meta.rewards.tokens['pepe']) (profile as any).meta.rewards.tokens['pepe'] = 0;
-          if ((profile as any).meta.rewards.tokens['pepe'] < 0) (profile as any).meta.rewards.tokens['pepe'] = 0;
-
-          (profile as any).meta.rewards.tokens['pepe'] += winnerIndex <= 9 ? rewardWinnerMap[winnerIndex] : 0;
-
-          for (const pickup of client.pickups || []) {
-            if (pickup.type === 'token') {
-              const tokenSymbol = (pickup.rewardItemName || '').toLowerCase();
-
-              if (!(game as any).meta.rewards.tokens.find((t: any) => t.symbol === tokenSymbol)) {
-                throw new Error('Problem finding a reward token');
-              }
-
-              if (
-                !(profile as any).meta.rewards.tokens[tokenSymbol] ||
-                (profile as any).meta.rewards.tokens[tokenSymbol] < 0.000000001
-              ) {
-                (profile as any).meta.rewards.tokens[tokenSymbol] = 0;
-              }
-
-              (profile as any).meta.rewards.tokens[tokenSymbol] += pickup.quantity;
-            } else {
-              if (pickup.name === 'Santa Christmas Ticket') {
-                const year = new Date().getFullYear();
-
-                if (!(profile as any).meta.rewards.tokens['christmas' + year])
-                  (profile as any).meta.rewards.tokens['christmas' + year] = 0;
-                (profile as any).meta.rewards.tokens['christmas' + year] += 1;
-              }
-            }
-          }
-
+          // ─────────────────────────────────────────────
+          // 2) Immediate stats (unchanged behavior)
+          // ─────────────────────────────────────────────
           if (!(profile as any).meta.ap) (profile as any).meta.ap = 0;
           if (!(profile as any).meta.bp) (profile as any).meta.bp = 0;
 
@@ -661,6 +607,84 @@ export class Service {
 
           (profile as any).markModified('meta');
           await (profile as any).save();
+
+          // ─────────────────────────────────────────────
+          // 3) Token rewards → add as a claimable patch (bundled into same mail)
+          // ─────────────────────────────────────────────
+          const tokenGrants: Record<string, number> = {};
+          const pepeGrant = winnerIndex <= 9 ? rewardWinnerMap[winnerIndex] : 0;
+          if (pepeGrant > 0) tokenGrants['pepe'] = (tokenGrants['pepe'] ?? 0) + pepeGrant;
+
+          for (const pickup of client.pickups || []) {
+            if (pickup.type === 'token') {
+              const tokenSymbol = String(pickup.rewardItemName || '').toLowerCase();
+
+              if (!(game as any).meta.rewards.tokens.find((t: any) => t.symbol === tokenSymbol)) {
+                throw new Error('Problem finding a reward token');
+              }
+
+              const qty = Number(pickup.quantity || 0);
+              if (qty > 0) tokenGrants[tokenSymbol] = (tokenGrants[tokenSymbol] ?? 0) + qty;
+            } else if (pickup.name === 'Santa Christmas Ticket') {
+              const year = new Date().getFullYear();
+              const k = `christmas${year}`;
+              tokenGrants[k] = (tokenGrants[k] ?? 0) + 1;
+            }
+          }
+
+          const rewardOps: PatchOp[] = Object.entries(tokenGrants)
+            .filter(([, amt]) => Number(amt) > 0)
+            .map(([sym, amt]) => ({ op: 'inc', key: `rewards.tokens.${sym}`, value: Number(amt) }));
+
+          if (rewardOps.length > 0) {
+            claimableOps.push({
+              entityType: 'profile.meta',
+              entityId: profile._id.toString(),
+              claimable: true,
+              ops: rewardOps,
+            });
+          }
+
+          // ─────────────────────────────────────────────
+          // 4) Send ONE message per client if anything claimable exists
+          // ─────────────────────────────────────────────
+          if (claimableOps.length > 0) {
+            const tokenSummary = Object.entries(tokenGrants)
+              .filter(([, amt]) => Number(amt) > 0)
+              .map(([sym, amt]) => `${amt} ${sym}`)
+              .join(', ');
+
+            const title = 'Round Rewards';
+            const bodyParts: string[] = [];
+            if (rewardOps.length > 0) bodyParts.push(`Rewards: ${tokenSummary}`);
+            if (claimableOps.length > (rewardOps.length > 0 ? 1 : 0))
+              bodyParts.push(`Updates: ${claimableOps.length} patch(es)`);
+            const body = bodyParts.join(' • ') || `Round updates ready to claim.`;
+
+            await applyPatchesWithInventoryViaMail({
+              ctx,
+              profile,
+              character,
+              patches: claimableOps,
+              mail: {
+                profileId: profile._id.toString(),
+                kind: 'mail',
+                conversationKey: 'battles',
+                source: 'evolution.round.rewards',
+                title,
+                body,
+                ui: rewardOps.length
+                  ? {
+                      rewards: Object.entries(tokenGrants)
+                        .filter(([, amt]) => Number(amt) > 0)
+                        .map(([sym, amt]) => ({ type: 'token', id: sym, qty: Number(amt) })),
+                    }
+                  : undefined,
+                // ✅ one dedupe key per client per round bundle
+                dedupeKey: `evolution:round:${input.round.id}:${client.address}:rewards`,
+              },
+            });
+          }
         }
 
         await this.processWorldRecords(input, ctx);
