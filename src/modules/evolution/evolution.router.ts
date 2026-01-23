@@ -124,6 +124,7 @@ export const createRouter = () =>
           shardId: z.string(),
           gameKey: z.string(),
           round: z.any(),
+          clients: z.any(),
         })
       )
       // .output(Arken.Profile.Schemas.Profile)

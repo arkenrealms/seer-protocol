@@ -417,32 +417,6 @@ async function normalizeInventoryPatch(ctx: RouterContext, patch: PatchOp[]) {
   return out;
 }
 
-// -------------------------------
-// Inventory sync emitter (server -> client hint)
-// -------------------------------
-async function emitSyncCharacterInventory(ctx: RouterContext, payload: SyncCharacterInventoryPayload) {
-  // legacy hook (kept)
-  try {
-    await (ctx.client as any)?.emit?.syncCharacterInventory?.mutate?.(payload);
-  } catch (e) {
-    // never crash gameplay because a push failed
-    console.warn('Trek.Service.emitSyncCharacterInventory failed', e);
-  }
-
-  // ✅ new universal sync channel (preferred)
-  try {
-    await (ctx.client as any)?.emit?.sync?.mutate?.({
-      kind: 'patch',
-      target: 'character.inventory',
-      patch: payload,
-      reason: payload.reason || 'inventoryChanged',
-    });
-  } catch (e) {
-    // also non-fatal
-    console.warn('Trek.Service.emit.sync failed', e);
-  }
-}
-
 function inventoryOpsFromEntityPatches(patches: EntityPatch[] | undefined): InventorySyncOp[] {
   const ops: InventorySyncOp[] = [];
   for (const ep of patches || []) {
@@ -808,6 +782,13 @@ export class Service {
       set(character.data, runKey(runId), run);
       character.markModified('data');
       await character.save();
+
+      await emitTrekStateSync(ctx, {
+        characterId: character.id,
+        runId: run.id,
+        state: runToUiState(run),
+        reason: 'trek.nextStop',
+      });
     }
 
     return { runId: run.id, state: runToUiState(run) };
@@ -1016,6 +997,35 @@ export class Service {
     // but saving again is fine.
     await character.save();
 
+    await emitTrekStateSync(ctx, {
+      characterId: character.id,
+      runId: run.id,
+      state: runToUiState(run),
+      reason: 'trek.nextStop',
+    });
+
     return { runId: run.id, state: runToUiState(run) };
+  }
+}
+
+async function emitTrekStateSync(
+  ctx: RouterContext,
+  params: { characterId: string; runId: string; state: any; reason: string }
+) {
+  try {
+    await (ctx.client as any)?.emit?.sync?.mutate?.({
+      kind: 'patch',
+      target: 'trek.state',
+      patch: {
+        characterId: params.characterId,
+        runId: params.runId,
+        state: params.state,
+        mode: 'replace', // optional semantic hint
+        source: 'trek',
+      },
+      reason: params.reason,
+    });
+  } catch (e) {
+    console.warn('[trek] emit sync failed', e);
   }
 }

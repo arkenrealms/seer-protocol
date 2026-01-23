@@ -224,13 +224,13 @@ export class Service {
     if (!input) throw new Error('Input should not be void');
     const game = await ctx.app.model.Game.findOne({ key: input.gameKey });
     for (const key in input) {
-      console.log('Setting', key, (input as any)[key]);
-      (game as any).meta[key] = (input as any)[key];
+      console.log('Setting', key, input[key]);
+      game.meta[key] = input[key];
     }
-    (game as any).meta = { ...(game as any).meta };
-    (game as any).markModified('meta');
-    await (game as any).save();
-    return (game as any).meta;
+    game.meta = { ...game.meta };
+    game.markModified('meta');
+    await game.save();
+    return game.meta;
   }
 
   async updateGameStats(
@@ -240,7 +240,7 @@ export class Service {
     /* unchanged */
     const { Game, GameStat } = ctx.app.model;
     const game = await Game.findOne({ key: 'evolution' }).populate('stat').exec();
-    let latestRecord = (game as any).stat;
+    let latestRecord = game.stat;
     try {
       if (latestRecord) {
         const dayAgo = dayjs().subtract(1, 'day');
@@ -252,17 +252,17 @@ export class Service {
       console.log('Error getting latest stat record', e);
     }
 
-    const meta: any = { clientCount: (game as any).meta.clientCount };
+    const meta: any = { clientCount: game.meta.clientCount };
 
     if (latestRecord) {
       await GameStat.updateOne({ _id: latestRecord.id }, { ...latestRecord, meta }).exec();
     } else {
-      const gameStat = await GameStat.create({ gameId: (game as any).id, meta });
-      (game as any).statId = gameStat.id;
+      const gameStat = await GameStat.create({ gameId: game.id, meta });
+      game.statId = gameStat.id;
     }
 
-    (game as any).meta = { ...(game as any).meta };
-    await (game as any).save();
+    game.meta = { ...game.meta };
+    await game.save();
   }
 
   // -----------------------
@@ -493,7 +493,7 @@ export class Service {
     const game = await ctx.app.model.Game.findOne({ key: input.gameKey }).exec();
     if (!game) throw new Error('Game not found');
 
-    if (input.round.id !== (game as any).meta.roundId) throw new Error('Invalid Round ID');
+    if (input.round.id !== game.meta.roundId) throw new Error('Invalid Round ID');
 
     const session = await ctx.app.db.mongoose.startSession();
     session.startTransaction();
@@ -501,38 +501,38 @@ export class Service {
     try {
       const oldGameRound = await ctx.app.model.GameRound.findById(input.round.id).exec();
       if (oldGameRound) {
-        (oldGameRound as any).meta = input.round;
-        (oldGameRound as any).markModified('meta');
-        await (oldGameRound as any).save();
+        oldGameRound.meta = input.round;
+        oldGameRound.markModified('meta');
+        await oldGameRound.save();
       } else {
         log('Could not find game round: ', input.round.id);
       }
 
-      const newGameRound = await ctx.app.model.GameRound.create({ gameId: (game as any).id, meta: input.round });
+      const newGameRound = await ctx.app.model.GameRound.create({ gameId: game.id, meta: input.round });
 
-      (game as any).meta = {
-        ...(game as any).meta,
+      game.meta = {
+        ...game.meta,
         clientCount: input.round.clients.length,
         roundId: newGameRound._id.toString(),
       };
-      (game as any).markModified('meta');
-      await (game as any).save();
+      game.markModified('meta');
+      await game.save();
 
-      const res = { roundId: (game as any).meta.roundId };
+      const res = { roundId: game.meta.roundId };
 
       // ----- rewards table (unchanged) -----
       if (input.round.clients.length > 0) {
         const rewardWinnerMap = {
-          0: Math.round((game as any).meta.rewardWinnerAmount * 1 * 1000) / 1000,
-          1: Math.round((game as any).meta.rewardWinnerAmount * 0.25 * 1000) / 1000,
-          2: Math.round((game as any).meta.rewardWinnerAmount * 0.15 * 1000) / 1000,
-          3: Math.round((game as any).meta.rewardWinnerAmount * 0.05 * 1000) / 1000,
-          4: Math.round((game as any).meta.rewardWinnerAmount * 0.05 * 1000) / 1000,
-          5: Math.round((game as any).meta.rewardWinnerAmount * 0.05 * 1000) / 1000,
-          6: Math.round((game as any).meta.rewardWinnerAmount * 0.05 * 1000) / 1000,
-          7: Math.round((game as any).meta.rewardWinnerAmount * 0.05 * 1000) / 1000,
-          8: Math.round((game as any).meta.rewardWinnerAmount * 0.05 * 1000) / 1000,
-          9: Math.round((game as any).meta.rewardWinnerAmount * 0.05 * 1000) / 1000,
+          0: Math.round(game.meta.rewardWinnerAmount * 1 * 1000) / 1000,
+          1: Math.round(game.meta.rewardWinnerAmount * 0.25 * 1000) / 1000,
+          2: Math.round(game.meta.rewardWinnerAmount * 0.15 * 1000) / 1000,
+          3: Math.round(game.meta.rewardWinnerAmount * 0.05 * 1000) / 1000,
+          4: Math.round(game.meta.rewardWinnerAmount * 0.05 * 1000) / 1000,
+          5: Math.round(game.meta.rewardWinnerAmount * 0.05 * 1000) / 1000,
+          6: Math.round(game.meta.rewardWinnerAmount * 0.05 * 1000) / 1000,
+          7: Math.round(game.meta.rewardWinnerAmount * 0.05 * 1000) / 1000,
+          8: Math.round(game.meta.rewardWinnerAmount * 0.05 * 1000) / 1000,
+          9: Math.round(game.meta.rewardWinnerAmount * 0.05 * 1000) / 1000,
         };
 
         const winners = input.round.clients.sort((a, b) => b.points - a.points);
@@ -548,15 +548,15 @@ export class Service {
             .exec();
           if (!profile) continue;
 
-          const character = (profile as any).characters?.[0];
+          const character = profile.characters?.[0];
 
           // ✅ IMPORTANT: permission snapshot comes from shard payload, not ctx.client (realm admin)
           const perms: Record<string, any> = client.permissions || {};
 
           // dedupe store
-          if (!(profile as any).meta) (profile as any).meta = {};
-          if (!Array.isArray((profile as any).meta.opIds)) (profile as any).meta.opIds = [];
-          const applied = new Set<string>((profile as any).meta.opIds);
+          if (!profile.meta) profile.meta = {};
+          if (!Array.isArray(profile.meta.opIds)) profile.meta.opIds = [];
+          const applied = new Set<string>(profile.meta.opIds);
 
           // ─────────────────────────────────────────────
           // 1) Collect ALL allowed shard patches (deduped) into ONE claim bundle
@@ -586,7 +586,7 @@ export class Service {
             if (!allowed) continue;
 
             // mark applied (so retry won't re-mail)
-            (profile as any).meta.opIds.push(opId);
+            profile.meta.opIds.push(opId);
             applied.add(opId);
 
             // ✅ mail-gate any patch (claimable)
@@ -594,19 +594,19 @@ export class Service {
           }
 
           // bound dedupe list
-          (profile as any).meta.opIds = (profile as any).meta.opIds.slice(-2000);
+          profile.meta.opIds = profile.meta.opIds.slice(-2000);
 
           // ─────────────────────────────────────────────
           // 2) Immediate stats (unchanged behavior)
           // ─────────────────────────────────────────────
-          if (!(profile as any).meta.ap) (profile as any).meta.ap = 0;
-          if (!(profile as any).meta.bp) (profile as any).meta.bp = 0;
+          if (!profile.meta.ap) profile.meta.ap = 0;
+          if (!profile.meta.bp) profile.meta.bp = 0;
 
-          (profile as any).meta.ap += client.powerups || 0;
-          (profile as any).meta.bp += client.kills || 0;
+          profile.meta.ap += client.powerups || 0;
+          profile.meta.bp += client.kills || 0;
 
-          (profile as any).markModified('meta');
-          await (profile as any).save();
+          profile.markModified('meta');
+          await profile.save();
 
           // ─────────────────────────────────────────────
           // 3) Token rewards → add as a claimable patch (bundled into same mail)
@@ -619,7 +619,7 @@ export class Service {
             if (pickup.type === 'token') {
               const tokenSymbol = String(pickup.rewardItemName || '').toLowerCase();
 
-              if (!(game as any).meta.rewards.tokens.find((t: any) => t.symbol === tokenSymbol)) {
+              if (!game.meta.rewards.tokens.find((t: any) => t.symbol === tokenSymbol)) {
                 throw new Error('Problem finding a reward token');
               }
 
@@ -712,59 +712,59 @@ export class Service {
 
     {
       const record = await ctx.app.model.WorldRecord.findOne({
-        gameId: (game as any).id,
+        gameId: game.id,
         name: `${input.round.gameMode} Points`,
       })
         .sort({ score: -1 })
         .limit(1);
 
       const winner = input.round.clients.sort((a, b) => b.points - a.points)[0];
-      const profile = await ctx.app.model.Profile.findOne({ address: (winner as any).address });
+      const profile = await ctx.app.model.Profile.findOne({ address: winner.address });
 
-      if (!record || winner.points > (record as any).score) {
+      if (!record || winner.points > record.score) {
         await ctx.app.model.WorldRecord.create({
-          gameId: (game as any).id,
-          holderId: (profile as any).id,
+          gameId: game.id,
+          holderId: profile.id,
           score: winner.points,
         });
       }
     }
 
     {
-      const record = await ctx.app.model.WorldRecord.findOne({ gameId: (game as any).id, name: 'Highest Score' })
+      const record = await ctx.app.model.WorldRecord.findOne({ gameId: game.id, name: 'Highest Score' })
         .sort({ score: -1 })
         .limit(1);
 
       const winner = input.round.clients.sort((a, b) => b.points - a.points)[0];
-      const profile = await ctx.app.model.Profile.findOne({ address: (winner as any).address });
+      const profile = await ctx.app.model.Profile.findOne({ address: winner.address });
 
-      if (!record || winner.points > (record as any).score) {
+      if (!record || winner.points > record.score) {
         await ctx.app.model.WorldRecord.create({
-          gameId: (game as any).id,
-          holderId: (profile as any).id,
+          gameId: game.id,
+          holderId: profile.id,
           score: winner.points,
         });
       }
     }
 
     {
-      const record = await ctx.app.model.WorldRecord.findOne({ gameId: (game as any).id, name: 'Most Kills' })
+      const record = await ctx.app.model.WorldRecord.findOne({ gameId: game.id, name: 'Most Kills' })
         .sort({ score: -1 })
         .limit(1);
 
       const winner = input.round.clients.sort((a, b) => b.kills - a.kills)[0];
-      const profile = await ctx.app.model.Profile.findOne({ address: (winner as any).address });
+      const profile = await ctx.app.model.Profile.findOne({ address: winner.address });
 
-      if (!record || winner.kills > (record as any).score) {
+      if (!record || winner.kills > record.score) {
         await ctx.app.model.WorldRecord.create({
-          gameId: (game as any).id,
-          holderId: (profile as any).id,
+          gameId: game.id,
+          holderId: profile.id,
           score: winner.kills,
         });
       }
     }
 
-    return { roundId: (game as any).meta.roundId };
+    return { roundId: game.meta.roundId };
   }
 
   async interact(input: RouterInput['interact'], ctx: RouterContext): Promise<RouterOutput['interact']> {
@@ -778,7 +778,7 @@ export class Service {
 
     let data = {};
 
-    if ((input as any).applicationId === '668e4e805f9a03927caf883b') {
+    if (input.applicationId === '668e4e805f9a03927caf883b') {
       data = {
         ...data,
         objects: [
