@@ -31,6 +31,9 @@ export const toCamelCase = (str: string): string => {
     .replace(/[\s:,()&/\-\+]+/g, '');
 };
 
+// @ts-ignore
+if (!mongoose.models) mongoose.models = {};
+
 type PreHookMethod = keyof Query<any, any> | 'save' | 'validate';
 
 interface VirtualOptions<T = any> {
@@ -78,10 +81,14 @@ const CounterSchema = new Schema<CounterDocument>({
   value: { type: Number, required: true, default: 0 },
 });
 
-const CounterModel = mongoose.models.SeerCounter || mongoose.model<CounterDocument>('SeerCounter', CounterSchema);
+mongoose.models.SeerCounter ||= mongoose.model<CounterDocument>('SeerCounter', CounterSchema);
 
 export async function getNextSeq(key: string = 'seerEvent'): Promise<number> {
-  const doc = await CounterModel.findOneAndUpdate({ key }, { $inc: { value: 1 } }, { upsert: true, new: true }).exec();
+  const doc = await mongoose.models.SeerCounter.findOneAndUpdate(
+    { key },
+    { $inc: { value: 1 } },
+    { upsert: true, new: true }
+  ).exec();
   return doc.value;
 }
 
@@ -341,7 +348,7 @@ ClusterSchema.index({ kind: 1, applicationId: 1, 'pk.field': 1, 'pk.o': 1 });
 
 addIdTransformHelpers(ClusterSchema as any);
 
-export const ClusterModel = mongoose.models.Cluster || mongoose.model<ClusterDoc>('Cluster', ClusterSchema);
+mongoose.models.Cluster ||= mongoose.model<ClusterDoc>('Cluster', ClusterSchema);
 
 // ---------- ontology helpers -----------------------------------------------
 
@@ -479,12 +486,12 @@ export async function upsertClusterForEntity(kind: string, schema: Schema, doc: 
   if (appId) query.applicationId = appId;
   if (primaryKey) query.primaryKey = primaryKey;
 
-  let cluster = await ClusterModel.findOne(query).exec();
+  let cluster = await mongoose.models.Cluster.findOne(query).exec();
 
   const docRevision = typeof doc.revision === 'number' && !Number.isNaN(doc.revision) ? doc.revision : 1;
 
   if (!cluster) {
-    cluster = new ClusterModel({
+    cluster = new mongoose.models.Cluster({
       kind,
       applicationId: appId,
       keys,
@@ -613,7 +620,7 @@ export async function resolveClustersForFilter(
     pipeline.push({ $sort: { updatedDate: -1 } });
   }
 
-  const clusters = await ClusterModel.aggregate(pipeline).exec();
+  const clusters = await mongoose.models.Cluster.aggregate(pipeline).exec();
   return clusters as any;
 }
 

@@ -278,6 +278,7 @@ export const createRouter = () =>
           token: z.string().optional(),
           data: z.string().optional(),
           loginAs: z.string().optional(),
+          appIdentifier: z.string().optional(),
         })
       )
       // .output(Account)
