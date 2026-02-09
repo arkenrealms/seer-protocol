@@ -239,6 +239,15 @@ export const createRouter = () =>
       )
       .query(({ input, ctx }) => (ctx.app.service.Core.distributeSantaChristmasTicket as any)(input, ctx)),
 
+    play: procedure
+      .input(
+        z.object({
+          appIdentifier: z.string().optional(),
+          gameKey: z.string().optional(),
+        })
+      )
+      .query(({ input, ctx }) => (ctx.app.service.Core.play as any)(input, ctx)),
+
     syncGetPayloadsSince: procedure
       .input(
         z.object({
