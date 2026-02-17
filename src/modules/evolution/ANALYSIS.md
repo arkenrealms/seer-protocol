@@ -29,3 +29,6 @@
 - [ ] Add protocol tests for auth boundary consistency (router role middleware vs service role checks).
 - [ ] Add focused tests for payment processing transaction behavior and party join/leave invariants.
 - [ ] Split large service concerns into domain slices (rounds/rewards/payments/party/chest) to reduce blast radius.
+
+## Maintenance notes
+- 2026-02-17: Normalized top-of-file path headers in module source files to `arken/...` for `evolution.models.ts`, `evolution.schema.ts`, `evolution.types.ts`, `evolution.service.ts`, and `evolution.router.ts`.
