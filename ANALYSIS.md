@@ -10,6 +10,12 @@
 - Added generated-metadata docs after direct lock-metadata review:
   - `.rush/{README.md,ANALYSIS.md}`
   - `.rush/temp/{README.md,ANALYSIS.md}`
+- Completed package-root operational config pass:
+  - `package.json`
+  - `tsconfig.json`
+  - `.eslintrc`
+  - `.prettierrc`
+  - `.editorconfig`
 - Added maintainer docs:
   - `src/README.md`, `src/ANALYSIS.md`
   - `src/modules/README.md`, `src/modules/ANALYSIS.md`
@@ -25,7 +31,10 @@
 - `infinite` shows similar coupling and placeholder-service behavior (procedures routed through Evolution service path, weak output guarantees).
 - `evolution` centralizes critical reward/payment/round flows but still carries permissive contracts (`z.any`) and large monolithic logic that raises change risk.
 - Root router composes many node+seer routers, so module-level contract gaps can propagate widely.
+- Package-level strictness is intentionally relaxed (`noImplicitAny: false`, `strictNullChecks: false`) and eslint disables many safety rules, which increases protocol/type drift risk without compensating tests.
+- `scripts` in `package.json` are empty, so protocol package checks rely on external workspace orchestration instead of local guard commands.
 
 ## Next chunk
-- Start deepest-first pass in `src/modules` test-adjacent surfaces or `packages/node` submodule to map cross-package protocol boundaries.
+- Continue rotation to `forge` after this seer package-root pass.
+- In Seer follow-up, map local test/typecheck invocation surfaces for `protocol` + `node` packages and propose concrete package-level guard scripts.
 - Add/expand test coverage for malformed payload, auth boundary mismatches, and transaction invariants (starting with Evolution payment/party flows).
