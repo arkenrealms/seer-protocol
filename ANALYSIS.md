@@ -7,7 +7,8 @@
 - Initialized submodule content.
 - Completed leaf analysis for `src/modules/oasis`, `src/modules/isles`, `src/modules/infinite`, and `src/modules/evolution`.
 - Completed next-level source analysis for `src/index.ts`, `src/router.ts`, and `src/types.ts` (post-leaf upward merge).
-- Added generated-metadata leaf docs for `.rush/temp` after direct `shrinkwrap-deps.json` review:
+- Added generated-metadata docs after direct lock-metadata review:
+  - `.rush/{README.md,ANALYSIS.md}`
   - `.rush/temp/{README.md,ANALYSIS.md}`
 - Added maintainer docs:
   - `src/README.md`, `src/ANALYSIS.md`
