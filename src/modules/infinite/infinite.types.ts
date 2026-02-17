@@ -1,3 +1,4 @@
+// arken/packages/seer/packages/protocol/src/modules/infinite/infinite.types.ts
 import { z } from 'zod';
 import { Model, Document } from '@arken/node/util/mongo';
 import * as schema from './infinite.schema';

@@ -16,6 +16,8 @@
   - Placeholder imports with no concrete schema/model definitions.
 - `infinite.types.ts`:
   - Exports broad placeholder mappings and commented type derivations.
+- Source header hygiene:
+  - Module source files now use normalized top-of-file path headers in `arken/...` format.
 
 ## Protocol/test relevance
 - Current module behavior is likely wiring-incomplete and relies on Evolution service path.

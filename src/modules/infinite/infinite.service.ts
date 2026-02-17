@@ -1,3 +1,4 @@
+// arken/packages/seer/packages/protocol/src/modules/infinite/infinite.service.ts
 import type { RouterContext, RouterInput, RouterOutput } from './infinite.types';
 import { getFilter } from '@arken/node/util/api';
 import { ARXError } from '@arken/node/util/rpc';

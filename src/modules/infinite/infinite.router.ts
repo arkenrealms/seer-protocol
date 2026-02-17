@@ -1,3 +1,4 @@
+// arken/packages/seer/packages/protocol/src/modules/infinite/infinite.router.ts
 import { z as zod } from 'zod';
 import { initTRPC } from '@trpc/server';
 import { customErrorFormatter, hasRole } from '@arken/node/util/rpc';
