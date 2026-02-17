@@ -6,6 +6,7 @@
 ## This run (deepest-first chunk)
 - Initialized submodule content.
 - Completed leaf analysis for `src/modules/oasis`, `src/modules/isles`, `src/modules/infinite`, and `src/modules/evolution`.
+- Completed next-level source analysis for `src/index.ts`, `src/router.ts`, and `src/types.ts` (post-leaf upward merge).
 - Added maintainer docs:
   - `src/README.md`, `src/ANALYSIS.md`
   - `src/modules/README.md`, `src/modules/ANALYSIS.md`
@@ -15,6 +16,7 @@
   - `src/modules/evolution/{README.md,ANALYSIS.md}`
 
 ## Protocol/test relevance
+- Root `src/router.ts` includes permissive/stubbed top-level procedures (`auth`, `banProfile`, `info`) that need the same hardening expected from module routers.
 - `oasis` currently has permissive inputs (`z.any`) and stubbed procedure behavior.
 - `isles` appears to have router/service coupling defects (procedures routed through Evolution service path) and extensive commented legacy code.
 - `infinite` shows similar coupling and placeholder-service behavior (procedures routed through Evolution service path, weak output guarantees).
