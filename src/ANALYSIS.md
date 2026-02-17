@@ -15,9 +15,9 @@
 ## Risks / gaps
 - Extensive `any` use in app/context typing can hide integration drift.
 - Some Seer module procedures are permissive or stubbed, weakening deterministic contract behavior.
-- Isles module shows likely route-to-service wiring defects that can mask domain ownership boundaries.
+- Isles and Infinite modules both show likely route-to-service wiring defects that can mask domain ownership boundaries.
 
 ## Follow-ups
 - [ ] Tighten module schemas and reduce `any` usage in router/type boundaries.
 - [ ] Add focused protocol tests around Seer-local module procedures (auth, malformed payloads, output guarantees).
-- [ ] Continue deepest-first analysis for remaining module leaves (`infinite`, `evolution`) and roll findings up into `packages/protocol/ANALYSIS.md`.
+- [ ] Continue deepest-first analysis for remaining module leaf (`evolution`) and roll findings up into `packages/protocol/ANALYSIS.md`.
