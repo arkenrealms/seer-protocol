@@ -28,3 +28,4 @@
 - [ ] Add protocol tests for malformed inputs and unauthorized role paths.
 - [ ] Add behavioral tests for `applicationId` scene/auth branching to avoid silent drift.
 - [ ] Clarify whether `interact` is intentionally stubbed or missing implementation.
+- [x] Normalize top-of-file path headers to `arken/...` across Oasis module source files (`index.ts`, router/service/schema/models/types).

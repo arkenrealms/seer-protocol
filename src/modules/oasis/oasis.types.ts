@@ -1,3 +1,4 @@
+// arken/packages/seer/packages/protocol/src/modules/oasis/oasis.types.ts
 import { z } from 'zod';
 import { Model, Document } from '@arken/node/util/mongo';
 import * as schema from './oasis.schema';
