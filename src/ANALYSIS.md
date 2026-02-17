@@ -16,8 +16,10 @@
 - Extensive `any` use in app/context typing can hide integration drift.
 - Some Seer module procedures are permissive or stubbed, weakening deterministic contract behavior.
 - Isles and Infinite modules both show likely route-to-service wiring defects that can mask domain ownership boundaries.
+- Evolution module is high-impact but monolithic; mixed `z.any` contracts and auth/transaction inconsistencies increase reliability risk.
 
 ## Follow-ups
 - [ ] Tighten module schemas and reduce `any` usage in router/type boundaries.
 - [ ] Add focused protocol tests around Seer-local module procedures (auth, malformed payloads, output guarantees).
-- [ ] Continue deepest-first analysis for remaining module leaf (`evolution`) and roll findings up into `packages/protocol/ANALYSIS.md`.
+- [x] Continue deepest-first analysis for remaining module leaf (`evolution`) and roll findings up into `packages/protocol/ANALYSIS.md`.
+- [ ] Add Evolution-focused tests for payment transaction/session lifecycle and party membership invariants.
