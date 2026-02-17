@@ -34,7 +34,15 @@
 - Package-level strictness is intentionally relaxed (`noImplicitAny: false`, `strictNullChecks: false`) and eslint disables many safety rules, which increases protocol/type drift risk without compensating tests.
 - `scripts` in `package.json` are empty, so protocol package checks rely on external workspace orchestration instead of local guard commands.
 
+## Guard-script mapping (this chunk)
+- Verified package-level script surface is empty (`scripts: {}`), so local quality gates are currently implicit/ambient.
+- Proposed package-local guard commands to reduce drift and make CI intentions explicit:
+  - `typecheck`: `tsc --noEmit -p tsconfig.json`
+  - `lint`: `eslint "src/**/*.{ts,tsx}"`
+  - `test:protocol`: run focused protocol suites once available in this package/workspace.
+- Recommendation: add these as no-op-safe scripts in a follow-up commit, then wire CI/PR checks to package-local commands instead of implicit workspace behavior.
+
 ## Next chunk
 - Continue rotation to `forge` after this seer package-root pass.
-- In Seer follow-up, map local test/typecheck invocation surfaces for `protocol` + `node` packages and propose concrete package-level guard scripts.
+- Apply same guard-script mapping approach to `packages/seer/packages/node` and compare strictness gaps.
 - Add/expand test coverage for malformed payload, auth boundary mismatches, and transaction invariants (starting with Evolution payment/party flows).
