@@ -1,3 +1,5 @@
+// arken/packages/seer/packages/protocol/src/types.ts
+
 import * as Arken from '@arken/node';
 import { Router, RouterInput, RouterOutput } from './router';
 import * as Evolution from './modules/evolution';

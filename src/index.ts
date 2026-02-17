@@ -1,3 +1,5 @@
+// arken/packages/seer/packages/protocol/src/index.ts
+
 import type * as Arken from '@arken/node/types';
 import * as dotenv from 'dotenv';
 import { Router as Router2 } from './router';
