@@ -4,14 +4,16 @@
 - Leaf-domain protocol surfaces used by Seer (`evolution`, `infinite`, `isles`, `oasis`).
 
 ## Bottom-up summary (this pass)
-- Deep analysis completed for `oasis/` leaf folder.
-- `oasis` currently mixes production-like query logic with stubbed mutation behavior and permissive inputs.
+- Deep analysis completed for `oasis/` and `isles/` leaf folders.
+- `oasis` mixes production-like query logic with stubbed mutation behavior and permissive inputs.
+- `isles` currently appears miswired (routes delegated to Evolution service) with broad schemas and substantial commented legacy code.
 
 ## Cross-module implications
 - Module contract quality appears uneven; stricter schema discipline should be aligned across all module folders.
 - Router composition in parent `src/router.ts` means weak validation in one module can affect overall protocol reliability expectations.
 
 ## Follow-ups
-- [ ] Run the same leaf-first analysis for `isles/`, `infinite/`, then `evolution/`.
+- [ ] Run the same leaf-first analysis for remaining module leaves: `infinite/`, then `evolution/`.
 - [ ] Standardize per-module README + ANALYSIS structure for maintainers.
 - [ ] Introduce protocol boundary tests per module (input shape, auth middleware, output guarantees).
+- [ ] Prioritize Isles router/service rewiring and schema hardening before shipping new Isles endpoints.
