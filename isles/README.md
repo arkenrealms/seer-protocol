@@ -15,6 +15,7 @@ Isles-specific Seer protocol surface.
   - `interact` -> `Evolution.interact`
   - `getScene` -> `Evolution.getScene`
 - Missing handlers now fail with explicit unavailable-handler errors instead of misrouting.
+- Evolution handlers are now invoked with preserved service context (`method.call(ctx.app.service.Evolution, ...)`) to avoid `this`-binding runtime errors.
 - Inputs remain broad (`z.any()` for large payload segments).
 - `isles.router.ts` still contains a very large block of commented legacy transport/game logic.
 

@@ -29,7 +29,7 @@ export const createRouter = () =>
         if (typeof method !== 'function') {
           throw new Error('Evolution.saveRound handler is unavailable for Isles.saveRound');
         }
-        return method(input, ctx);
+        return method.call(ctx.app.service.Evolution, input, ctx);
       }),
 
     interact: t.procedure
@@ -49,7 +49,7 @@ export const createRouter = () =>
         if (typeof method !== 'function') {
           throw new Error('Evolution.interact handler is unavailable for Isles.interact');
         }
-        return method(input, ctx);
+        return method.call(ctx.app.service.Evolution, input, ctx);
       }),
 
     getScene: t.procedure
@@ -66,7 +66,7 @@ export const createRouter = () =>
         if (typeof method !== 'function') {
           throw new Error('Evolution.getScene handler is unavailable for Isles.getScene');
         }
-        return method(input, ctx);
+        return method.call(ctx.app.service.Evolution, input, ctx);
       }),
   });
 

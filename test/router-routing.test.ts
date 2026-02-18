@@ -14,6 +14,7 @@ test('isles router uses method-matched Evolution handlers', async () => {
   assert.match(source, /Evolution as any\)\?\.saveRound/);
   assert.match(source, /Evolution as any\)\?\.interact/);
   assert.match(source, /Evolution as any\)\?\.getScene/);
+  assert.match(source, /method\.call\(ctx\.app\.service\.Evolution, input, ctx\)/);
   assert.doesNotMatch(source, /interact[\s\S]*Evolution\.saveRound as any/);
   assert.doesNotMatch(source, /getScene[\s\S]*Evolution\.saveRound as any/);
 });
@@ -24,6 +25,7 @@ test('infinite router uses method-matched Evolution handlers', async () => {
   assert.match(source, /Evolution as any\)\?\.saveRound/);
   assert.match(source, /Evolution as any\)\?\.interact/);
   assert.match(source, /Evolution as any\)\?\.getScene/);
+  assert.match(source, /method\.call\(ctx\.app\.service\.Evolution, input, ctx\)/);
   assert.doesNotMatch(source, /interact[\s\S]*Evolution\.saveRound as any/);
   assert.doesNotMatch(source, /getScene[\s\S]*Evolution\.saveRound as any/);
 });

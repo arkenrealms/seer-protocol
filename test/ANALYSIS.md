@@ -18,6 +18,7 @@ Local, package-scoped test harness for `@arken/seer-protocol` so source changes 
 - `router-routing.test.ts`
   - verifies Isles/Infinite route dispatch correctness (`interact` and `getScene` must not route through `Evolution.saveRound`).
   - validates formatted failure behavior when required Evolution method handlers are missing.
+  - enforces Evolution handler invocation through `method.call(ctx.app.service.Evolution, ...)` to preserve service `this` context.
 
 ## Protocol/test relevance
 - Establishes the first package-local runnable test surface for seer-protocol.

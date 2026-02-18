@@ -24,6 +24,7 @@
 
 ## Protocol/test relevance
 - Router/service ownership is partially hardened: Infinite handlers are now preferred, with Evolution fallback retained for compatibility during migration.
+- Evolution fallback invocation now preserves service context (`method.call(ctx.app.service.Evolution, ...)`) to avoid `this`-binding regressions.
 - Resolver now requires own-property handler lookups (ignores inherited prototype methods), reducing prototype-pollution/misrouting risk in dynamic service containers.
 - Resolver now safely treats getter-throwing/non-function own properties as unavailable handlers so method resolution can fall back deterministically instead of crashing on property access.
 - Resolver now returns wrapper handlers that preserve the owning service object as `this`, preventing context-loss regressions when service methods rely on instance state.
