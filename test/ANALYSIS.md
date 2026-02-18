@@ -23,6 +23,9 @@ Local, package-scoped test harness for `@arken/seer-protocol` so source changes 
 - `router-auth.test.ts`
   - executes the root `auth` procedure via `createCallerFactory` to validate runtime behavior (not just source-shape checks).
   - covers null/undefined `data` payload handling to prevent `input.data.applicationId` dereference crashes.
+- `evolution.router.test.ts`
+  - verifies `updateSettings` remains mutation-based.
+  - verifies `getScene` resolves handlers through own-property descriptors, raises deterministic unavailable-handler errors, and preserves service context.
 - `oasis.router.test.ts`
   - enforces object-shape guarding in `oasis.getScene` before reading `applicationId`.
   - prevents regressions where null/non-object payloads could crash scene queries.

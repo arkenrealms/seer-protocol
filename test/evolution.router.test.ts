@@ -16,3 +16,14 @@ test('evolution updateSettings stays mutation-based', async () => {
   assert.match(updateSettingsBlock, /\.mutation\(\(\{ input, ctx \}\) =>/);
   assert.doesNotMatch(updateSettingsBlock, /\.query\(\(\{ input, ctx \}\) =>/);
 });
+
+test('evolution getScene uses own-property descriptor guard with deterministic handler error', async () => {
+  const source = await readFile(resolve(root, 'evolution', 'evolution.router.ts'), 'utf8');
+
+  assert.match(source, /getScene:\s+t\.procedure/);
+  assert.match(source, /Object\.prototype\.hasOwnProperty\.call\(evolutionService, 'getScene'\)/);
+  assert.match(source, /Object\.getOwnPropertyDescriptor\(evolutionService, 'getScene'\)/);
+  assert.match(source, /if \(typeof method !== 'function'\)/);
+  assert.match(source, /Evolution\.getScene handler is unavailable for evolution\.getScene/);
+  assert.match(source, /return method\.call\(evolutionService, input, ctx\)/);
+});

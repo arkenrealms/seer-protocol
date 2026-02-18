@@ -1,6 +1,6 @@
 // arken/packages/seer/packages/protocol/src/modules/evolution/evolution.router.ts
 import { z as zod } from 'zod';
-import { initTRPC } from '@trpc/server';
+import { TRPCError, initTRPC } from '@trpc/server';
 import { customErrorFormatter, hasRole } from '../util/rpc';
 import { Query, getQueryInput, inferRouterOutputs, inferRouterInputs } from '../util/schema';
 import { RouterContext, Core } from '../types';
@@ -140,7 +140,23 @@ export const createRouter = () =>
       .use(hasRole('guest', t))
       .use(customErrorFormatter(t))
       .input(z.object({ applicationId: z.string() }))
-      .mutation(({ input, ctx }) => (ctx.app.service.Evolution.getScene as any)(input, ctx)),
+      .mutation(({ input, ctx }) => {
+        const evolutionService = ctx.app?.service?.Evolution as any;
+        const descriptor =
+          evolutionService && Object.prototype.hasOwnProperty.call(evolutionService, 'getScene')
+            ? Object.getOwnPropertyDescriptor(evolutionService, 'getScene')
+            : undefined;
+        const method = descriptor && 'value' in descriptor ? descriptor.value : undefined;
+
+        if (typeof method !== 'function') {
+          throw new TRPCError({
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'Evolution.getScene handler is unavailable for evolution.getScene',
+          });
+        }
+
+        return method.call(evolutionService, input, ctx);
+      }),
   });
 
 export type Router = ReturnType<typeof createRouter>;

@@ -12,3 +12,4 @@ Evolution protocol module for Seer.
 - This module currently has mixed strict and permissive contracts (`z.any` still present on several procedures).
 - Service layer is monolithic and contains substantial legacy/commented code blocks.
 - `updateSettings` is mutation-based (not query) so user preference writes stay aligned with write semantics.
+- `getScene` now resolves `Evolution.getScene` via own-property descriptor lookup and raises a deterministic internal error when the handler is missing/non-callable.
