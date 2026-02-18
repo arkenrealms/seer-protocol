@@ -10,6 +10,7 @@
 - Added generated-metadata docs after direct lock-metadata review:
   - `.rush/{README.md,ANALYSIS.md}`
   - `.rush/temp/{README.md,ANALYSIS.md}`
+- Revalidated `.rush/temp/shrinkwrap-deps.json` from source and refreshed lock-shape notes (workspace entry + mixed transitive-major presence) for generated-only ownership clarity.
 - Completed package-root operational config pass:
   - `package.json`
   - `tsconfig.json`

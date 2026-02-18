@@ -9,6 +9,12 @@
   - Large hash map of package/version -> integrity metadata.
   - Includes workspace key for protocol package and external dependency fingerprints.
 
+## This run (deepest-first source read)
+- Re-read `shrinkwrap-deps.json` directly to validate lock-map shape and ownership assumptions.
+- Confirmed package-local workspace entry is present at file root:
+  - `../../packages/seer/packages/protocol:...`
+- Observed mixed transitive major-version surfaces (for example multiple `@types/node` and `bn.js` ranges) captured in lock metadata; this is expected for generated lock state but increases churn/noise if edited manually.
+
 ## Protocol/test relevance
 - Not runtime protocol code, but a build-integrity boundary: lock drift here can indirectly alter protocol/runtime behavior by changing resolved dependency versions.
 

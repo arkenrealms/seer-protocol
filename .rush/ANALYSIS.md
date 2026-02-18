@@ -6,6 +6,9 @@ Rush workspace cache/lock metadata boundary for `packages/protocol`.
 ## Notable files and responsibilities
 - `temp/shrinkwrap-deps.json`: generated package graph + integrity map used by Rush installs.
 
+## This run
+- Performed leaf-first revalidation in `temp/` by re-reading `shrinkwrap-deps.json` and refreshing `temp/ANALYSIS.md` with current lock-shape findings.
+
 ## Protocol/test relevance
 - Not runtime protocol logic.
 - Indirectly affects reproducibility of protocol package dependency resolution.
