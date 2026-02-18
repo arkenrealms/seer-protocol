@@ -3,19 +3,25 @@ export type InfiniteMethodName = 'saveRound' | 'interact' | 'getScene';
 
 type ServiceMap = Record<string, unknown> | undefined;
 
-const hasOwnFunction = (service: ServiceMap, method: InfiniteMethodName): ((...args: unknown[]) => unknown) | undefined => {
+type InfiniteMethodHandler = (...args: unknown[]) => unknown;
+
+const hasOwnFunction = (service: ServiceMap, method: InfiniteMethodName): InfiniteMethodHandler | undefined => {
   if (!service || !Object.prototype.hasOwnProperty.call(service, method)) {
     return undefined;
   }
 
-  const candidate = service[method];
-  return typeof candidate === 'function' ? candidate : undefined;
+  try {
+    const candidate = service[method];
+    return typeof candidate === 'function' ? candidate : undefined;
+  } catch {
+    return undefined;
+  }
 };
 
 export const resolveInfiniteMethod = (
   service: { Infinite?: Record<string, unknown>; Evolution?: Record<string, unknown> },
   method: InfiniteMethodName
-): Function => {
+): InfiniteMethodHandler => {
   const infiniteHandler = hasOwnFunction(service.Infinite, method);
   const evolutionHandler = hasOwnFunction(service.Evolution, method);
   const saveRoundFallback = method === 'saveRound' ? hasOwnFunction(service.Evolution, 'saveRound') : undefined;

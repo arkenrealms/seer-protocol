@@ -8,6 +8,7 @@ Local, package-scoped test harness for `@arken/seer-protocol` so source changes 
   - verifies `resolveInfiniteMethod` handler precedence and fallback behavior.
   - protects against protocol misrouting bugs where non-`saveRound` calls could be incorrectly delegated.
   - adds inherited-prototype safety coverage so callback resolution only accepts own handler properties.
+  - covers getter-throwing and non-function own-property handler surfaces to ensure fallback/availability behavior stays deterministic.
 
 ## Protocol/test relevance
 - Establishes the first package-local runnable test surface for seer-protocol.

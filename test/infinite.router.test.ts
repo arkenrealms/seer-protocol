@@ -47,3 +47,31 @@ test('resolveInfiniteMethod ignores inherited prototype handlers and requires ow
 
   assert.throws(() => resolveInfiniteMethod(service, 'interact'), /Infinite service method unavailable: interact/);
 });
+
+test('resolveInfiniteMethod skips getter-throwing handlers and falls back safely', () => {
+  const infiniteService: Record<string, unknown> = {};
+  Object.defineProperty(infiniteService, 'interact', {
+    enumerable: true,
+    get() {
+      throw new Error('getter exploded');
+    },
+  });
+
+  const evolutionInteract = () => 'evolution-interact';
+  const service = {
+    Infinite: infiniteService,
+    Evolution: { interact: evolutionInteract },
+  };
+
+  const handler = resolveInfiniteMethod(service, 'interact');
+  assert.equal(handler, evolutionInteract);
+});
+
+test('resolveInfiniteMethod treats non-function own properties as unavailable handlers', () => {
+  const service = {
+    Infinite: { getScene: 'not-a-function' as unknown },
+    Evolution: {},
+  };
+
+  assert.throws(() => resolveInfiniteMethod(service, 'getScene'), /Infinite service method unavailable: getScene/);
+});
