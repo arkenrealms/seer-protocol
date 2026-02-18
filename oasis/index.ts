@@ -1,3 +1,4 @@
+// arken/packages/seer/packages/protocol/src/modules/oasis/index.ts
 export type * as Types from './oasis.types';
 export * as Models from './oasis.models';
 export * as Schemas from './oasis.schema';

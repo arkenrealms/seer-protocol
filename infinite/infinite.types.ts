@@ -1,3 +1,4 @@
+// arken/packages/seer/packages/protocol/src/modules/infinite/infinite.types.ts
 import { z } from 'zod';
 
 export type * from './infinite.router';

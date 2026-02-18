@@ -1,3 +1,4 @@
+// arken/packages/seer/packages/protocol/src/modules/isles/isles.types.ts
 import { z } from 'zod';
 import { Model, Document } from '../util/mongo';
 import * as schema from './isles.schema';
