@@ -35,3 +35,15 @@ test('resolveInfiniteMethod does not misroute getScene to Evolution.saveRound', 
 
   assert.throws(() => resolveInfiniteMethod(service, 'getScene'), /Infinite service method unavailable: getScene/);
 });
+
+test('resolveInfiniteMethod ignores inherited prototype handlers and requires own service methods', () => {
+  const inherited = { interact: () => 'inherited-interact' };
+  const evolutionService = Object.create(inherited) as Record<string, unknown>;
+
+  const service = {
+    Infinite: {},
+    Evolution: evolutionService,
+  };
+
+  assert.throws(() => resolveInfiniteMethod(service, 'interact'), /Infinite service method unavailable: interact/);
+});

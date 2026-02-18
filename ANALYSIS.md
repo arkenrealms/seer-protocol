@@ -57,3 +57,9 @@
   1) add local test script(s),
   2) ensure non-interactive execution path in cron context,
   3) then apply small protocol hardening changes with pass/fail evidence.
+
+## 2026-02-17 20:12 PST — resolver hardening + inherited-handler regression
+- Added own-property-only method resolution in `src/modules/infinite/infinite.methodResolver.ts`.
+- Expanded local tests in `test/infinite.router.test.ts` to cover inherited prototype handler rejection.
+- Test gate: `npm test` passed (4/4).
+- Jest migration note: attempted bootstrap in this direct package, but local `npm install` is blocked by unresolved `workspace:*` dependency protocol without workspace package-manager bootstrap in this runtime; keep TS tests in place and retry Jest migration when workspace install path is available.

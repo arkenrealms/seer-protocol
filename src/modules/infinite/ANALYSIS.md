@@ -22,6 +22,7 @@
 
 ## Protocol/test relevance
 - Router/service ownership is partially hardened: Infinite handlers are now preferred, with Evolution fallback retained for compatibility during migration.
+- Resolver now requires own-property handler lookups (ignores inherited prototype methods), reducing prototype-pollution/misrouting risk in dynamic service containers.
 - Weak input/output contracts increase risk of runtime drift and client/server mismatch.
 
 ## Risks / gaps

@@ -6,3 +6,4 @@ Package-local protocol tests for `@arken/seer-protocol`.
 - `infinite.router.test.ts`
   - validates method resolution behavior in Infinite router service fallback logic.
   - guards against accidental routing of non-`saveRound` methods to `Evolution.saveRound`.
+  - validates inherited-prototype handler safety (own-property method resolution only).
