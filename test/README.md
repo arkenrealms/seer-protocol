@@ -23,6 +23,9 @@ Package-local protocol tests for `@arken/seer-protocol`.
   - verifies `updateSettings` remains mutation-based so profile preference writes are not exposed as query semantics.
 - `router-auth.test.ts`
   - guards root `auth` source for object-shape checks around `data.applicationId` access.
+- `oasis.router.test.ts`
+  - guards `oasis.getScene` against null/non-object `data` payloads before reading `applicationId`.
+  - prevents regression to unsafe direct property dereference (`input.data.applicationId`).
 - `router-routing.test.ts` (expanded)
   - now also asserts Isles/Infinite routers guard missing Evolution service access (`ctx.app?.service?.Evolution`) before own-property checks.
   - verifies missing-handler branches raise explicit `TRPCError` with `INTERNAL_SERVER_ERROR` for deterministic error envelopes.

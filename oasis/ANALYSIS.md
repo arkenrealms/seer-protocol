@@ -23,6 +23,10 @@
 - Stub mutation (`interact`) may mask integration failures.
 - Console logging in service path may leak noisy runtime data.
 
+## 2026-02-18 maintenance update
+- Hardened `getScene` application-id dispatch against null/non-object payloads by guarding `input.data` shape before property access.
+- Added regression test coverage (`test/oasis.router.test.ts`) to prevent reintroducing unsafe `input.data.applicationId` dereferences.
+
 ## Follow-ups
 - [ ] Replace broad `z.any()` payloads with explicit schemas for Oasis interactions.
 - [ ] Add protocol tests for malformed inputs and unauthorized role paths.

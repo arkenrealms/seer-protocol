@@ -14,3 +14,6 @@ Oasis-specific Seer protocol surface.
 
 ## Protocol/testing note
 This module has low input validation depth (notably broad `z.any()` fields) and stubbed behavior paths; it is a candidate for contract-tightening and tests around malformed input/result handling.
+
+## 2026-02-18 update
+- `getScene` now guards non-object `data` payloads before reading `applicationId`, preventing null/primitive dereference crashes.
