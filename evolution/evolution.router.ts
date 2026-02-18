@@ -160,12 +160,44 @@ export const createRouter = () =>
     getPayments: procedure
       .use(hasRole('user', t))
       .use(customErrorFormatter(t))
-      .query(({ input, ctx }) => (ctx.app.service.Evolution.getPayments as any)(input, ctx)),
+      .query(({ input, ctx }) => {
+        const evolutionService = ctx.app?.service?.Evolution as any;
+        const descriptor =
+          evolutionService && Object.prototype.hasOwnProperty.call(evolutionService, 'getPayments')
+            ? Object.getOwnPropertyDescriptor(evolutionService, 'getPayments')
+            : undefined;
+        const method = descriptor && 'value' in descriptor ? descriptor.value : undefined;
+
+        if (typeof method !== 'function') {
+          throw new TRPCError({
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'Evolution.getPayments handler is unavailable for evolution.getPayments',
+          });
+        }
+
+        return method.call(evolutionService, input, ctx);
+      }),
 
     processPayments: procedure
       .use(hasRole('admin', t))
       .use(customErrorFormatter(t))
-      .mutation(({ input, ctx }) => (ctx.app.service.Evolution.processPayments as any)(input, ctx)),
+      .mutation(({ input, ctx }) => {
+        const evolutionService = ctx.app?.service?.Evolution as any;
+        const descriptor =
+          evolutionService && Object.prototype.hasOwnProperty.call(evolutionService, 'processPayments')
+            ? Object.getOwnPropertyDescriptor(evolutionService, 'processPayments')
+            : undefined;
+        const method = descriptor && 'value' in descriptor ? descriptor.value : undefined;
+
+        if (typeof method !== 'function') {
+          throw new TRPCError({
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'Evolution.processPayments handler is unavailable for evolution.processPayments',
+          });
+        }
+
+        return method.call(evolutionService, input, ctx);
+      }),
 
     cancelPaymentRequest: procedure
       .use(hasRole('user', t))

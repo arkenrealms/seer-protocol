@@ -71,6 +71,28 @@ test('evolution updateConfig uses own-property descriptor guard with determinist
   assert.match(source, /return method\.call\(evolutionService, input, ctx\)/);
 });
 
+test('evolution getPayments uses own-property descriptor guard with deterministic handler error', async () => {
+  const source = await readFile(resolve(root, 'evolution', 'evolution.router.ts'), 'utf8');
+
+  assert.match(source, /getPayments:\s+procedure/);
+  assert.match(source, /Object\.prototype\.hasOwnProperty\.call\(evolutionService, 'getPayments'\)/);
+  assert.match(source, /Object\.getOwnPropertyDescriptor\(evolutionService, 'getPayments'\)/);
+  assert.match(source, /if \(typeof method !== 'function'\)/);
+  assert.match(source, /Evolution\.getPayments handler is unavailable for evolution\.getPayments/);
+  assert.match(source, /return method\.call\(evolutionService, input, ctx\)/);
+});
+
+test('evolution processPayments uses own-property descriptor guard with deterministic handler error', async () => {
+  const source = await readFile(resolve(root, 'evolution', 'evolution.router.ts'), 'utf8');
+
+  assert.match(source, /processPayments:\s+procedure/);
+  assert.match(source, /Object\.prototype\.hasOwnProperty\.call\(evolutionService, 'processPayments'\)/);
+  assert.match(source, /Object\.getOwnPropertyDescriptor\(evolutionService, 'processPayments'\)/);
+  assert.match(source, /if \(typeof method !== 'function'\)/);
+  assert.match(source, /Evolution\.processPayments handler is unavailable for evolution\.processPayments/);
+  assert.match(source, /return method\.call\(evolutionService, input, ctx\)/);
+});
+
 test('evolution getScene uses own-property descriptor guard with deterministic handler error', async () => {
   const source = await readFile(resolve(root, 'evolution', 'evolution.router.ts'), 'utf8');
 

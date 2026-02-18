@@ -18,3 +18,4 @@ Evolution protocol module for Seer.
 - `updateGameStats` now resolves via own-property descriptor lookup and emits a deterministic unavailable-handler error instead of failing with ambiguous runtime call errors.
 - `monitorChest` now also resolves via own-property descriptor lookup with deterministic unavailable-handler errors, reducing crashy behavior when admin chest-monitor wiring is missing/non-callable.
 - `updateConfig` now resolves through the same own-property descriptor guard and deterministic unavailable-handler error path, preventing ambiguous failures when Evolution admin config wiring is missing/non-callable.
+- `getPayments` and `processPayments` now also use own-property descriptor guards with deterministic unavailable-handler errors to avoid ambiguous runtime failures on miswired payment handlers.
