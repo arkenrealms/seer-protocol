@@ -875,6 +875,7 @@ export const Realm = createModel<Types.RealmDocument>(
     endpoint: { type: String },
     status: { type: String },
     clientCount: { type: Number },
+    clientMax: { type: Number },
     regionCode: { type: String },
     gameId: { type: mongo.Schema.Types.ObjectId, ref: 'Game', required: true },
   },

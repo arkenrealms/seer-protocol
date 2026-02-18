@@ -482,6 +482,7 @@ export const Realm = Entity.merge(
     gameId: ObjectId,
     status: z.string().default('Offline').optional(),
     clientCount: z.number(),
+    clientMax: z.number(),
     regionCode: z.string(),
   })
 );

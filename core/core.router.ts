@@ -1629,6 +1629,13 @@ export const createRouter = () =>
       .output(Tournament)
       .query(({ input, ctx }) => (ctx.app.service.Core.getTournament as any)(input, ctx)),
 
+    // Tournament Procedures
+    getTournaments: procedure
+      .use(hasRole('guest', t))
+      .use(customErrorFormatter(t))
+      .input(getQueryInput(Tournament))
+      .query(({ input, ctx }) => (ctx.app.service.Core.getTournaments as any)(input, ctx)),
+
     createTournament: procedure
       .use(hasRole('admin', t))
       .use(customErrorFormatter(t))
