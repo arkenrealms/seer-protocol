@@ -6,7 +6,7 @@ Local, package-scoped test harness for `@arken/seer-protocol` so source changes 
 ## Notable files and responsibilities
 - `infinite.router.test.ts`
   - verifies `resolveInfiniteMethod` handler precedence and fallback behavior.
-  - protects against protocol misrouting bugs where non-`saveRound` calls could be incorrectly delegated.
+  - protects against protocol misrouting bugs where non-`saveRound` calls (`getScene`, `interact`) could be incorrectly delegated.
   - adds inherited-prototype safety coverage so callback resolution only accepts own handler properties.
   - covers getter-throwing and non-function own-property handler surfaces to ensure fallback/availability behavior stays deterministic.
   - verifies resolved handlers preserve method `this` binding to the owning service object.

@@ -1,3 +1,4 @@
+// arken/packages/seer/packages/protocol/test/isles.router.test.ts
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
@@ -32,6 +33,15 @@ test('resolveIslesMethod does not misroute getScene to Evolution.saveRound', () 
   };
 
   assert.throws(() => resolveIslesMethod(service, 'getScene'), /Isles service method unavailable: getScene/);
+});
+
+test('resolveIslesMethod does not misroute interact to Evolution.saveRound', () => {
+  const service = {
+    Isles: {},
+    Evolution: { saveRound: () => 'evolution-save-round' },
+  };
+
+  assert.throws(() => resolveIslesMethod(service, 'interact'), /Isles service method unavailable: interact/);
 });
 
 test('resolveIslesMethod ignores inherited prototype handlers and requires own service methods', () => {
