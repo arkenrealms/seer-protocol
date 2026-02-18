@@ -25,7 +25,7 @@ Local, package-scoped test harness for `@arken/seer-protocol` so source changes 
   - covers null/undefined `data` payload handling to prevent `input.data.applicationId` dereference crashes.
 - `evolution.router.test.ts`
   - verifies `updateSettings` remains mutation-based.
-  - verifies `info` and `getScene` resolve handlers through own-property descriptors, raise deterministic unavailable-handler errors, and preserve service context.
+  - verifies `info`, `monitorParties`, and `getScene` resolve handlers through own-property descriptors, raise deterministic unavailable-handler errors, and preserve service context.
 - `oasis.router.test.ts`
   - enforces object-shape guarding in `oasis.getScene` before reading `applicationId`.
   - prevents regressions where null/non-object payloads could crash scene queries.

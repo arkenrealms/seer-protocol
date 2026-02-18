@@ -14,3 +14,4 @@ Evolution protocol module for Seer.
 - `updateSettings` is mutation-based (not query) so user preference writes stay aligned with write semantics.
 - `getScene` now resolves `Evolution.getScene` via own-property descriptor lookup and raises a deterministic internal error when the handler is missing/non-callable.
 - `info` now uses the same own-property descriptor guard path and deterministic unavailable-handler error for safer service wiring failures.
+- `monitorParties` now also resolves through an own-property descriptor guard and deterministic unavailable-handler error to prevent null/miswired service crashes.
