@@ -38,6 +38,17 @@ test('evolution monitorParties uses own-property descriptor guard with determini
   assert.match(source, /return method\.call\(evolutionService, input, ctx\)/);
 });
 
+test('evolution updateGameStats uses own-property descriptor guard with deterministic handler error', async () => {
+  const source = await readFile(resolve(root, 'evolution', 'evolution.router.ts'), 'utf8');
+
+  assert.match(source, /updateGameStats:\s+procedure/);
+  assert.match(source, /Object\.prototype\.hasOwnProperty\.call\(evolutionService, 'updateGameStats'\)/);
+  assert.match(source, /Object\.getOwnPropertyDescriptor\(evolutionService, 'updateGameStats'\)/);
+  assert.match(source, /if \(typeof method !== 'function'\)/);
+  assert.match(source, /Evolution\.updateGameStats handler is unavailable for evolution\.updateGameStats/);
+  assert.match(source, /return method\.call\(evolutionService, input, ctx\)/);
+});
+
 test('evolution getScene uses own-property descriptor guard with deterministic handler error', async () => {
   const source = await readFile(resolve(root, 'evolution', 'evolution.router.ts'), 'utf8');
 

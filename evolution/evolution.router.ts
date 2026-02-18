@@ -42,7 +42,23 @@ export const createRouter = () =>
     updateGameStats: procedure
       .use(hasRole('admin', t))
       .use(customErrorFormatter(t))
-      .mutation(({ input, ctx }) => (ctx.app.service.Evolution.updateGameStats as any)(input, ctx)),
+      .mutation(({ input, ctx }) => {
+        const evolutionService = ctx.app?.service?.Evolution as any;
+        const descriptor =
+          evolutionService && Object.prototype.hasOwnProperty.call(evolutionService, 'updateGameStats')
+            ? Object.getOwnPropertyDescriptor(evolutionService, 'updateGameStats')
+            : undefined;
+        const method = descriptor && 'value' in descriptor ? descriptor.value : undefined;
+
+        if (typeof method !== 'function') {
+          throw new TRPCError({
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'Evolution.updateGameStats handler is unavailable for evolution.updateGameStats',
+          });
+        }
+
+        return method.call(evolutionService, input, ctx);
+      }),
 
     monitorChest: procedure
       .use(hasRole('admin', t))
