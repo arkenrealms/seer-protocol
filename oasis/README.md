@@ -17,3 +17,4 @@ This module has low input validation depth (notably broad `z.any()` fields) and 
 
 ## 2026-02-18 update
 - `getScene` now guards non-object `data` payloads before reading `applicationId`, preventing null/primitive dereference crashes.
+- `getPatrons` now checks for an own-property `Oasis.getPatrons` handler and raises deterministic `TRPCError(INTERNAL_SERVER_ERROR)` when the service wiring is unavailable.

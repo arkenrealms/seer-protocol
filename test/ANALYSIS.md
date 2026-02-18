@@ -26,6 +26,8 @@ Local, package-scoped test harness for `@arken/seer-protocol` so source changes 
 - `oasis.router.test.ts`
   - enforces object-shape guarding in `oasis.getScene` before reading `applicationId`.
   - prevents regressions where null/non-object payloads could crash scene queries.
+  - asserts deterministic guardrails for missing `ctx.app.service.Oasis.getPatrons` handler wiring.
+  - verifies context-preserving invocation through `method.call(oasisService, ...)`.
 
 ## Protocol/test relevance
 - Establishes the first package-local runnable test surface for seer-protocol.

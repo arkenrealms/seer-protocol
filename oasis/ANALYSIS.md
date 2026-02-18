@@ -25,7 +25,11 @@
 
 ## 2026-02-18 maintenance update
 - Hardened `getScene` application-id dispatch against null/non-object payloads by guarding `input.data` shape before property access.
-- Added regression test coverage (`test/oasis.router.test.ts`) to prevent reintroducing unsafe `input.data.applicationId` dereferences.
+- Added deterministic service-availability guard for `getPatrons`:
+  - requires own-property `ctx.app?.service?.Oasis.getPatrons` callable,
+  - throws explicit `TRPCError(INTERNAL_SERVER_ERROR)` when missing,
+  - preserves service `this` binding via `method.call(oasisService, input, ctx)`.
+- Added regression test coverage (`test/oasis.router.test.ts`) to prevent reintroducing unsafe `input.data.applicationId` dereferences and missing-handler ambiguity.
 
 ## Follow-ups
 - [ ] Replace broad `z.any()` payloads with explicit schemas for Oasis interactions.

@@ -1,6 +1,6 @@
 // arken/packages/seer/packages/protocol/src/modules/oasis/oasis.router.ts
 import { z as zod } from 'zod';
-import { initTRPC } from '@trpc/server';
+import { TRPCError, initTRPC } from '@trpc/server';
 import { customErrorFormatter, hasRole } from '../util/rpc';
 import { Query, getQueryInput, inferRouterOutputs, inferRouterInputs } from '../util/schema';
 import { RouterContext, Core, Profile } from '../types';
@@ -16,7 +16,22 @@ export const createRouter = () =>
       .use(hasRole('guest', t))
       .use(customErrorFormatter(t))
       .output(z.array(Profile.Schemas.Profile))
-      .query(({ input, ctx }) => (ctx.app.service.Oasis.getPatrons as any)(input, ctx)),
+      .query(({ input, ctx }) => {
+        const oasisService = ctx.app?.service?.Oasis as any;
+        const method =
+          oasisService && Object.prototype.hasOwnProperty.call(oasisService, 'getPatrons')
+            ? oasisService.getPatrons
+            : undefined;
+
+        if (typeof method !== 'function') {
+          throw new TRPCError({
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'Oasis.getPatrons handler is unavailable for oasis.getPatrons',
+          });
+        }
+
+        return method.call(oasisService, input, ctx);
+      }),
 
     interact: t.procedure
       .input(
