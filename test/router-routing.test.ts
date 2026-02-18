@@ -1,3 +1,4 @@
+// arken/packages/seer/packages/protocol/test/router-routing.test.ts
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
@@ -8,9 +9,15 @@ const root = resolve(process.cwd());
 const readRouter = async (name: 'isles' | 'infinite') =>
   readFile(resolve(root, name, `${name}.router.ts`), 'utf8');
 
+const activeSaveRoundBlock = /export const createRouter = \(\) =>[\s\S]*?saveRound:[\s\S]*?(?=\n\s*interact:)/;
+
 test('isles router uses method-matched Evolution handlers', async () => {
   const source = await readRouter('isles');
+  const saveRoundBlock = source.match(activeSaveRoundBlock)?.[0] ?? '';
 
+  assert.notEqual(saveRoundBlock.length, 0);
+  assert.match(saveRoundBlock, /\.mutation\(\(\{ input, ctx \}\) =>/);
+  assert.doesNotMatch(saveRoundBlock, /\.query\(\(\{ input, ctx \}\) =>/);
   assert.match(source, /Evolution as any\)\?\.saveRound/);
   assert.match(source, /Evolution as any\)\?\.interact/);
   assert.match(source, /Evolution as any\)\?\.getScene/);
@@ -21,7 +28,11 @@ test('isles router uses method-matched Evolution handlers', async () => {
 
 test('infinite router uses method-matched Evolution handlers', async () => {
   const source = await readRouter('infinite');
+  const saveRoundBlock = source.match(activeSaveRoundBlock)?.[0] ?? '';
 
+  assert.notEqual(saveRoundBlock.length, 0);
+  assert.match(saveRoundBlock, /\.mutation\(\(\{ input, ctx \}\) =>/);
+  assert.doesNotMatch(saveRoundBlock, /\.query\(\(\{ input, ctx \}\) =>/);
   assert.match(source, /Evolution as any\)\?\.saveRound/);
   assert.match(source, /Evolution as any\)\?\.interact/);
   assert.match(source, /Evolution as any\)\?\.getScene/);

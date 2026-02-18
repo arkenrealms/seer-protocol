@@ -1,3 +1,4 @@
+// arken/packages/seer/packages/protocol/isles/isles.router.ts
 import { z as zod } from 'zod';
 import { initTRPC } from '@trpc/server';
 import { customErrorFormatter, hasRole } from '../util/rpc';
@@ -24,7 +25,7 @@ export const createRouter = () =>
         })
       )
       // .output(Arken.Profile.Schemas.Profile)
-      .query(({ input, ctx }) => {
+      .mutation(({ input, ctx }) => {
         const method = (ctx.app.service.Evolution as any)?.saveRound;
         if (typeof method !== 'function') {
           throw new Error('Evolution.saveRound handler is unavailable for Isles.saveRound');

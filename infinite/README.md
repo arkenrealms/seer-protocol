@@ -3,7 +3,7 @@
 Infinite protocol module for Seer.
 
 ## Current surface
-- `saveRound` (query)
+- `saveRound` (mutation)
 - `interact` (mutation)
 - `getScene` (mutation)
 - `infinite.methodResolver.ts` (shared method-resolution helper used by router + tests)

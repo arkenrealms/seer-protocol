@@ -10,6 +10,7 @@ Isles-specific Seer protocol surface.
 
 ## Current behavior snapshot
 - Router exposes `saveRound`, `interact`, and `getScene`.
+- `saveRound` is now a mutation (write semantics) to align transport intent with round persistence behavior.
 - Router dispatch now uses method-matched Evolution handlers directly:
   - `saveRound` -> `Evolution.saveRound`
   - `interact` -> `Evolution.interact`

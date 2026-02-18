@@ -20,7 +20,7 @@
   - Mostly scaffolding and re-export structure.
 
 ## Protocol/test relevance
-- Router contract is still partially inconsistent (`saveRound` remains a `.query` despite write-like semantics).
+- Router contract write semantics improved: `saveRound` now uses `.mutation` (previous `.query` mismatch removed).
 - Misrouting risk is reduced: `interact`/`getScene` no longer default to `Evolution.saveRound`; method resolution now requires explicit callable ownership per method.
 - Evolution fallback calls now preserve service context (`method.call(ctx.app.service.Evolution, ...)`) so `this`-dependent handlers execute safely.
 - Input schemas rely heavily on `z.any()`, reducing transport-level validation reliability.

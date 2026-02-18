@@ -16,5 +16,6 @@ Package-local protocol tests for `@arken/seer-protocol`.
   - validates getter-throwing and non-function own-property handler fallback behavior.
 - `router-routing.test.ts`
   - verifies Isles and Infinite routers dispatch `interact`/`getScene` to method-matched Evolution handlers instead of always using `saveRound`.
+  - verifies `saveRound` remains mutation-based (not query) in both routers.
   - verifies missing method handlers surface deterministic formatted error payloads (status 0).
   - verifies Evolution handlers are invoked via `method.call(ctx.app.service.Evolution, ...)` so service `this` context is preserved.

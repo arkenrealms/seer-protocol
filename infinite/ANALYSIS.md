@@ -2,6 +2,7 @@
 
 ## Purpose
 - Defines the Seer tRPC protocol boundary for Infinite-domain interactions.
+- `saveRound` now uses mutation semantics to match write behavior.
 
 ## File-level findings (deepest-first)
 - `index.ts`: barrel export only.
