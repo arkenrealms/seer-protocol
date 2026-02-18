@@ -16,3 +16,4 @@ Evolution protocol module for Seer.
 - `info` now uses the same own-property descriptor guard path and deterministic unavailable-handler error for safer service wiring failures.
 - `monitorParties` now also resolves through an own-property descriptor guard and deterministic unavailable-handler error to prevent null/miswired service crashes.
 - `updateGameStats` now resolves via own-property descriptor lookup and emits a deterministic unavailable-handler error instead of failing with ambiguous runtime call errors.
+- `monitorChest` now also resolves via own-property descriptor lookup with deterministic unavailable-handler errors, reducing crashy behavior when admin chest-monitor wiring is missing/non-callable.

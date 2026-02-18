@@ -63,7 +63,23 @@ export const createRouter = () =>
     monitorChest: procedure
       .use(hasRole('admin', t))
       .use(customErrorFormatter(t))
-      .mutation(({ input, ctx }) => (ctx.app.service.Evolution.monitorChest as any)(input, ctx)),
+      .mutation(({ input, ctx }) => {
+        const evolutionService = ctx.app?.service?.Evolution as any;
+        const descriptor =
+          evolutionService && Object.prototype.hasOwnProperty.call(evolutionService, 'monitorChest')
+            ? Object.getOwnPropertyDescriptor(evolutionService, 'monitorChest')
+            : undefined;
+        const method = descriptor && 'value' in descriptor ? descriptor.value : undefined;
+
+        if (typeof method !== 'function') {
+          throw new TRPCError({
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'Evolution.monitorChest handler is unavailable for evolution.monitorChest',
+          });
+        }
+
+        return method.call(evolutionService, input, ctx);
+      }),
 
     monitorParties: procedure
       .use(hasRole('admin', t))
