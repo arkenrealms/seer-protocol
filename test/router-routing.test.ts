@@ -18,9 +18,11 @@ test('isles router uses method-matched Evolution handlers', async () => {
   assert.notEqual(saveRoundBlock.length, 0);
   assert.match(saveRoundBlock, /\.mutation\(\(\{ input, ctx \}\) =>/);
   assert.doesNotMatch(saveRoundBlock, /\.query\(\(\{ input, ctx \}\) =>/);
+  assert.match(source, /ctx\.app\?\.service\?\.Evolution/);
   assert.match(source, /hasOwnProperty\.call\(evolutionService, 'saveRound'\)/);
   assert.match(source, /hasOwnProperty\.call\(evolutionService, 'interact'\)/);
   assert.match(source, /hasOwnProperty\.call\(evolutionService, 'getScene'\)/);
+  assert.match(source, /new TRPCError\(\{\s*code: 'INTERNAL_SERVER_ERROR'/);
   assert.match(source, /method\.call\(evolutionService, input, ctx\)/);
   assert.doesNotMatch(source, /interact[\s\S]*Evolution\.saveRound as any/);
   assert.doesNotMatch(source, /getScene[\s\S]*Evolution\.saveRound as any/);
@@ -33,9 +35,11 @@ test('infinite router uses method-matched Evolution handlers', async () => {
   assert.notEqual(saveRoundBlock.length, 0);
   assert.match(saveRoundBlock, /\.mutation\(\(\{ input, ctx \}\) =>/);
   assert.doesNotMatch(saveRoundBlock, /\.query\(\(\{ input, ctx \}\) =>/);
+  assert.match(source, /ctx\.app\?\.service\?\.Evolution/);
   assert.match(source, /hasOwnProperty\.call\(evolutionService, 'saveRound'\)/);
   assert.match(source, /hasOwnProperty\.call\(evolutionService, 'interact'\)/);
   assert.match(source, /hasOwnProperty\.call\(evolutionService, 'getScene'\)/);
+  assert.match(source, /new TRPCError\(\{\s*code: 'INTERNAL_SERVER_ERROR'/);
   assert.match(source, /method\.call\(evolutionService, input, ctx\)/);
   assert.doesNotMatch(source, /interact[\s\S]*Evolution\.saveRound as any/);
   assert.doesNotMatch(source, /getScene[\s\S]*Evolution\.saveRound as any/);

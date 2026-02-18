@@ -46,4 +46,6 @@
 
 ## 2026-02-18 maintenance update
 - Replaced direct optional-chain handler access with own-property checks (`Object.prototype.hasOwnProperty.call`) for `saveRound`, `interact`, and `getScene` before invocation.
+- Added explicit Evolution-service existence guard before `hasOwnProperty.call(...)` so partially wired contexts do not crash with null/undefined receiver errors.
+- Missing handlers now raise deterministic `TRPCError(INTERNAL_SERVER_ERROR)` messages, preserving actionable failure context.
 - This reduces prototype-pollution/misrouting exposure while preserving explicit `this` binding via `method.call(evolutionService, input, ctx)`.

@@ -1,6 +1,6 @@
 // arken/packages/seer/packages/protocol/isles/isles.router.ts
 import { z as zod } from 'zod';
-import { initTRPC } from '@trpc/server';
+import { TRPCError, initTRPC } from '@trpc/server';
 import { customErrorFormatter, hasRole } from '../util/rpc';
 import { Query, getQueryInput, inferRouterOutputs, inferRouterInputs } from '../util/schema';
 import { RouterContext } from '../types';
@@ -26,12 +26,16 @@ export const createRouter = () =>
       )
       // .output(Arken.Profile.Schemas.Profile)
       .mutation(({ input, ctx }) => {
-        const evolutionService = ctx.app.service.Evolution as any;
-        const method = Object.prototype.hasOwnProperty.call(evolutionService, 'saveRound')
-          ? evolutionService.saveRound
-          : undefined;
+        const evolutionService = ctx.app?.service?.Evolution as any;
+        const method =
+          evolutionService && Object.prototype.hasOwnProperty.call(evolutionService, 'saveRound')
+            ? evolutionService.saveRound
+            : undefined;
         if (typeof method !== 'function') {
-          throw new Error('Evolution.saveRound handler is unavailable for Isles.saveRound');
+          throw new TRPCError({
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'Evolution.saveRound handler is unavailable for Isles.saveRound',
+          });
         }
         return method.call(evolutionService, input, ctx);
       }),
@@ -49,12 +53,16 @@ export const createRouter = () =>
         })
       )
       .mutation(({ input, ctx }) => {
-        const evolutionService = ctx.app.service.Evolution as any;
-        const method = Object.prototype.hasOwnProperty.call(evolutionService, 'interact')
-          ? evolutionService.interact
-          : undefined;
+        const evolutionService = ctx.app?.service?.Evolution as any;
+        const method =
+          evolutionService && Object.prototype.hasOwnProperty.call(evolutionService, 'interact')
+            ? evolutionService.interact
+            : undefined;
         if (typeof method !== 'function') {
-          throw new Error('Evolution.interact handler is unavailable for Isles.interact');
+          throw new TRPCError({
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'Evolution.interact handler is unavailable for Isles.interact',
+          });
         }
         return method.call(evolutionService, input, ctx);
       }),
@@ -69,12 +77,16 @@ export const createRouter = () =>
         })
       )
       .mutation(({ input, ctx }) => {
-        const evolutionService = ctx.app.service.Evolution as any;
-        const method = Object.prototype.hasOwnProperty.call(evolutionService, 'getScene')
-          ? evolutionService.getScene
-          : undefined;
+        const evolutionService = ctx.app?.service?.Evolution as any;
+        const method =
+          evolutionService && Object.prototype.hasOwnProperty.call(evolutionService, 'getScene')
+            ? evolutionService.getScene
+            : undefined;
         if (typeof method !== 'function') {
-          throw new Error('Evolution.getScene handler is unavailable for Isles.getScene');
+          throw new TRPCError({
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'Evolution.getScene handler is unavailable for Isles.getScene',
+          });
         }
         return method.call(evolutionService, input, ctx);
       }),

@@ -22,8 +22,10 @@ Package-local protocol tests for `@arken/seer-protocol`.
 - `evolution.router.test.ts`
   - verifies `updateSettings` remains mutation-based so profile preference writes are not exposed as query semantics.
 - `router-auth.test.ts`
-  - executes root router `auth` through a real caller to ensure non-object `data` payloads do not throw.
-  - verifies known `applicationId` behavior remains stable after null-guard hardening.
+  - guards root `auth` source for object-shape checks around `data.applicationId` access.
+- `router-routing.test.ts` (expanded)
+  - now also asserts Isles/Infinite routers guard missing Evolution service access (`ctx.app?.service?.Evolution`) before own-property checks.
+  - verifies missing-handler branches raise explicit `TRPCError` with `INTERNAL_SERVER_ERROR` for deterministic error envelopes.
 
 ## 2026-02-18 note
 - Router-shape assertions now require own-property handler checks for Evolution method dispatch in Isles/Infinite (`hasOwnProperty.call(evolutionService, ...)`).

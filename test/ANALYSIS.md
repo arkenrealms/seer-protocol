@@ -34,4 +34,5 @@ Local, package-scoped test harness for `@arken/seer-protocol` so source changes 
 
 ## 2026-02-18 maintenance update
 - `router-routing.test.ts` now asserts own-property handler guards are present in Isles/Infinite routers (`hasOwnProperty.call(evolutionService, '<method>')`).
-- Coverage still remains source-shape based; follow-up remains runtime caller-based contract tests.
+- Expanded `router-routing.test.ts` source assertions for missing-service guards (`ctx.app?.service?.Evolution`) and explicit `TRPCError`/`INTERNAL_SERVER_ERROR` handler-unavailable branches.
+- Coverage still skews toward source-shape routing guards because direct runtime imports for router modules are currently constrained by extensionless ESM resolution in this package test harness.
