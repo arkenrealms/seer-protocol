@@ -17,3 +17,4 @@ Package-local protocol tests for `@arken/seer-protocol`.
 - `methodResolver.test.ts`
   - validates shared resolver policy toggles (`allowSaveRoundFallback`) for explicit saveRound compatibility behavior.
   - preserves method-matched fallback behavior for non-saveRound methods when saveRound fallback is disabled.
+  - validates trimmed/non-empty method-name enforcement to keep resolver inputs deterministic.

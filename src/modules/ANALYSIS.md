@@ -11,6 +11,7 @@
 - `evolution` is functionally dense but contract-uneven: mixed strict/permissive schemas, monolithic service logic, and potentially inconsistent auth/transaction safeguards.
 - Isles/Infinite resolver safety logic is now centralized in `methodResolver.ts` to reduce drift between modules and keep saveRound compatibility fallback behavior explicit and configurable.
 - Shared resolver now correctly enforces `allowSaveRoundFallback` (disabling saveRound fallback no longer silently falls through via generic method-matched fallback logic).
+- Shared resolver now trims method names and rejects empty-method requests before service lookup to prevent whitespace/empty-name resolution drift.
 
 ## Cross-module implications
 - Module contract quality appears uneven; stricter schema discipline should be aligned across all module folders.

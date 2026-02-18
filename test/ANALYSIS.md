@@ -18,6 +18,7 @@ Local, package-scoped test harness for `@arken/seer-protocol` so source changes 
 - `methodResolver.test.ts`
   - verifies shared resolver toggle behavior for saveRound compatibility fallback.
   - ensures disabling saveRound fallback does not disable method-matched fallback for non-saveRound procedures.
+  - verifies empty/whitespace method names are rejected and trimmed method names still resolve correctly.
 
 ## Protocol/test relevance
 - Establishes the first package-local runnable test surface for seer-protocol.

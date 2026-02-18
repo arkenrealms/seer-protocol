@@ -32,14 +32,21 @@ export const resolveModuleMethod = <ServiceName extends string, MethodName exten
 }): MethodHandler => {
   const { moduleName, method, primaryService, fallbackService, allowSaveRoundFallback } = params;
 
-  const primaryHandler = getOwnMethodHandler(primaryService, method);
+  const normalizedMethod = typeof method === 'string' ? method.trim() : '';
+  if (!normalizedMethod) {
+    throw new Error(`${moduleName} service method unavailable: <empty>`);
+  }
+
+  const primaryHandler = getOwnMethodHandler(primaryService, normalizedMethod as MethodName);
   const methodMatchedFallbackHandler =
-    method === 'saveRound' && !allowSaveRoundFallback ? undefined : getOwnMethodHandler(fallbackService, method);
+    normalizedMethod === 'saveRound' && !allowSaveRoundFallback
+      ? undefined
+      : getOwnMethodHandler(fallbackService, normalizedMethod as MethodName);
 
   const handler = primaryHandler ?? methodMatchedFallbackHandler;
 
   if (!handler) {
-    throw new Error(`${moduleName} service method unavailable: ${method}`);
+    throw new Error(`${moduleName} service method unavailable: ${normalizedMethod}`);
   }
 
   return handler;
