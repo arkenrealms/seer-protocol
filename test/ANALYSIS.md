@@ -20,6 +20,9 @@ Local, package-scoped test harness for `@arken/seer-protocol` so source changes 
   - verifies `saveRound` is mutation-based in both routers.
   - validates formatted failure behavior when required Evolution method handlers are missing.
   - enforces Evolution handler invocation through `method.call(ctx.app.service.Evolution, ...)` to preserve service `this` context.
+- `router-auth.test.ts`
+  - executes the root `auth` procedure via `createCallerFactory` to validate runtime behavior (not just source-shape checks).
+  - covers null/undefined `data` payload handling to prevent `input.data.applicationId` dereference crashes.
 
 ## Protocol/test relevance
 - Establishes the first package-local runnable test surface for seer-protocol.

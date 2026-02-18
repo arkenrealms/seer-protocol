@@ -64,3 +64,10 @@
 - Expanded local tests in `test/infinite.router.test.ts` to cover inherited prototype handler rejection.
 - Test gate: `npm test` passed (4/4).
 - Jest migration note: attempted bootstrap in this direct package, but local `npm install` is blocked by unresolved `workspace:*` dependency protocol without workspace package-manager bootstrap in this runtime; keep TS tests in place and retry Jest migration when workspace install path is available.
+
+## 2026-02-18 07:xx PST — root auth null-guard hardening
+- Hardened `router.ts` root `auth` procedure against non-object `input.data` values.
+- Added runtime test `test/router-auth.test.ts` using `createCallerFactory` to validate actual call behavior:
+  - non-object payloads no longer trigger `applicationId` dereference errors,
+  - known applicationId path remains unchanged.
+- This is a reliability fix for permissive `z.any()` input acceptance in root auth.

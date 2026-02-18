@@ -93,11 +93,14 @@ export const createRouter = () => {
           roundId: 1,
         };
 
-        if (input.data.applicationId === '668e4e805f9a03927caf883b') {
+        const applicationId =
+          input.data && typeof input.data === 'object' ? (input.data as { applicationId?: unknown }).applicationId : undefined;
+
+        if (applicationId === '668e4e805f9a03927caf883b') {
           data = {
             ...data,
           };
-        } else if (input.data.applicationId === '669095d20b1da555f6346cdb') {
+        } else if (applicationId === '669095d20b1da555f6346cdb') {
           data = {
             ...data,
             roundId: 1,

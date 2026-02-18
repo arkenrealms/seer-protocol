@@ -113,5 +113,5 @@ See `ANALYSIS.md` for current reliability and test-focus notes.
   },## Local quality-gate status
 - Package now includes a local `npm test` script:
   - `node --test --experimental-strip-types test/*.test.ts`
-- Current package-local coverage starts with Infinite router method-resolution invariants.
+- Current package-local coverage includes router dispatch checks plus root-auth runtime guard coverage (`test/router-auth.test.ts`).
 - Follow-up: expand this harness to Isles/Oasis/Evolution boundary checks and malformed payload/auth regressions.
