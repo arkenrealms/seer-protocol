@@ -21,7 +21,7 @@ Package-local protocol tests for `@arken/seer-protocol`.
   - verifies Evolution handlers are invoked via `method.call(ctx.app.service.Evolution, ...)` so service `this` context is preserved.
 - `evolution.router.test.ts`
   - verifies `updateSettings` remains mutation-based so profile preference writes are not exposed as query semantics.
-  - verifies `info`, `monitorChest`, `monitorParties`, `updateGameStats`, and `getScene` use own-property descriptor handler resolution, deterministic missing-handler errors, and context-preserving invocation.
+  - verifies `info`, `updateConfig`, `monitorChest`, `monitorParties`, `updateGameStats`, and `getScene` use own-property descriptor handler resolution, deterministic missing-handler errors, and context-preserving invocation.
 - `router-auth.test.ts`
   - guards root `auth` source for object-shape checks around `data.applicationId` access.
 - `oasis.router.test.ts`
