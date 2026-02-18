@@ -20,6 +20,8 @@ test('oasis getPatrons requires own Oasis service handler with deterministic err
 
   assert.match(source, /ctx\.app\?\.service\?\.Oasis/);
   assert.match(source, /hasOwnProperty\.call\(oasisService, 'getPatrons'\)/);
+  assert.match(source, /Object\.getOwnPropertyDescriptor\(oasisService, 'getPatrons'\)/);
+  assert.match(source, /const method = descriptor && 'value' in descriptor \? descriptor\.value : undefined/);
   assert.match(source, /Oasis\.getPatrons handler is unavailable for oasis\.getPatrons/);
   assert.match(source, /return method\.call\(oasisService, input, ctx\)/);
 });

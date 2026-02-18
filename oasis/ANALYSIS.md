@@ -30,6 +30,7 @@
   - throws explicit `TRPCError(INTERNAL_SERVER_ERROR)` when missing,
   - preserves service `this` binding via `method.call(oasisService, input, ctx)`.
 - Added regression test coverage (`test/oasis.router.test.ts`) to prevent reintroducing unsafe `input.data.applicationId` dereferences and missing-handler ambiguity.
+- Hardened `getPatrons` against getter-based trap properties by resolving the handler through `Object.getOwnPropertyDescriptor(...).value` instead of direct property access.
 
 ## Follow-ups
 - [ ] Replace broad `z.any()` payloads with explicit schemas for Oasis interactions.

@@ -18,10 +18,11 @@ export const createRouter = () =>
       .output(z.array(Profile.Schemas.Profile))
       .query(({ input, ctx }) => {
         const oasisService = ctx.app?.service?.Oasis as any;
-        const method =
+        const descriptor =
           oasisService && Object.prototype.hasOwnProperty.call(oasisService, 'getPatrons')
-            ? oasisService.getPatrons
+            ? Object.getOwnPropertyDescriptor(oasisService, 'getPatrons')
             : undefined;
+        const method = descriptor && 'value' in descriptor ? descriptor.value : undefined;
 
         if (typeof method !== 'function') {
           throw new TRPCError({

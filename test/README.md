@@ -27,6 +27,7 @@ Package-local protocol tests for `@arken/seer-protocol`.
   - guards `oasis.getScene` against null/non-object `data` payloads before reading `applicationId`.
   - prevents regression to unsafe direct property dereference (`input.data.applicationId`).
   - verifies `oasis.getPatrons` enforces own-property Oasis service handler checks with deterministic missing-handler error messages.
+  - verifies getter-safe Oasis handler extraction via `Object.getOwnPropertyDescriptor(...).value`.
   - verifies Oasis service methods are invoked with preserved `this` context (`method.call(...)`).
 - `router-routing.test.ts` (expanded)
   - now also asserts Isles/Infinite routers guard missing Evolution service access (`ctx.app?.service?.Evolution`) before own-property checks.
