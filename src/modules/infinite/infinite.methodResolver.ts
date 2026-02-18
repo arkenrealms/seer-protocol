@@ -12,7 +12,11 @@ const hasOwnFunction = (service: ServiceMap, method: InfiniteMethodName): Infini
 
   try {
     const candidate = service[method];
-    return typeof candidate === 'function' ? candidate : undefined;
+    if (typeof candidate !== 'function') {
+      return undefined;
+    }
+
+    return (...args: unknown[]) => Reflect.apply(candidate, service, args);
   } catch {
     return undefined;
   }

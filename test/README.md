@@ -8,3 +8,4 @@ Package-local protocol tests for `@arken/seer-protocol`.
   - guards against accidental routing of non-`saveRound` methods to `Evolution.saveRound`.
   - validates inherited-prototype handler safety (own-property method resolution only).
   - validates resilience when candidate handlers are getter-backed/non-function values.
+  - validates handler invocation preserves owning service context (`this`) to avoid method-binding drift.

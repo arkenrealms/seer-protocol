@@ -12,7 +12,7 @@ test('resolveInfiniteMethod prefers Infinite service handlers for matching metho
   };
 
   const handler = resolveInfiniteMethod(service, 'saveRound');
-  assert.equal(handler, infiniteSaveRound);
+  assert.equal(handler(), 'infinite-save-round');
 });
 
 test('resolveInfiniteMethod uses method-matched Evolution fallback for interact', () => {
@@ -23,7 +23,7 @@ test('resolveInfiniteMethod uses method-matched Evolution fallback for interact'
   };
 
   const handler = resolveInfiniteMethod(service, 'interact');
-  assert.equal(handler, evolutionInteract);
+  assert.equal(handler(), 'evolution-interact');
 });
 
 test('resolveInfiniteMethod does not misroute getScene to Evolution.saveRound', () => {
@@ -64,7 +64,7 @@ test('resolveInfiniteMethod skips getter-throwing handlers and falls back safely
   };
 
   const handler = resolveInfiniteMethod(service, 'interact');
-  assert.equal(handler, evolutionInteract);
+  assert.equal(handler(), 'evolution-interact');
 });
 
 test('resolveInfiniteMethod treats non-function own properties as unavailable handlers', () => {
@@ -74,4 +74,19 @@ test('resolveInfiniteMethod treats non-function own properties as unavailable ha
   };
 
   assert.throws(() => resolveInfiniteMethod(service, 'getScene'), /Infinite service method unavailable: getScene/);
+});
+
+test('resolveInfiniteMethod preserves service context for method handlers', () => {
+  const service = {
+    Infinite: {
+      label: 'infinite',
+      getScene(this: { label: string }, suffix: string) {
+        return `${this.label}-${suffix}`;
+      },
+    },
+    Evolution: {},
+  };
+
+  const handler = resolveInfiniteMethod(service, 'getScene');
+  assert.equal(handler('scene'), 'infinite-scene');
 });
