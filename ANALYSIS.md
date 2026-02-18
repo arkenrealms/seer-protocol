@@ -44,6 +44,16 @@
 - Recommendation: add these as no-op-safe scripts in a follow-up commit, then wire CI/PR checks to package-local commands instead of implicit workspace behavior.
 
 ## Next chunk
-- Continue rotation to `forge` after this seer package-root pass.
+- Continue rotation to `sigil-protocol` after this seer-protocol package-root pass (per direct-repo rotation order).
 - Apply same guard-script mapping approach to `packages/seer/packages/node` and compare strictness gaps.
 - Add/expand test coverage for malformed payload, auth boundary mismatches, and transaction invariants (starting with Evolution payment/party flows).
+
+## 2026-02-17 17:32 PST — maintenance gate alignment (docs-only)
+- Re-read package root source (`src/router.ts`, `src/types.ts`, `src/index.ts`) after loading all in-scope `.md` docs.
+- Confirmed this direct repo still lacks package-local runnable test harness/scripts (`package.json` has empty `scripts`).
+- Under current source-change gate, deferred runtime code edits in this chunk.
+- Updated maintainer docs to make test-gate blocker explicit and keep rotation continuity.
+- Required bootstrap before next source change in this repo:
+  1) add local test script(s),
+  2) ensure non-interactive execution path in cron context,
+  3) then apply small protocol hardening changes with pass/fail evidence.
