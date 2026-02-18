@@ -35,3 +35,4 @@
 - 2026-02-17 (rotation seer): Fixed `leaveParty` guard inversion in `evolution.service.ts` (`if (!profile.partyId) throw 'Not in a party'`) so users currently in a party can leave successfully.
 - 2026-02-18 (rotation seer-protocol): Corrected `updateSettings` transport semantics from `.query` to `.mutation` in `evolution.router.ts` and added regression coverage in `test/evolution.router.test.ts`.
 - 2026-02-18 (rotation seer-protocol): Hardened `getScene` handler dispatch to use own-property descriptor resolution and deterministic internal-error messaging when `Evolution.getScene` is missing/non-callable.
+- 2026-02-18 (rotation seer-protocol): Hardened `info` handler dispatch to use own-property descriptor resolution + deterministic `TRPCError(INTERNAL_SERVER_ERROR)` when `Evolution.info` is missing/non-callable, preventing null/miswired service crashes.

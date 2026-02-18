@@ -15,7 +15,23 @@ export const createRouter = () =>
     info: procedure
       .use(customErrorFormatter(t))
       .input(z.any())
-      .query(({ input, ctx }) => (ctx.app.service.Evolution.info as any)(input, ctx)),
+      .query(({ input, ctx }) => {
+        const evolutionService = ctx.app?.service?.Evolution as any;
+        const descriptor =
+          evolutionService && Object.prototype.hasOwnProperty.call(evolutionService, 'info')
+            ? Object.getOwnPropertyDescriptor(evolutionService, 'info')
+            : undefined;
+        const method = descriptor && 'value' in descriptor ? descriptor.value : undefined;
+
+        if (typeof method !== 'function') {
+          throw new TRPCError({
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'Evolution.info handler is unavailable for evolution.info',
+          });
+        }
+
+        return method.call(evolutionService, input, ctx);
+      }),
 
     updateConfig: procedure
       .use(hasRole('admin', t))

@@ -13,3 +13,4 @@ Evolution protocol module for Seer.
 - Service layer is monolithic and contains substantial legacy/commented code blocks.
 - `updateSettings` is mutation-based (not query) so user preference writes stay aligned with write semantics.
 - `getScene` now resolves `Evolution.getScene` via own-property descriptor lookup and raises a deterministic internal error when the handler is missing/non-callable.
+- `info` now uses the same own-property descriptor guard path and deterministic unavailable-handler error for safer service wiring failures.
