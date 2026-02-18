@@ -9,3 +9,7 @@ Package-local protocol tests for `@arken/seer-protocol`.
   - validates inherited-prototype handler safety (own-property method resolution only).
   - validates resilience when candidate handlers are getter-backed/non-function values.
   - validates handler invocation preserves owning service context (`this`) to avoid method-binding drift.
+- `isles.router.test.ts`
+  - validates Isles resolver precedence (`Isles` before `Evolution`).
+  - guards against accidental `getScene` -> `Evolution.saveRound` misrouting.
+  - validates inherited-prototype handler rejection and context-preserving invocation.

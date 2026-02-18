@@ -10,6 +10,10 @@ Local, package-scoped test harness for `@arken/seer-protocol` so source changes 
   - adds inherited-prototype safety coverage so callback resolution only accepts own handler properties.
   - covers getter-throwing and non-function own-property handler surfaces to ensure fallback/availability behavior stays deterministic.
   - verifies resolved handlers preserve method `this` binding to the owning service object.
+- `isles.router.test.ts`
+  - verifies `resolveIslesMethod` Isles-first precedence + method-matched Evolution fallback.
+  - protects against `getScene`/`interact` misrouting into `Evolution.saveRound`.
+  - verifies own-property-only callable resolution and context-preserving invocation.
 
 ## Protocol/test relevance
 - Establishes the first package-local runnable test surface for seer-protocol.

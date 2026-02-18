@@ -5,11 +5,15 @@ import { customErrorFormatter, hasRole } from '@arken/node/util/rpc';
 import * as Arken from '@arken/node';
 import { Query, getQueryInput, inferRouterOutputs, inferRouterInputs } from '@arken/node/schema';
 import { RouterContext } from '../../types';
+import { resolveIslesMethod as resolveIslesMethodFromService } from './isles.methodResolver';
 
 export const z = zod;
 export const t = initTRPC.context<RouterContext>().create();
 export const router = t.router;
 export const procedure = t.procedure;
+
+export const resolveIslesMethod = (ctx: RouterContext, method: 'saveRound' | 'interact' | 'getScene') =>
+  resolveIslesMethodFromService(ctx.app.service as any, method);
 
 export const createRouter = () =>
   router({
@@ -26,7 +30,7 @@ export const createRouter = () =>
         })
       )
       // .output(Arken.Profile.Schemas.Profile)
-      .query(({ input, ctx }) => (ctx.app.service.Evolution.saveRound as any)(input, ctx)),
+      .query(({ input, ctx }) => resolveIslesMethod(ctx, 'saveRound')(input, ctx)),
 
     interact: t.procedure
       .use(hasRole('guest', t))
@@ -40,7 +44,7 @@ export const createRouter = () =>
           lastClients: z.any(),
         })
       )
-      .mutation(({ input, ctx }) => (ctx.app.service.Evolution.saveRound as any)(input, ctx)),
+      .mutation(({ input, ctx }) => resolveIslesMethod(ctx, 'interact')(input, ctx)),
 
     getScene: t.procedure
       .use(hasRole('guest', t))
@@ -51,7 +55,7 @@ export const createRouter = () =>
           signature: z.object({ hash: z.string(), address: z.string() }),
         })
       )
-      .mutation(({ input, ctx }) => (ctx.app.service.Evolution.saveRound as any)(input, ctx)),
+      .mutation(({ input, ctx }) => resolveIslesMethod(ctx, 'getScene')(input, ctx)),
   });
 
 export type Router = ReturnType<typeof createRouter>;
