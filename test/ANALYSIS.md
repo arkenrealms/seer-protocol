@@ -26,5 +26,5 @@ Local, package-scoped test harness for `@arken/seer-protocol` so source changes 
 - Enables source-change test gate compliance for small router hardening edits.
 
 ## Risks / gaps / follow-ups
-- Coverage currently targets only Infinite router resolution logic.
+- Coverage remains source-shape oriented and does not yet execute live tRPC handlers with fixture contexts.
 - Follow-up: add module tests for Isles/Oasis/Evolution auth + schema boundary behavior once minimal context fixtures are codified.

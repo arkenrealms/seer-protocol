@@ -33,3 +33,4 @@
 ## Maintenance notes
 - 2026-02-17: Normalized top-of-file path headers in module source files to `arken/...` for `evolution.models.ts`, `evolution.schema.ts`, `evolution.types.ts`, `evolution.service.ts`, and `evolution.router.ts`.
 - 2026-02-17 (rotation seer): Fixed `leaveParty` guard inversion in `evolution.service.ts` (`if (!profile.partyId) throw 'Not in a party'`) so users currently in a party can leave successfully.
+- 2026-02-18 (rotation seer-protocol): Corrected `updateSettings` transport semantics from `.query` to `.mutation` in `evolution.router.ts` and added regression coverage in `test/evolution.router.test.ts`.

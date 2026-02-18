@@ -19,3 +19,5 @@ Package-local protocol tests for `@arken/seer-protocol`.
   - verifies `saveRound` remains mutation-based (not query) in both routers.
   - verifies missing method handlers surface deterministic formatted error payloads (status 0).
   - verifies Evolution handlers are invoked via `method.call(ctx.app.service.Evolution, ...)` so service `this` context is preserved.
+- `evolution.router.test.ts`
+  - verifies `updateSettings` remains mutation-based so profile preference writes are not exposed as query semantics.

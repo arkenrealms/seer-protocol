@@ -75,7 +75,7 @@ export const createRouter = () =>
           opacity: z.number().min(0).max(1).optional(),
         })
       )
-      .query(({ input, ctx }) => (ctx.app.service.Evolution.updateSettings as any)(input, ctx)),
+      .mutation(({ input, ctx }) => (ctx.app.service.Evolution.updateSettings as any)(input, ctx)),
 
     getPayments: procedure
       .use(hasRole('user', t))

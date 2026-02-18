@@ -11,3 +11,4 @@ Evolution protocol module for Seer.
 ## Notes
 - This module currently has mixed strict and permissive contracts (`z.any` still present on several procedures).
 - Service layer is monolithic and contains substantial legacy/commented code blocks.
+- `updateSettings` is mutation-based (not query) so user preference writes stay aligned with write semantics.
