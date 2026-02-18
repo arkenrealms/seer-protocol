@@ -6,7 +6,8 @@
 ## File-level findings (deepest-first)
 - `index.ts`: barrel export only.
 - `infinite.router.ts`:
-  - Active procedures (`saveRound`, `interact`, `getScene`) now resolve Infinite-owned handlers first via shared resolver, with guarded fallback to `ctx.app.service.Evolution.saveRound` for compatibility.
+  - Active procedures (`saveRound`, `interact`, `getScene`) resolve Infinite-owned handlers first via shared resolver.
+  - Fallback now matches by method name on Evolution service (`Evolution[method]`), with `saveRound` compatibility fallback retained only for `saveRound` calls.
   - Uses permissive schemas (`round: z.any()`, `lastClients: z.any()`, `data: z.any()`), reducing contract determinism.
   - Contains very large commented legacy block (thousands of lines), increasing maintenance/search noise.
 - `infinite.service.ts`:
@@ -34,3 +35,4 @@
 - [ ] Replace `z.any()` with strict schemas for `round`, `lastClients`, and `getScene.data`.
 - [ ] Trim/migrate commented legacy block into archival docs or separate history note.
 - [ ] Add focused tests for malformed payloads, auth guard behavior, and output-shape guarantees.
+- [x] Add package-local regression tests for Infinite method-resolution fallback invariants.

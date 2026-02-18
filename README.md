@@ -10,6 +10,7 @@ Seer protocol package for Arken Realms.
 See `ANALYSIS.md` for current reliability and test-focus notes.
 
 ## Local quality-gate status
-- This package currently has no local `scripts` guardrails (`test`, `lint`, `typecheck`).
-- Under the active maintenance policy, source edits in this repo should be paired with runnable local tests.
-- Short-term bootstrap target: add package-local `npm test` coverage for router/service boundary invariants before additional runtime changes.
+- Package now includes a local `npm test` script:
+  - `node --test --experimental-strip-types test/*.test.ts`
+- Current package-local coverage starts with Infinite router method-resolution invariants.
+- Follow-up: expand this harness to Isles/Oasis/Evolution boundary checks and malformed payload/auth regressions.

@@ -2,7 +2,9 @@
   "name": "@arken/seer-protocol",
   "version": "0.1.0",
   "main": "src/index.ts",
-  "scripts": {},
+  "scripts": {
+    "test": "node --test --experimental-strip-types test/*.test.ts"
+  },
   "dependencies": {
     "@arken/node": "workspace:*",
     "@trpc/client": "11.0.0-rc.660",

@@ -4,23 +4,15 @@ import { initTRPC } from '@trpc/server';
 import { customErrorFormatter, hasRole } from '@arken/node/util/rpc';
 import { inferRouterOutputs, inferRouterInputs } from '@arken/node/schema';
 import { RouterContext } from '../../types';
+import { resolveInfiniteMethod as resolveInfiniteMethodFromService } from './infinite.methodResolver';
 
 export const z = zod;
 export const t = initTRPC.context<RouterContext>().create();
 export const router = t.router;
 export const procedure = t.procedure;
 
-const resolveInfiniteMethod = (ctx: RouterContext, method: 'saveRound' | 'interact' | 'getScene') => {
-  const infiniteService = ctx.app.service.Infinite as any;
-  const evolutionService = ctx.app.service.Evolution as any;
-  const handler = infiniteService?.[method] ?? evolutionService?.saveRound;
-
-  if (typeof handler !== 'function') {
-    throw new Error(`Infinite service method unavailable: ${method}`);
-  }
-
-  return handler;
-};
+export const resolveInfiniteMethod = (ctx: RouterContext, method: 'saveRound' | 'interact' | 'getScene') =>
+  resolveInfiniteMethodFromService(ctx.app.service as any, method);
 
 export const createRouter = () =>
   router({
