@@ -16,3 +16,6 @@ Infinite protocol module for Seer.
 - Missing handlers now fail with explicit unavailable-handler errors instead of cross-method routing.
 - Input contracts are still permissive (`z.any()` fields), and service implementation remains mostly placeholder/logging behavior.
 - `infinite.router.ts` contains a large commented legacy block that should be split or removed after migration validation.
+
+## 2026-02-18 note
+- Evolution handler selection now requires own-property checks before invocation to avoid inherited/prototype method dispatch.

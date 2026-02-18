@@ -36,3 +36,7 @@
 - [ ] Replace broad `z.any()` payload fields with explicit request/response schemas.
 - [ ] Add protocol tests for malformed payloads, auth role enforcement, and deterministic response shape.
 - [ ] Split or remove the commented legacy block into archival docs to improve maintainability.
+
+## 2026-02-18 maintenance update
+- Replaced direct optional-chain handler access with own-property checks (`Object.prototype.hasOwnProperty.call`) for `saveRound`, `interact`, and `getScene` before invocation.
+- This prevents inherited/prototype methods from being treated as valid Evolution handlers and keeps context-safe invocation via `method.call(evolutionService, input, ctx)`.

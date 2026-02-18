@@ -28,3 +28,7 @@ Local, package-scoped test harness for `@arken/seer-protocol` so source changes 
 ## Risks / gaps / follow-ups
 - Coverage remains source-shape oriented and does not yet execute live tRPC handlers with fixture contexts.
 - Follow-up: add module tests for Isles/Oasis/Evolution auth + schema boundary behavior once minimal context fixtures are codified.
+
+## 2026-02-18 maintenance update
+- `router-routing.test.ts` now asserts own-property handler guards are present in Isles/Infinite routers (`hasOwnProperty.call(evolutionService, '<method>')`).
+- Coverage still remains source-shape based; follow-up remains runtime caller-based contract tests.

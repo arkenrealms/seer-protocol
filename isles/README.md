@@ -22,3 +22,6 @@ Isles-specific Seer protocol surface.
 
 ## Protocol/testing note
 This module currently has weak boundary guarantees and likely miswired handler routes. It should be treated as high-priority for schema tightening, router/service wiring cleanup, and focused module contract tests.
+
+## 2026-02-18 note
+- Evolution handler selection now requires own-property checks before invocation to avoid inherited/prototype method dispatch.

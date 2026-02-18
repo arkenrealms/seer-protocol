@@ -43,3 +43,7 @@
 - [ ] Trim/migrate commented legacy block into archival docs or separate history note.
 - [ ] Add focused tests for malformed payloads, auth guard behavior, and output-shape guarantees.
 - [x] Add package-local regression tests for Infinite method-resolution fallback invariants.
+
+## 2026-02-18 maintenance update
+- Replaced direct optional-chain handler access with own-property checks (`Object.prototype.hasOwnProperty.call`) for `saveRound`, `interact`, and `getScene` before invocation.
+- This reduces prototype-pollution/misrouting exposure while preserving explicit `this` binding via `method.call(evolutionService, input, ctx)`.

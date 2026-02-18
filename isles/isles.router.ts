@@ -26,11 +26,14 @@ export const createRouter = () =>
       )
       // .output(Arken.Profile.Schemas.Profile)
       .mutation(({ input, ctx }) => {
-        const method = (ctx.app.service.Evolution as any)?.saveRound;
+        const evolutionService = ctx.app.service.Evolution as any;
+        const method = Object.prototype.hasOwnProperty.call(evolutionService, 'saveRound')
+          ? evolutionService.saveRound
+          : undefined;
         if (typeof method !== 'function') {
           throw new Error('Evolution.saveRound handler is unavailable for Isles.saveRound');
         }
-        return method.call(ctx.app.service.Evolution, input, ctx);
+        return method.call(evolutionService, input, ctx);
       }),
 
     interact: t.procedure
@@ -46,11 +49,14 @@ export const createRouter = () =>
         })
       )
       .mutation(({ input, ctx }) => {
-        const method = (ctx.app.service.Evolution as any)?.interact;
+        const evolutionService = ctx.app.service.Evolution as any;
+        const method = Object.prototype.hasOwnProperty.call(evolutionService, 'interact')
+          ? evolutionService.interact
+          : undefined;
         if (typeof method !== 'function') {
           throw new Error('Evolution.interact handler is unavailable for Isles.interact');
         }
-        return method.call(ctx.app.service.Evolution, input, ctx);
+        return method.call(evolutionService, input, ctx);
       }),
 
     getScene: t.procedure
@@ -63,11 +69,14 @@ export const createRouter = () =>
         })
       )
       .mutation(({ input, ctx }) => {
-        const method = (ctx.app.service.Evolution as any)?.getScene;
+        const evolutionService = ctx.app.service.Evolution as any;
+        const method = Object.prototype.hasOwnProperty.call(evolutionService, 'getScene')
+          ? evolutionService.getScene
+          : undefined;
         if (typeof method !== 'function') {
           throw new Error('Evolution.getScene handler is unavailable for Isles.getScene');
         }
-        return method.call(ctx.app.service.Evolution, input, ctx);
+        return method.call(evolutionService, input, ctx);
       }),
   });
 

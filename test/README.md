@@ -21,3 +21,6 @@ Package-local protocol tests for `@arken/seer-protocol`.
   - verifies Evolution handlers are invoked via `method.call(ctx.app.service.Evolution, ...)` so service `this` context is preserved.
 - `evolution.router.test.ts`
   - verifies `updateSettings` remains mutation-based so profile preference writes are not exposed as query semantics.
+
+## 2026-02-18 note
+- Router-shape assertions now require own-property handler checks for Evolution method dispatch in Isles/Infinite (`hasOwnProperty.call(evolutionService, ...)`).
