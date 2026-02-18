@@ -10,10 +10,11 @@ Isles-specific Seer protocol surface.
 
 ## Current behavior snapshot
 - Router exposes `saveRound`, `interact`, and `getScene`.
-- Handler resolution now goes through `resolveIslesMethod`:
-  - prefers `ctx.app.service.Isles[method]`,
-  - falls back to `ctx.app.service.Evolution[method]` when method-matched,
-  - only uses `Evolution.saveRound` as a compatibility fallback for `saveRound` itself.
+- Router dispatch now uses method-matched Evolution handlers directly:
+  - `saveRound` -> `Evolution.saveRound`
+  - `interact` -> `Evolution.interact`
+  - `getScene` -> `Evolution.getScene`
+- Missing handlers now fail with explicit unavailable-handler errors instead of misrouting.
 - Inputs remain broad (`z.any()` for large payload segments).
 - `isles.router.ts` still contains a very large block of commented legacy transport/game logic.
 

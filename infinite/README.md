@@ -9,6 +9,10 @@ Infinite protocol module for Seer.
 - `infinite.methodResolver.ts` (shared method-resolution helper used by router + tests)
 
 ## Notes
-- Router now resolves handlers via `ctx.app.service.Infinite` first (`saveRound`/`interact`/`getScene`) with legacy fallback to `ctx.app.service.Evolution.saveRound` when Infinite wiring is absent.
+- Router dispatch now uses method-matched Evolution handlers directly:
+  - `saveRound` -> `Evolution.saveRound`
+  - `interact` -> `Evolution.interact`
+  - `getScene` -> `Evolution.getScene`
+- Missing handlers now fail with explicit unavailable-handler errors instead of cross-method routing.
 - Input contracts are still permissive (`z.any()` fields), and service implementation remains mostly placeholder/logging behavior.
 - `infinite.router.ts` contains a large commented legacy block that should be split or removed after migration validation.

@@ -24,7 +24,13 @@ export const createRouter = () =>
         })
       )
       // .output(Arken.Profile.Schemas.Profile)
-      .query(({ input, ctx }) => (ctx.app.service.Evolution.saveRound as any)(input, ctx)),
+      .query(({ input, ctx }) => {
+        const method = (ctx.app.service.Evolution as any)?.saveRound;
+        if (typeof method !== 'function') {
+          throw new Error('Evolution.saveRound handler is unavailable for Infinite.saveRound');
+        }
+        return method(input, ctx);
+      }),
 
     interact: t.procedure
       .use(hasRole('guest', t))
@@ -38,7 +44,13 @@ export const createRouter = () =>
           lastClients: z.any(),
         })
       )
-      .mutation(({ input, ctx }) => (ctx.app.service.Evolution.saveRound as any)(input, ctx)),
+      .mutation(({ input, ctx }) => {
+        const method = (ctx.app.service.Evolution as any)?.interact;
+        if (typeof method !== 'function') {
+          throw new Error('Evolution.interact handler is unavailable for Infinite.interact');
+        }
+        return method(input, ctx);
+      }),
 
     getScene: t.procedure
       .use(hasRole('guest', t))
@@ -49,7 +61,13 @@ export const createRouter = () =>
           signature: z.object({ hash: z.string(), address: z.string() }),
         })
       )
-      .mutation(({ input, ctx }) => (ctx.app.service.Evolution.saveRound as any)(input, ctx)),
+      .mutation(({ input, ctx }) => {
+        const method = (ctx.app.service.Evolution as any)?.getScene;
+        if (typeof method !== 'function') {
+          throw new Error('Evolution.getScene handler is unavailable for Infinite.getScene');
+        }
+        return method(input, ctx);
+      }),
   });
 
 export type Router = ReturnType<typeof createRouter>;

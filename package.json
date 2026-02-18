@@ -6,6 +6,7 @@
     "clean": "del-cli ./build && make-dir ./build",
     "dist": "npm-run-all clean tsc:*",
     "publish": "npm publish --access=public",
+    "test": "node --test --experimental-strip-types test/*.test.ts",
     "tsc:1": "rm -rf ./build && mkdir ./build && cp package.json ./build && NODE_ENV=production NODE_OPTIONS=--max-old-space-size=8192 tsc -p tsconfig.build.json --listFiles"
   },
   "dependencies": {
