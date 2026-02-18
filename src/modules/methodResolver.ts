@@ -28,9 +28,17 @@ export const resolveModuleMethod = <ServiceName extends string, MethodName exten
   method: MethodName;
   primaryService?: Record<string, unknown>;
   fallbackService?: Record<string, unknown>;
+  allowMethodMatchedFallback?: boolean;
   allowSaveRoundFallback?: boolean;
 }): MethodHandler => {
-  const { moduleName, method, primaryService, fallbackService, allowSaveRoundFallback } = params;
+  const {
+    moduleName,
+    method,
+    primaryService,
+    fallbackService,
+    allowMethodMatchedFallback = true,
+    allowSaveRoundFallback,
+  } = params;
 
   const normalizedMethod = typeof method === 'string' ? method.trim() : '';
   if (!normalizedMethod) {
@@ -39,7 +47,7 @@ export const resolveModuleMethod = <ServiceName extends string, MethodName exten
 
   const primaryHandler = getOwnMethodHandler(primaryService, normalizedMethod as MethodName);
   const methodMatchedFallbackHandler =
-    normalizedMethod === 'saveRound' && !allowSaveRoundFallback
+    !allowMethodMatchedFallback || (normalizedMethod === 'saveRound' && !allowSaveRoundFallback)
       ? undefined
       : getOwnMethodHandler(fallbackService, normalizedMethod as MethodName);
 

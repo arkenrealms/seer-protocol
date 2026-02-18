@@ -15,6 +15,7 @@ Package-local protocol tests for `@arken/seer-protocol`.
   - validates inherited-prototype handler rejection and context-preserving invocation.
   - validates getter-throwing and non-function own-property handler fallback behavior.
 - `methodResolver.test.ts`
-  - validates shared resolver policy toggles (`allowSaveRoundFallback`) for explicit saveRound compatibility behavior.
+  - validates shared resolver policy toggles (`allowMethodMatchedFallback`, `allowSaveRoundFallback`) for explicit fallback behavior.
   - preserves method-matched fallback behavior for non-saveRound methods when saveRound fallback is disabled.
+  - verifies strict mode can disable method-matched fallback entirely.
   - validates trimmed/non-empty method-name enforcement to keep resolver inputs deterministic.

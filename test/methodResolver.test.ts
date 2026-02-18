@@ -44,6 +44,27 @@ test('resolveModuleMethod keeps method-matched fallback for non-saveRound method
   assert.equal(handler(), 'fallback-interact');
 });
 
+test('resolveModuleMethod can disable method-matched fallback entirely', () => {
+  const service = {
+    Primary: {},
+    Fallback: {
+      interact: () => 'fallback-interact',
+    },
+  };
+
+  assert.throws(
+    () =>
+      resolveModuleMethod({
+        moduleName: 'Primary',
+        method: 'interact',
+        primaryService: service.Primary,
+        fallbackService: service.Fallback,
+        allowMethodMatchedFallback: false,
+      }),
+    /Primary service method unavailable: interact/
+  );
+});
+
 test('resolveModuleMethod rejects empty method names before service lookup', () => {
   assert.throws(
     () =>
