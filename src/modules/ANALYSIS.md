@@ -7,7 +7,7 @@
 - Deep analysis completed for `oasis/`, `isles/`, `infinite/`, and `evolution/` leaf folders.
 - `oasis` mixes production-like query logic with stubbed mutation behavior and permissive inputs.
 - `isles` currently appears miswired (routes delegated to Evolution service) with broad schemas and substantial commented legacy code.
-- `infinite` currently appears similarly wiring-incomplete: procedures route through Evolution service path, service methods are mostly placeholder, and contracts remain permissive.
+- `infinite` now prefers Infinite service handlers with guarded Evolution fallback, but service methods remain placeholder and contracts remain permissive.
 - `evolution` is functionally dense but contract-uneven: mixed strict/permissive schemas, monolithic service logic, and potentially inconsistent auth/transaction safeguards.
 
 ## Cross-module implications

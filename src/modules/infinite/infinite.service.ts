@@ -6,16 +6,16 @@ import * as Arken from '@arken/node';
 
 export class Service {
   async saveRound(input: RouterInput['saveRound'], ctx: RouterContext): Promise<RouterOutput['saveRound']> {
-    console.log('Evolution.Service.saveRound', input);
+    console.log('Infinite.Service.saveRound', input);
   }
 
   async interact(input: RouterInput['interact'], ctx: RouterContext): Promise<RouterOutput['interact']> {
-    console.log('Evolution.Service.interact', input);
+    console.log('Infinite.Service.interact', input);
   }
 
   async getScene(input: RouterInput['getScene'], ctx: RouterContext): Promise<RouterOutput['getScene']> {
     if (!input) throw new Error('Input should not be void');
-    console.log('Evolution.Service.getScene', input);
+    console.log('Infinite.Service.getScene', input);
 
     let data = {};
 

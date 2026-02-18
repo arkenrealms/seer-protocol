@@ -6,7 +6,7 @@
 ## File-level findings (deepest-first)
 - `index.ts`: barrel export only.
 - `infinite.router.ts`:
-  - Active procedures (`saveRound`, `interact`, `getScene`) exist, but all delegate to `ctx.app.service.Evolution.saveRound`.
+  - Active procedures (`saveRound`, `interact`, `getScene`) now resolve Infinite-owned handlers first via shared resolver, with guarded fallback to `ctx.app.service.Evolution.saveRound` for compatibility.
   - Uses permissive schemas (`round: z.any()`, `lastClients: z.any()`, `data: z.any()`), reducing contract determinism.
   - Contains very large commented legacy block (thousands of lines), increasing maintenance/search noise.
 - `infinite.service.ts`:
@@ -20,17 +20,17 @@
   - Module source files now use normalized top-of-file path headers in `arken/...` format.
 
 ## Protocol/test relevance
-- Current module behavior is likely wiring-incomplete and relies on Evolution service path.
+- Router/service ownership is partially hardened: Infinite handlers are now preferred, with Evolution fallback retained for compatibility during migration.
 - Weak input/output contracts increase risk of runtime drift and client/server mismatch.
 
 ## Risks / gaps
-- [ ] Procedure-to-service ownership mismatch (`Infinite` router routed through `Evolution` service).
+- [ ] Infinite service methods remain placeholder and still rely on fallback behavior in deployments where Infinite service wiring is incomplete.
 - [ ] Missing explicit output contracts in service methods.
 - [ ] Large commented legacy payload in router obscures active logic.
 - [ ] No module-level protocol tests for auth/input/output behavior.
 
 ## Follow-ups
-- [ ] Rewire Infinite procedures to Infinite-owned service methods.
+- [ ] Complete migration by implementing concrete Infinite service methods and removing Evolution fallback path.
 - [ ] Replace `z.any()` with strict schemas for `round`, `lastClients`, and `getScene.data`.
 - [ ] Trim/migrate commented legacy block into archival docs or separate history note.
 - [ ] Add focused tests for malformed payloads, auth guard behavior, and output-shape guarantees.

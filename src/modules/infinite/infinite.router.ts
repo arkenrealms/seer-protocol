@@ -2,14 +2,25 @@
 import { z as zod } from 'zod';
 import { initTRPC } from '@trpc/server';
 import { customErrorFormatter, hasRole } from '@arken/node/util/rpc';
-import * as Arken from '@arken/node';
-import { Query, getQueryInput, inferRouterOutputs, inferRouterInputs } from '@arken/node/schema';
+import { inferRouterOutputs, inferRouterInputs } from '@arken/node/schema';
 import { RouterContext } from '../../types';
 
 export const z = zod;
 export const t = initTRPC.context<RouterContext>().create();
 export const router = t.router;
 export const procedure = t.procedure;
+
+const resolveInfiniteMethod = (ctx: RouterContext, method: 'saveRound' | 'interact' | 'getScene') => {
+  const infiniteService = ctx.app.service.Infinite as any;
+  const evolutionService = ctx.app.service.Evolution as any;
+  const handler = infiniteService?.[method] ?? evolutionService?.saveRound;
+
+  if (typeof handler !== 'function') {
+    throw new Error(`Infinite service method unavailable: ${method}`);
+  }
+
+  return handler;
+};
 
 export const createRouter = () =>
   router({
@@ -25,8 +36,7 @@ export const createRouter = () =>
           lastClients: z.any(),
         })
       )
-      // .output(Arken.Profile.Schemas.Profile)
-      .query(({ input, ctx }) => (ctx.app.service.Evolution.saveRound as any)(input, ctx)),
+      .query(({ input, ctx }) => resolveInfiniteMethod(ctx, 'saveRound')(input, ctx)),
 
     interact: t.procedure
       .use(hasRole('guest', t))
@@ -40,7 +50,7 @@ export const createRouter = () =>
           lastClients: z.any(),
         })
       )
-      .mutation(({ input, ctx }) => (ctx.app.service.Evolution.saveRound as any)(input, ctx)),
+      .mutation(({ input, ctx }) => resolveInfiniteMethod(ctx, 'interact')(input, ctx)),
 
     getScene: t.procedure
       .use(hasRole('guest', t))
@@ -51,7 +61,7 @@ export const createRouter = () =>
           signature: z.object({ hash: z.string(), address: z.string() }),
         })
       )
-      .mutation(({ input, ctx }) => (ctx.app.service.Evolution.saveRound as any)(input, ctx)),
+      .mutation(({ input, ctx }) => resolveInfiniteMethod(ctx, 'getScene')(input, ctx)),
   });
 
 export type Router = ReturnType<typeof createRouter>;
