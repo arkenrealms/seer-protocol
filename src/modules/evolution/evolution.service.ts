@@ -526,7 +526,7 @@ export class Service {
 
     const profile = await ctx.app.model.Profile.findById(ctx.client.profile.id);
 
-    if (profile.partyId) throw new Error('Not in a party');
+    if (!profile.partyId) throw new Error('Not in a party');
 
     if (!party.members.find((m) => m.id === profile.id)) throw new Error('Not in this party');
 
