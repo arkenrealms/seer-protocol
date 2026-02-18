@@ -20,6 +20,7 @@ Local, package-scoped test harness for `@arken/seer-protocol` so source changes 
   - verifies strict-mode toggle (`allowMethodMatchedFallback: false`) disables all fallback resolution when required.
   - ensures disabling saveRound fallback does not disable method-matched fallback for non-saveRound procedures.
   - verifies empty/whitespace method names are rejected and trimmed method names still resolve correctly.
+  - verifies resolver behavior remains deterministic when own-property inspection throws during primary/fallback lookup.
 
 ## Protocol/test relevance
 - Establishes the first package-local runnable test surface for seer-protocol.

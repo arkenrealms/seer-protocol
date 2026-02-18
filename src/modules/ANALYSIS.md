@@ -13,6 +13,7 @@
 - Shared resolver now correctly enforces `allowSaveRoundFallback` (disabling saveRound fallback no longer silently falls through via generic method-matched fallback logic).
 - Shared resolver now trims method names and rejects empty-method requests before service lookup to prevent whitespace/empty-name resolution drift.
 - Shared resolver now supports disabling all method-matched fallback resolution (`allowMethodMatchedFallback`) so routers can opt into strict primary-service ownership without bespoke resolver forks.
+- Shared resolver now treats own-property inspection failures (for example hostile/revoked Proxy traps) as unavailable handlers instead of surfacing unexpected resolver crashes.
 
 ## Cross-module implications
 - Module contract quality appears uneven; stricter schema discipline should be aligned across all module folders.

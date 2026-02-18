@@ -89,3 +89,49 @@ test('resolveModuleMethod trims method names before resolution', () => {
 
   assert.equal(handler(), 'primary-interact');
 });
+
+test('resolveModuleMethod treats throwing own-property inspection as unavailable handler', () => {
+  const throwingPrimary = new Proxy(
+    {},
+    {
+      getOwnPropertyDescriptor() {
+        throw new Error('own-property lookup failed');
+      },
+    }
+  );
+
+  const fallback = {
+    interact: () => 'fallback-interact',
+  };
+
+  const handler = resolveModuleMethod({
+    moduleName: 'Primary',
+    method: 'interact',
+    primaryService: throwingPrimary as Record<string, unknown>,
+    fallbackService: fallback,
+  });
+
+  assert.equal(handler(), 'fallback-interact');
+});
+
+test('resolveModuleMethod throws module unavailable when both own-property inspections throw', () => {
+  const throwingService = new Proxy(
+    {},
+    {
+      getOwnPropertyDescriptor() {
+        throw new Error('own-property lookup failed');
+      },
+    }
+  );
+
+  assert.throws(
+    () =>
+      resolveModuleMethod({
+        moduleName: 'Primary',
+        method: 'interact',
+        primaryService: throwingService as Record<string, unknown>,
+        fallbackService: throwingService as Record<string, unknown>,
+      }),
+    /Primary service method unavailable: interact/
+  );
+});

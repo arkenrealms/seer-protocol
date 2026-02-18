@@ -7,7 +7,18 @@ export const getOwnMethodHandler = <MethodName extends string>(
   service: ServiceMap,
   method: MethodName
 ): MethodHandler | undefined => {
-  if (!service || !Object.prototype.hasOwnProperty.call(service, method)) {
+  if (!service) {
+    return undefined;
+  }
+
+  let hasOwnMethod = false;
+  try {
+    hasOwnMethod = Object.prototype.hasOwnProperty.call(service, method);
+  } catch {
+    return undefined;
+  }
+
+  if (!hasOwnMethod) {
     return undefined;
   }
 

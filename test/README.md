@@ -19,3 +19,4 @@ Package-local protocol tests for `@arken/seer-protocol`.
   - preserves method-matched fallback behavior for non-saveRound methods when saveRound fallback is disabled.
   - verifies strict mode can disable method-matched fallback entirely.
   - validates trimmed/non-empty method-name enforcement to keep resolver inputs deterministic.
+  - validates safe fallback behavior when own-property lookup itself throws (Proxy/getOwnPropertyDescriptor traps).
