@@ -33,11 +33,10 @@ export const resolveModuleMethod = <ServiceName extends string, MethodName exten
   const { moduleName, method, primaryService, fallbackService, allowSaveRoundFallback } = params;
 
   const primaryHandler = getOwnMethodHandler(primaryService, method);
-  const methodMatchedFallbackHandler = getOwnMethodHandler(fallbackService, method);
-  const saveRoundFallbackHandler =
-    allowSaveRoundFallback && method === 'saveRound' ? getOwnMethodHandler(fallbackService, 'saveRound') : undefined;
+  const methodMatchedFallbackHandler =
+    method === 'saveRound' && !allowSaveRoundFallback ? undefined : getOwnMethodHandler(fallbackService, method);
 
-  const handler = primaryHandler ?? methodMatchedFallbackHandler ?? saveRoundFallbackHandler;
+  const handler = primaryHandler ?? methodMatchedFallbackHandler;
 
   if (!handler) {
     throw new Error(`${moduleName} service method unavailable: ${method}`);

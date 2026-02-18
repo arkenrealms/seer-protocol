@@ -15,6 +15,9 @@ Local, package-scoped test harness for `@arken/seer-protocol` so source changes 
   - protects against `getScene`/`interact` misrouting into `Evolution.saveRound`.
   - verifies own-property-only callable resolution and context-preserving invocation.
   - verifies getter-throwing and non-function own-property fallback safety.
+- `methodResolver.test.ts`
+  - verifies shared resolver toggle behavior for saveRound compatibility fallback.
+  - ensures disabling saveRound fallback does not disable method-matched fallback for non-saveRound procedures.
 
 ## Protocol/test relevance
 - Establishes the first package-local runnable test surface for seer-protocol.

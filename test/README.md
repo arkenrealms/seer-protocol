@@ -14,3 +14,6 @@ Package-local protocol tests for `@arken/seer-protocol`.
   - guards against accidental `getScene`/`interact` -> `Evolution.saveRound` misrouting.
   - validates inherited-prototype handler rejection and context-preserving invocation.
   - validates getter-throwing and non-function own-property handler fallback behavior.
+- `methodResolver.test.ts`
+  - validates shared resolver policy toggles (`allowSaveRoundFallback`) for explicit saveRound compatibility behavior.
+  - preserves method-matched fallback behavior for non-saveRound methods when saveRound fallback is disabled.
