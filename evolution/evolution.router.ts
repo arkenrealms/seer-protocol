@@ -75,7 +75,23 @@ export const createRouter = () =>
           opacity: z.number().min(0).max(1).optional(),
         })
       )
-      .query(({ input, ctx }) => (ctx.app.service.Evolution.updateSettings as any)(input, ctx)),
+      .mutation(({ input, ctx }) => {
+        const evolutionService = ctx.app?.service?.Evolution as any;
+        const descriptor =
+          evolutionService && Object.prototype.hasOwnProperty.call(evolutionService, 'updateSettings')
+            ? Object.getOwnPropertyDescriptor(evolutionService, 'updateSettings')
+            : undefined;
+        const method = descriptor && 'value' in descriptor ? descriptor.value : undefined;
+
+        if (typeof method !== 'function') {
+          throw new TRPCError({
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'Evolution.updateSettings handler is unavailable for evolution.updateSettings',
+          });
+        }
+
+        return method.call(evolutionService, input, ctx);
+      }),
 
     getPayments: procedure
       .use(hasRole('user', t))

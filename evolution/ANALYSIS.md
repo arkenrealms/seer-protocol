@@ -30,6 +30,10 @@
 - [ ] Add focused tests for payment processing transaction behavior and party join/leave invariants.
 - [ ] Split large service concerns into domain slices (rounds/rewards/payments/party/chest) to reduce blast radius.
 
+## 2026-02-18 maintenance update
+- Hardened `updateSettings` dispatch to use own-property descriptor method resolution (`Object.getOwnPropertyDescriptor(...).value`) and deterministic `TRPCError(INTERNAL_SERVER_ERROR)` fallback when handler wiring is missing/non-callable.
+- Added package-local Jest guard coverage in `test/evolution.router.test.ts` to keep mutation semantics and guarded dispatch behavior from regressing.
+
 ## Maintenance notes
 - 2026-02-17: Normalized top-of-file path headers in module source files to `arken/...` for `evolution.models.ts`, `evolution.schema.ts`, `evolution.types.ts`, `evolution.service.ts`, and `evolution.router.ts`.
 - 2026-02-17 (rotation seer): Fixed `leaveParty` guard inversion in `evolution.service.ts` (`if (!profile.partyId) throw 'Not in a party'`) so users currently in a party can leave successfully.

@@ -63,3 +63,12 @@
 - Expanded local tests in `test/infinite.router.test.ts` to cover inherited prototype handler rejection.
 - Test gate: `npm test` passed (4/4).
 - Jest migration note: attempted bootstrap in this direct package, but local `npm install` is blocked by unresolved `workspace:*` dependency protocol without workspace package-manager bootstrap in this runtime; keep TS tests in place and retry Jest migration when workspace install path is available.
+
+## 2026-02-18 maintenance update
+- Added repo-defined package test script: `npm test` -> `jest --runInBand`.
+- Added `test/evolution.router.test.ts` to lock `updateSettings` semantics and dispatch hardening.
+- Hardened `evolution/evolution.router.ts` `updateSettings` handler resolution:
+  - switched to mutation semantics,
+  - requires own-property descriptor callable lookup,
+  - emits deterministic `TRPCError(INTERNAL_SERVER_ERROR)` when unavailable,
+  - preserves method context with `method.call(evolutionService, input, ctx)`.
