@@ -9,6 +9,7 @@
 - `isles` currently appears miswired (routes delegated to Evolution service) with broad schemas and substantial commented legacy code.
 - `infinite` now prefers Infinite service handlers with guarded Evolution fallback, but service methods remain placeholder and contracts remain permissive.
 - `evolution` is functionally dense but contract-uneven: mixed strict/permissive schemas, monolithic service logic, and potentially inconsistent auth/transaction safeguards.
+- Isles/Infinite resolver safety logic is now centralized in `methodResolver.ts` to reduce drift between modules.
 
 ## Cross-module implications
 - Module contract quality appears uneven; stricter schema discipline should be aligned across all module folders.

@@ -46,6 +46,34 @@ test('resolveIslesMethod ignores inherited prototype handlers and requires own s
   assert.throws(() => resolveIslesMethod(service, 'interact'), /Isles service method unavailable: interact/);
 });
 
+test('resolveIslesMethod skips getter-throwing handlers and falls back safely', () => {
+  const islesService: Record<string, unknown> = {};
+  Object.defineProperty(islesService, 'interact', {
+    enumerable: true,
+    get() {
+      throw new Error('getter exploded');
+    },
+  });
+
+  const evolutionInteract = () => 'evolution-interact';
+  const service = {
+    Isles: islesService,
+    Evolution: { interact: evolutionInteract },
+  };
+
+  const handler = resolveIslesMethod(service, 'interact');
+  assert.equal(handler(), 'evolution-interact');
+});
+
+test('resolveIslesMethod treats non-function own properties as unavailable handlers', () => {
+  const service = {
+    Isles: { getScene: 'not-a-function' as unknown },
+    Evolution: {},
+  };
+
+  assert.throws(() => resolveIslesMethod(service, 'getScene'), /Isles service method unavailable: getScene/);
+});
+
 test('resolveIslesMethod preserves service context for method handlers', () => {
   const service = {
     Isles: {

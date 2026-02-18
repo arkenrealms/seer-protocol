@@ -10,7 +10,7 @@
   - Applies role + error middleware and now resolves handlers through `resolveIslesMethod` (Isles-first, method-matched Evolution fallback).
   - Contains a ~3.6k-line commented legacy block that obscures active behavior.
 - `isles.methodResolver.ts`
-  - Provides own-property-only callable resolution for Isles/Evolution services.
+  - Uses shared `modules/methodResolver.ts` utility for own-property-only callable resolution.
   - Preserves service `this` context via `Reflect.apply` to avoid method binding drift.
   - Blocks cross-method misrouting (`getScene`/`interact` no longer silently delegate to `Evolution.saveRound`).
 - `isles.service.ts`

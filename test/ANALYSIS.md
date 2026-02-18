@@ -14,6 +14,7 @@ Local, package-scoped test harness for `@arken/seer-protocol` so source changes 
   - verifies `resolveIslesMethod` Isles-first precedence + method-matched Evolution fallback.
   - protects against `getScene`/`interact` misrouting into `Evolution.saveRound`.
   - verifies own-property-only callable resolution and context-preserving invocation.
+  - verifies getter-throwing and non-function own-property fallback safety.
 
 ## Protocol/test relevance
 - Establishes the first package-local runnable test surface for seer-protocol.

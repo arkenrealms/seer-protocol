@@ -19,6 +19,8 @@
   - Exports broad placeholder mappings and commented type derivations.
 - Source header hygiene:
   - Module source files now use normalized top-of-file path headers in `arken/...` format.
+- Resolver ownership:
+  - `infinite.methodResolver.ts` now delegates callable resolution to shared `modules/methodResolver.ts` to keep Isles/Infinite fallback safety rules synchronized.
 
 ## Protocol/test relevance
 - Router/service ownership is partially hardened: Infinite handlers are now preferred, with Evolution fallback retained for compatibility during migration.

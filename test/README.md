@@ -13,3 +13,4 @@ Package-local protocol tests for `@arken/seer-protocol`.
   - validates Isles resolver precedence (`Isles` before `Evolution`).
   - guards against accidental `getScene` -> `Evolution.saveRound` misrouting.
   - validates inherited-prototype handler rejection and context-preserving invocation.
+  - validates getter-throwing and non-function own-property handler fallback behavior.
