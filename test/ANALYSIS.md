@@ -18,5 +18,10 @@ Provide a direct-repo regression gate for protocol router hardening work.
   - deterministic unavailable-handler messaging,
   - context-preserving invocation semantics for Oasis service dispatch.
 
+- Added `test/router-routing.test.js` to lock Isles/Infinite routing invariants:
+  - own-property method resolution on `Isles`/`Infinite`,
+  - method-matched fallback on `Evolution`,
+  - no regression to blanket `Evolution.saveRound` dispatch for non-`saveRound` routes.
+
 ## Follow-up
 - Expand tests from source-shape checks to runtime caller execution with fixture contexts for high-risk procedures (`saveRound`, payment flows, party mutations).
