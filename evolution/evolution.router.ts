@@ -68,7 +68,23 @@ export const createRouter = () =>
     monitorParties: procedure
       .use(hasRole('admin', t))
       .use(customErrorFormatter(t))
-      .query(({ input, ctx }) => (ctx.app.service.Evolution.monitorParties as any)(input, ctx)),
+      .query(({ input, ctx }) => {
+        const evolutionService = ctx.app?.service?.Evolution as any;
+        const descriptor =
+          evolutionService && Object.prototype.hasOwnProperty.call(evolutionService, 'monitorParties')
+            ? Object.getOwnPropertyDescriptor(evolutionService, 'monitorParties')
+            : undefined;
+        const method = descriptor && 'value' in descriptor ? descriptor.value : undefined;
+
+        if (typeof method !== 'function') {
+          throw new TRPCError({
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'Evolution.monitorParties handler is unavailable for evolution.monitorParties',
+          });
+        }
+
+        return method.call(evolutionService, input, ctx);
+      }),
 
     getParties: procedure
       .use(hasRole('user', t))

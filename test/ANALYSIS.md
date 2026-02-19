@@ -8,7 +8,7 @@ Provide a direct-repo regression gate for protocol router hardening work.
 - Added and expanded `test/evolution.router.test.ts` to enforce:
   - guarded own-property dispatch and deterministic unavailable-handler messaging for `info`,
   - mutation semantics for `updateConfig` and `updateSettings`,
-  - own-property descriptor handler resolution for both routes,
+  - own-property descriptor handler resolution for `updateConfig`, `monitorParties`, and `updateSettings`,
   - deterministic internal-error messaging when handler wiring is missing,
   - context-preserving method invocation,
   - explicit `TRPCError` import presence in `evolution.router.ts` so guarded error paths do not rely on undeclared globals.

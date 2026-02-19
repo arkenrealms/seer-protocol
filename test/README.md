@@ -7,7 +7,8 @@ Jest-based package-local tests for `@arken/seer-protocol`.
   - verifies `info` uses own-property descriptor guard lookup on `Evolution.info`
   - verifies deterministic unavailable-handler error string for missing `Evolution.info` wiring
   - verifies `updateConfig` and `updateSettings` remain mutation-based (not query-based)
-  - verifies own-property descriptor guard usage for both `Evolution.updateConfig` and `Evolution.updateSettings`
+  - verifies `monitorParties` uses guarded own-property query dispatch
+  - verifies own-property descriptor guard usage for `Evolution.updateConfig`, `Evolution.monitorParties`, and `Evolution.updateSettings`
   - verifies deterministic unavailable-handler error strings
   - verifies context-preserving `method.call(evolutionService, input, ctx)` dispatch
   - verifies explicit `TRPCError` import from `@trpc/server` for guarded throw paths

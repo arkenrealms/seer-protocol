@@ -13,4 +13,5 @@ Evolution protocol module for Seer.
 - Service layer is monolithic and contains substantial legacy/commented code blocks.
 - `updateSettings` uses mutation semantics and now resolves through own-property descriptor lookup, returning a deterministic internal error if `Evolution.updateSettings` is unavailable.
 - `updateConfig` now uses the same own-property descriptor guard pattern, preserving method context and emitting deterministic internal errors when wiring is missing.
+- `monitorParties` now also uses own-property descriptor guarded dispatch with deterministic unavailable-handler errors.
 - Router imports `TRPCError` from `@trpc/server` explicitly to keep guarded error throws type-safe and runtime-safe.
