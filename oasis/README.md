@@ -14,3 +14,5 @@ Oasis-specific Seer protocol surface.
 
 ## Protocol/testing note
 This module has low input validation depth (notably broad `z.any()` fields) and stubbed behavior paths; it is a candidate for contract-tightening and tests around malformed input/result handling.
+
+`getPatrons` now uses own-property descriptor guarded dispatch on `ctx.app.service.Oasis.getPatrons` and emits a deterministic internal error when handler wiring is unavailable.

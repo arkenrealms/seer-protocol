@@ -15,6 +15,7 @@
 
 ## Protocol/test relevance
 - `getPatrons` output is schema-constrained (`Profile[]`), but query input is not explicitly constrained in this module.
+- `getPatrons` now uses own-property descriptor guarded dispatch with deterministic `TRPCError` fallback when `Oasis.getPatrons` is unavailable.
 - `interact` and `getScene` accept broad shapes (`z.any()` fields), creating weak contract guarantees.
 - Hardcoded `applicationId` branch behavior implies environment-specific coupling that should be codified in tests.
 

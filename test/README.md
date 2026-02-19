@@ -9,6 +9,10 @@ Jest-based package-local tests for `@arken/seer-protocol`.
   - verifies deterministic unavailable-handler error strings
   - verifies context-preserving `method.call(evolutionService, input, ctx)` dispatch
   - verifies explicit `TRPCError` import from `@trpc/server` for guarded throw paths
+- `oasis.router.test.ts`
+  - verifies `getPatrons` uses own-property descriptor guard lookup on `Oasis.getPatrons`
+  - verifies deterministic unavailable-handler error string for missing Oasis handler wiring
+  - verifies context-preserving `method.call(oasisService, input, ctx)` dispatch
 
 ## Run
 - `npm test` (from `arken/packages/seer/packages/protocol`)
