@@ -4,9 +4,9 @@ Jest-based package-local tests for `@arken/seer-protocol`.
 
 ## Current coverage
 - `evolution.router.test.ts`
-  - verifies `updateSettings` remains mutation-based (not query-based)
-  - verifies own-property descriptor guard usage for `Evolution.updateSettings`
-  - verifies deterministic unavailable-handler error string
+  - verifies `updateConfig` and `updateSettings` remain mutation-based (not query-based)
+  - verifies own-property descriptor guard usage for both `Evolution.updateConfig` and `Evolution.updateSettings`
+  - verifies deterministic unavailable-handler error strings
   - verifies context-preserving `method.call(evolutionService, input, ctx)` dispatch
   - verifies explicit `TRPCError` import from `@trpc/server` for guarded throw paths
 
