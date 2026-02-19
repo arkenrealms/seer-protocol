@@ -26,6 +26,7 @@ Jest-based package-local tests for `@arken/seer-protocol`.
   - verifies legacy `limit` alias remains accepted for compatibility
   - verifies array-schema query envelopes reject unsupported `where` filters
   - verifies logical clause normalization (`AND`/`OR`/`NOT`) and strict operator-object enforcement in `createPrismaWhereSchema`
+  - verifies `orderBy` direction trim+case normalization guards in both `schema.ts` and `util/schema.ts`
 
 ## Run
 - `rushx test` (from `arken/seer/protocol`)

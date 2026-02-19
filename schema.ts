@@ -100,12 +100,17 @@ const QueryWhereSchema = z.lazy(() =>
   })
 );
 
+const QueryOrderDirection = z.preprocess(
+  (value) => (typeof value === 'string' ? value.trim().toLowerCase() : value),
+  z.enum(['asc', 'desc'])
+);
+
 export const Query = z.object({
   skip: z.number().default(0).optional(),
   take: z.number().default(10).optional(),
   cursor: z.record(z.any()).optional(),
   where: QueryWhereSchema.optional(),
-  orderBy: z.record(z.enum(['asc', 'desc'])).optional(),
+  orderBy: z.record(QueryOrderDirection).optional(),
   include: z.record(z.boolean()).optional(),
   select: z.record(z.boolean()).optional(),
 });
@@ -280,13 +285,15 @@ export const getQueryInput = <S extends zod.ZodTypeAny>(schema: S, options: { pa
 
       // keep your query envelope fields
       skip: zod.number().default(0).optional(),
+      take: zod.number().default(10).optional(),
+      // legacy alias kept for backward compatibility across callers
       limit: zod.number().default(10).optional(),
       cursor: zod.record(zod.any()).optional(),
 
       // only valid for object schemas
       where: isObjectSchema ? whereSchema.optional() : zod.undefined().optional(),
 
-      orderBy: zod.record(zod.enum(['asc', 'desc'])).optional(),
+      orderBy: zod.record(zod.preprocess((value) => (typeof value === 'string' ? value.trim().toLowerCase() : value), zod.enum(['asc', 'desc']))).optional(),
       include: zod.record(zod.boolean()).optional(),
       select: zod.record(zod.boolean()).optional(),
     })
