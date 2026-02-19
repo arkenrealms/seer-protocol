@@ -1,6 +1,6 @@
 // arken/packages/seer/packages/protocol/src/modules/evolution/evolution.router.ts
 import { z as zod } from 'zod';
-import { initTRPC, TRPCError } from '@trpc/server';
+import { initTRPC } from '@trpc/server';
 import { customErrorFormatter, hasRole } from '../util/rpc';
 import { Query, getQueryInput, inferRouterOutputs, inferRouterInputs } from '../util/schema';
 import { RouterContext, Core } from '../types';
@@ -15,45 +15,13 @@ export const createRouter = () =>
     info: procedure
       .use(customErrorFormatter(t))
       .input(z.any())
-      .query(({ input, ctx }) => {
-        const evolutionService = ctx.app?.service?.Evolution as any;
-        const descriptor =
-          evolutionService && Object.prototype.hasOwnProperty.call(evolutionService, 'info')
-            ? Object.getOwnPropertyDescriptor(evolutionService, 'info')
-            : undefined;
-        const method = descriptor && 'value' in descriptor ? descriptor.value : undefined;
-
-        if (typeof method !== 'function') {
-          throw new TRPCError({
-            code: 'INTERNAL_SERVER_ERROR',
-            message: 'Evolution.info handler is unavailable for evolution.info',
-          });
-        }
-
-        return method.call(evolutionService, input, ctx);
-      }),
+      .query(({ input, ctx }) => (ctx.app.service.Evolution.info as any)(input, ctx)),
 
     updateConfig: procedure
       .use(hasRole('admin', t))
       .use(customErrorFormatter(t))
       .input(z.any())
-      .mutation(({ input, ctx }) => {
-        const evolutionService = ctx.app?.service?.Evolution as any;
-        const descriptor =
-          evolutionService && Object.prototype.hasOwnProperty.call(evolutionService, 'updateConfig')
-            ? Object.getOwnPropertyDescriptor(evolutionService, 'updateConfig')
-            : undefined;
-        const method = descriptor && 'value' in descriptor ? descriptor.value : undefined;
-
-        if (typeof method !== 'function') {
-          throw new TRPCError({
-            code: 'INTERNAL_SERVER_ERROR',
-            message: 'Evolution.updateConfig handler is unavailable for evolution.updateConfig',
-          });
-        }
-
-        return method.call(evolutionService, input, ctx);
-      }),
+      .mutation(({ input, ctx }) => (ctx.app.service.Evolution.updateConfig as any)(input, ctx)),
 
     updateGameStats: procedure
       .use(hasRole('admin', t))
@@ -68,23 +36,7 @@ export const createRouter = () =>
     monitorParties: procedure
       .use(hasRole('admin', t))
       .use(customErrorFormatter(t))
-      .query(({ input, ctx }) => {
-        const evolutionService = ctx.app?.service?.Evolution as any;
-        const descriptor =
-          evolutionService && Object.prototype.hasOwnProperty.call(evolutionService, 'monitorParties')
-            ? Object.getOwnPropertyDescriptor(evolutionService, 'monitorParties')
-            : undefined;
-        const method = descriptor && 'value' in descriptor ? descriptor.value : undefined;
-
-        if (typeof method !== 'function') {
-          throw new TRPCError({
-            code: 'INTERNAL_SERVER_ERROR',
-            message: 'Evolution.monitorParties handler is unavailable for evolution.monitorParties',
-          });
-        }
-
-        return method.call(evolutionService, input, ctx);
-      }),
+      .query(({ input, ctx }) => (ctx.app.service.Evolution.monitorParties as any)(input, ctx)),
 
     getParties: procedure
       .use(hasRole('user', t))
@@ -123,23 +75,7 @@ export const createRouter = () =>
           opacity: z.number().min(0).max(1).optional(),
         })
       )
-      .mutation(({ input, ctx }) => {
-        const evolutionService = ctx.app?.service?.Evolution as any;
-        const descriptor =
-          evolutionService && Object.prototype.hasOwnProperty.call(evolutionService, 'updateSettings')
-            ? Object.getOwnPropertyDescriptor(evolutionService, 'updateSettings')
-            : undefined;
-        const method = descriptor && 'value' in descriptor ? descriptor.value : undefined;
-
-        if (typeof method !== 'function') {
-          throw new TRPCError({
-            code: 'INTERNAL_SERVER_ERROR',
-            message: 'Evolution.updateSettings handler is unavailable for evolution.updateSettings',
-          });
-        }
-
-        return method.call(evolutionService, input, ctx);
-      }),
+      .mutation(({ input, ctx }) => (ctx.app.service.Evolution.updateSettings as any)(input, ctx)),
 
     getPayments: procedure
       .use(hasRole('user', t))
