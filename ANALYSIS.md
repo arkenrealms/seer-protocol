@@ -72,3 +72,9 @@
   - requires own-property descriptor callable lookup,
   - emits deterministic `TRPCError(INTERNAL_SERVER_ERROR)` when unavailable,
   - preserves method context with `method.call(evolutionService, input, ctx)`.
+
+## 2026-02-19 15:45 PST — where-depth normalization guard
+- Hardened `createPrismaWhereSchema` depth handling in both `schema.ts` and `util/schema.ts`.
+- Depth is now normalized via `Number.isFinite` + `Math.floor` + `Math.max(0, ...)` before recursion.
+- This prevents unbounded recursion from non-finite depth values while preserving existing behavior for valid integer depths.
+- Added focused regression lock in `test/schema.depth-normalization.test.ts`.
