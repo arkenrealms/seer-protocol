@@ -11,3 +11,7 @@ Utility schema helpers used across Seer protocol routers.
 
 ## Reliability impact
 Prevents pagination drift between callers that send `take` vs callers still sending `limit`.
+
+## 2026-02-19 maintenance update (operator-filter strictness)
+- Hardened `createPrismaWhereSchema` field operator envelopes by adding `.strict()` on the operator object schema.
+- Prevents unknown keys from being silently accepted/stripped in Prisma-like `where` filters, reducing malformed-query drift.

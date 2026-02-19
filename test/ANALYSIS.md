@@ -27,6 +27,11 @@ Provide a direct-repo regression gate for protocol router hardening work.
 ## Follow-up
 - Expand tests from source-shape checks to runtime caller execution with fixture contexts for high-risk procedures (`saveRound`, payment flows, party mutations).
 
+## 2026-02-19 maintenance update
+- Extended `schema.query-input.test.ts` to lock two guardrails in `util/schema.ts`:
+  - logical clause object-to-array normalization for `AND`/`OR`/`NOT`,
+  - strict operator object enforcement (`.partial().strict()`) to block unknown filter keys.
+
 ## 2026-02-18 maintenance update
 - Migrated `router-routing` regression test from `.js` to `.ts` (`test/router-routing.test.ts`) to keep package tests aligned with TypeScript-first test standardization.
 - Re-ran package-local Jest gate after migration to confirm no behavioral regression.

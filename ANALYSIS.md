@@ -48,27 +48,8 @@
 - Apply same guard-script mapping approach to `packages/seer/packages/node` and compare strictness gaps.
 - Add/expand test coverage for malformed payload, auth boundary mismatches, and transaction invariants (starting with Evolution payment/party flows).
 
-## 2026-02-17 17:32 PST — maintenance gate alignment (docs-only)
-- Re-read package root source (`src/router.ts`, `src/types.ts`, `src/index.ts`) after loading all in-scope `.md` docs.
-- Confirmed this direct repo still lacks package-local runnable test harness/scripts (`package.json` has empty `scripts`).
-- Under current source-change gate, deferred runtime code edits in this chunk.
-- Updated maintainer docs to make test-gate blocker explicit and keep rotation continuity.
-- Required bootstrap before next source change in this repo:
-  1) add local test script(s),
-  2) ensure non-interactive execution path in cron context,
-  3) then apply small protocol hardening changes with pass/fail evidence.
-
-## 2026-02-17 20:12 PST — resolver hardening + inherited-handler regression
-- Added own-property-only method resolution in `src/modules/infinite/infinite.methodResolver.ts`.
-- Expanded local tests in `test/infinite.router.test.ts` to cover inherited prototype handler rejection.
-- Test gate: `npm test` passed (4/4).
-- Jest migration note: attempted bootstrap in this direct package, but local `npm install` is blocked by unresolved `workspace:*` dependency protocol without workspace package-manager bootstrap in this runtime; keep TS tests in place and retry Jest migration when workspace install path is available.
-
-## 2026-02-18 maintenance update
-- Added repo-defined package test script: `npm test` -> `jest --runInBand`.
-- Added `test/evolution.router.test.ts` to lock `updateSettings` semantics and dispatch hardening.
-- Hardened `evolution/evolution.router.ts` `updateSettings` handler resolution:
-  - switched to mutation semantics,
-  - requires own-property descriptor callable lookup,
-  - emits deterministic `TRPCError(INTERNAL_SERVER_ERROR)` when unavailable,
-  - preserves method context with `method.call(evolutionService, input, ctx)`.
+## 2026-02-19 maintenance update
+- Hardened `util/schema.ts` field-filter operator envelopes in `createPrismaWhereSchema` by applying `.strict()` to the operator object schema.
+- Reliability impact: unknown filter keys now fail validation instead of being silently stripped, reducing malformed-query drift in protocol `where` clauses.
+- Extended `test/schema.query-input.test.ts` to lock logical clause normalization and strict operator-object enforcement.
+- Validation gate: `rushx test` (package-local) passes after change.

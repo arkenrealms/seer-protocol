@@ -25,6 +25,7 @@ Jest-based package-local tests for `@arken/seer-protocol`.
   - verifies `getQueryInput` accepts `take` for pagination
   - verifies legacy `limit` alias remains accepted for compatibility
   - verifies array-schema query envelopes reject unsupported `where` filters
+  - verifies logical clause normalization (`AND`/`OR`/`NOT`) and strict operator-object enforcement in `createPrismaWhereSchema`
 
 ## Run
-- `npm test` (from `arken/packages/seer/packages/protocol`)
+- `rushx test` (from `arken/seer/protocol`)
