@@ -30,3 +30,8 @@ Provide a direct-repo regression gate for protocol router hardening work.
 ## 2026-02-18 maintenance update
 - Migrated `router-routing` regression test from `.js` to `.ts` (`test/router-routing.test.ts`) to keep package tests aligned with TypeScript-first test standardization.
 - Re-ran package-local Jest gate after migration to confirm no behavioral regression.
+
+## 2026-02-19 maintenance update
+- Added `test/schema.query-input.test.ts` to cover `util/schema.ts` query envelope compatibility.
+- Locked acceptance for both `take` (preferred) and `limit` (legacy alias) in `getQueryInput`.
+- Added regression for array-schema query envelopes to reject unsupported `where` filters.

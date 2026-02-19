@@ -21,6 +21,10 @@ Jest-based package-local tests for `@arken/seer-protocol`.
   - verifies `isles` and `infinite` resolve handlers by matching method names (`saveRound`/`interact`/`getScene`)
   - verifies Isles/Infinite service own-property handlers are preferred with Evolution method-matched fallback
   - verifies legacy blanket `Evolution.saveRound` routing is not reintroduced for `interact`/`getScene`
+- `schema.query-input.test.ts`
+  - verifies `getQueryInput` accepts `take` for pagination
+  - verifies legacy `limit` alias remains accepted for compatibility
+  - verifies array-schema query envelopes reject unsupported `where` filters
 
 ## Run
 - `npm test` (from `arken/packages/seer/packages/protocol`)

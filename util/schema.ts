@@ -1,4 +1,4 @@
-// arken/packages/node/schema.ts
+// arken/packages/seer/packages/protocol/util/schema.ts
 //
 import Mongoose, { Types } from 'mongoose';
 import { z as zod, ZodTypeAny, ZodLazy, ZodObject, ZodArray } from 'zod';
@@ -280,6 +280,8 @@ export const getQueryInput = <S extends zod.ZodTypeAny>(schema: S, options: { pa
 
       // keep your query envelope fields
       skip: zod.number().default(0).optional(),
+      take: zod.number().default(10).optional(),
+      // legacy alias kept for backward compatibility across callers
       limit: zod.number().default(10).optional(),
       cursor: zod.record(zod.any()).optional(),
 
