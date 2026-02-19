@@ -284,25 +284,38 @@ export const getQueryInput = <S extends zod.ZodTypeAny>(schema: S, options: { pa
       : (schema as any).optional()
     : schema.optional(); // arrays: allow full array
 
-  const querySchema = zod
-    .object({
-      data: dataSchema,
+  const querySchema = zod.preprocess(
+    (input) => {
+      if (typeof input !== 'object' || input === null || Array.isArray(input)) return input;
 
-      // keep your query envelope fields
-      skip: zod.number().default(0).optional(),
-      take: zod.number().default(10).optional(),
-      // legacy alias kept for backward compatibility across callers
-      limit: zod.number().default(10).optional(),
-      cursor: zod.record(zod.any()).optional(),
+      const query = input as Record<string, unknown>;
+      if (query.take !== undefined || query.limit === undefined) return query;
 
-      // only valid for object schemas
-      where: isObjectSchema ? whereSchema.optional() : zod.undefined().optional(),
+      return {
+        ...query,
+        take: query.limit,
+      };
+    },
+    zod
+      .object({
+        data: dataSchema,
 
-      orderBy: zod.record(zod.enum(['asc', 'desc'])).optional(),
-      include: zod.record(zod.boolean()).optional(),
-      select: zod.record(zod.boolean()).optional(),
-    })
-    .partial();
+        // keep your query envelope fields
+        skip: zod.number().default(0).optional(),
+        take: zod.number().default(10).optional(),
+        // legacy alias kept for backward compatibility across callers
+        limit: zod.number().default(10).optional(),
+        cursor: zod.record(zod.any()).optional(),
+
+        // only valid for object schemas
+        where: isObjectSchema ? whereSchema.optional() : zod.undefined().optional(),
+
+        orderBy: zod.record(zod.enum(['asc', 'desc'])).optional(),
+        include: zod.record(zod.boolean()).optional(),
+        select: zod.record(zod.boolean()).optional(),
+      })
+      .partial()
+  );
 
   return zod.union([querySchema, zod.undefined()]);
 };

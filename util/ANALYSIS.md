@@ -16,3 +16,7 @@ Prevents pagination drift between callers that send `take` vs callers still send
 - Hardened `createPrismaWhereSchema` logical operators (`AND`/`OR`/`NOT`) to accept either array form or single-object shorthand.
 - Added preprocessing that normalizes single-object logical clauses to one-element arrays while preserving array inputs.
 - Improves compatibility with callers that send Prisma-style object shorthand for logical groups.
+
+## 2026-02-19 maintenance update (legacy `limit` normalization)
+- Hardened `getQueryInput` query-envelope preprocessing so legacy `limit` is promoted to `take` when `take` is omitted.
+- Preserves explicit `take` precedence while maintaining backwards compatibility for older callers.
