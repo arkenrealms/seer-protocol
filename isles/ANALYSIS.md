@@ -22,6 +22,7 @@
 ## Protocol/test relevance
 - Router contract is still partially inconsistent (`saveRound` remains a `.query` despite write-like semantics).
 - Misrouting risk is reduced: `interact`/`getScene` no longer default to `Evolution.saveRound`; method resolution now requires explicit callable ownership per method.
+- Router now enforces Isles-first own-property handler resolution with method-matched Evolution fallback and deterministic `TRPCError` when neither service exposes callable handlers.
 - Input schemas rely heavily on `z.any()`, reducing transport-level validation reliability.
 - Large commented legacy code increases maintenance and review risk for protocol safety changes.
 

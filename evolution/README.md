@@ -11,3 +11,6 @@ Evolution protocol module for Seer.
 ## Notes
 - This module currently has mixed strict and permissive contracts (`z.any` still present on several procedures).
 - Service layer is monolithic and contains substantial legacy/commented code blocks.
+- `updateSettings` uses mutation semantics for stateful writes.
+- `updateConfig` uses mutation semantics and remains admin-gated.
+- `monitorParties` remains query-based and admin-gated.

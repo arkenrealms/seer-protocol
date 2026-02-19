@@ -7,7 +7,7 @@
 - `index.ts`: barrel export only.
 - `infinite.router.ts`:
   - Active procedures (`saveRound`, `interact`, `getScene`) resolve Infinite-owned handlers first via shared resolver.
-  - Fallback now matches by method name on Evolution service (`Evolution[method]`), with `saveRound` compatibility fallback retained only for `saveRound` calls.
+  - Fallback now matches by method name on Evolution service (`Evolution[method]`) instead of blanket `Evolution.saveRound` forwarding.
   - Uses permissive schemas (`round: z.any()`, `lastClients: z.any()`, `data: z.any()`), reducing contract determinism.
   - Contains very large commented legacy block (thousands of lines), increasing maintenance/search noise.
 - `infinite.service.ts`:

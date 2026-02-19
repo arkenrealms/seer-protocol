@@ -5,6 +5,7 @@
     "build": "npm-run-all dist",
     "clean": "del-cli ./build && make-dir ./build",
     "dist": "npm-run-all clean tsc:*",
+    "test": "jest --runInBand",
     "publish": "npm publish --access=public",
     "tsc:1": "rm -rf ./build && mkdir ./build && cp package.json ./build && NODE_ENV=production NODE_OPTIONS=--max-old-space-size=8192 tsc -p tsconfig.build.json --listFiles"
   },

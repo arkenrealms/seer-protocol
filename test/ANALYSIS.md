@@ -1,31 +1,32 @@
 # arken/packages/seer/packages/protocol/test/ANALYSIS.md
 
-## Folder purpose in project context
-Local, package-scoped test harness for `@arken/seer-protocol` so source changes can be validated within this direct repo.
+## Purpose
+Provide a direct-repo regression gate for protocol router hardening work.
 
-## Notable files and responsibilities
-- `infinite.router.test.ts`
-  - verifies `resolveInfiniteMethod` handler precedence and fallback behavior.
-  - protects against protocol misrouting bugs where non-`saveRound` calls (`getScene`, `interact`) could be incorrectly delegated.
-  - adds inherited-prototype safety coverage so callback resolution only accepts own handler properties.
-  - covers getter-throwing and non-function own-property handler surfaces to ensure fallback/availability behavior stays deterministic.
-  - verifies resolved handlers preserve method `this` binding to the owning service object.
-- `isles.router.test.ts`
-  - verifies `resolveIslesMethod` Isles-first precedence + method-matched Evolution fallback.
-  - protects against `getScene`/`interact` misrouting into `Evolution.saveRound`.
-  - verifies own-property-only callable resolution and context-preserving invocation.
-  - verifies getter-throwing and non-function own-property fallback safety.
-- `methodResolver.test.ts`
-  - verifies shared resolver toggle behavior for saveRound compatibility fallback.
-  - verifies strict-mode toggle (`allowMethodMatchedFallback: false`) disables all fallback resolution when required.
-  - ensures disabling saveRound fallback does not disable method-matched fallback for non-saveRound procedures.
-  - verifies empty/whitespace method names are rejected and trimmed method names still resolve correctly.
-  - verifies resolver behavior remains deterministic when own-property inspection throws during primary/fallback lookup.
+## This run
+- Added Jest test harness entrypoint via package script (`npm test` -> `jest --runInBand`).
+- Added and expanded `test/evolution.router.test.ts` to enforce:
+  - guarded own-property dispatch and deterministic unavailable-handler messaging for `info`,
+  - mutation semantics for `updateConfig` and `updateSettings`,
+  - own-property descriptor handler resolution for `updateConfig`, `monitorParties`, and `updateSettings`,
+  - deterministic internal-error messaging when handler wiring is missing,
+  - context-preserving method invocation,
+  - explicit `TRPCError` import presence in `evolution.router.ts` so guarded error paths do not rely on undeclared globals.
+- Added `test/oasis.router.test.ts` to enforce:
+  - explicit `TRPCError` import in `oasis.router.ts`,
+  - own-property descriptor resolution for `Oasis.getPatrons`,
+  - deterministic unavailable-handler messaging,
+  - context-preserving invocation semantics for Oasis service dispatch,
+  - `getScene` non-object payload guarding before `applicationId` reads.
 
-## Protocol/test relevance
-- Establishes the first package-local runnable test surface for seer-protocol.
-- Enables source-change test gate compliance for small router hardening edits.
+- Added `test/router-routing.test.ts` to lock Isles/Infinite routing invariants:
+  - own-property method resolution on `Isles`/`Infinite`,
+  - method-matched fallback on `Evolution`,
+  - no regression to blanket `Evolution.saveRound` dispatch for non-`saveRound` routes.
 
-## Risks / gaps / follow-ups
-- Coverage currently targets only Infinite router resolution logic.
-- Follow-up: add module tests for Isles/Oasis/Evolution auth + schema boundary behavior once minimal context fixtures are codified.
+## Follow-up
+- Expand tests from source-shape checks to runtime caller execution with fixture contexts for high-risk procedures (`saveRound`, payment flows, party mutations).
+
+## 2026-02-18 maintenance update
+- Migrated `router-routing` regression test from `.js` to `.ts` (`test/router-routing.test.ts`) to keep package tests aligned with TypeScript-first test standardization.
+- Re-ran package-local Jest gate after migration to confirm no behavioral regression.

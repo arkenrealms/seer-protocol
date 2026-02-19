@@ -1,22 +1,26 @@
-# arken/packages/seer/packages/protocol/test/README.md
+# arken/packages/seer/packages/protocol/test
 
-Package-local protocol tests for `@arken/seer-protocol`.
+Jest-based package-local tests for `@arken/seer-protocol`.
 
-## Current scope
-- `infinite.router.test.ts`
-  - validates method resolution behavior in Infinite router service fallback logic.
-  - guards against accidental routing of non-`saveRound` methods (`getScene`, `interact`) to `Evolution.saveRound`.
-  - validates inherited-prototype handler safety (own-property method resolution only).
-  - validates resilience when candidate handlers are getter-backed/non-function values.
-  - validates handler invocation preserves owning service context (`this`) to avoid method-binding drift.
-- `isles.router.test.ts`
-  - validates Isles resolver precedence (`Isles` before `Evolution`).
-  - guards against accidental `getScene`/`interact` -> `Evolution.saveRound` misrouting.
-  - validates inherited-prototype handler rejection and context-preserving invocation.
-  - validates getter-throwing and non-function own-property handler fallback behavior.
-- `methodResolver.test.ts`
-  - validates shared resolver policy toggles (`allowMethodMatchedFallback`, `allowSaveRoundFallback`) for explicit fallback behavior.
-  - preserves method-matched fallback behavior for non-saveRound methods when saveRound fallback is disabled.
-  - verifies strict mode can disable method-matched fallback entirely.
-  - validates trimmed/non-empty method-name enforcement to keep resolver inputs deterministic.
-  - validates safe fallback behavior when own-property lookup itself throws (Proxy/getOwnPropertyDescriptor traps).
+## Current coverage
+- `evolution.router.test.ts`
+  - verifies `info` uses own-property descriptor guard lookup on `Evolution.info`
+  - verifies deterministic unavailable-handler error string for missing `Evolution.info` wiring
+  - verifies `updateConfig` and `updateSettings` remain mutation-based (not query-based)
+  - verifies `monitorParties` uses guarded own-property query dispatch
+  - verifies own-property descriptor guard usage for `Evolution.updateConfig`, `Evolution.monitorParties`, and `Evolution.updateSettings`
+  - verifies deterministic unavailable-handler error strings
+  - verifies context-preserving `method.call(evolutionService, input, ctx)` dispatch
+  - verifies explicit `TRPCError` import from `@trpc/server` for guarded throw paths
+- `oasis.router.test.ts`
+  - verifies `getPatrons` uses own-property descriptor guard lookup on `Oasis.getPatrons`
+  - verifies deterministic unavailable-handler error string for missing Oasis handler wiring
+  - verifies context-preserving `method.call(oasisService, input, ctx)` dispatch
+  - verifies `getScene` guards non-object `input.data` before reading `applicationId`
+- `router-routing.test.ts`
+  - verifies `isles` and `infinite` resolve handlers by matching method names (`saveRound`/`interact`/`getScene`)
+  - verifies Isles/Infinite service own-property handlers are preferred with Evolution method-matched fallback
+  - verifies legacy blanket `Evolution.saveRound` routing is not reintroduced for `interact`/`getScene`
+
+## Run
+- `npm test` (from `arken/packages/seer/packages/protocol`)
