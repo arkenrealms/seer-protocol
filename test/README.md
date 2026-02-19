@@ -8,6 +8,7 @@ Jest-based package-local tests for `@arken/seer-protocol`.
   - verifies own-property descriptor guard usage for `Evolution.updateSettings`
   - verifies deterministic unavailable-handler error string
   - verifies context-preserving `method.call(evolutionService, input, ctx)` dispatch
+  - verifies explicit `TRPCError` import from `@trpc/server` for guarded throw paths
 
 ## Run
 - `npm test` (from `arken/packages/seer/packages/protocol`)

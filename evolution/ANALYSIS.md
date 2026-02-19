@@ -33,6 +33,7 @@
 ## 2026-02-18 maintenance update
 - Hardened `updateSettings` dispatch to use own-property descriptor method resolution (`Object.getOwnPropertyDescriptor(...).value`) and deterministic `TRPCError(INTERNAL_SERVER_ERROR)` fallback when handler wiring is missing/non-callable.
 - Added package-local Jest guard coverage in `test/evolution.router.test.ts` to keep mutation semantics and guarded dispatch behavior from regressing.
+- Fixed missing `TRPCError` import in `evolution.router.ts`; previously this handler referenced `TRPCError` without importing it from `@trpc/server`, creating a compile/runtime risk once transpilation executes this path.
 
 ## Maintenance notes
 - 2026-02-17: Normalized top-of-file path headers in module source files to `arken/...` for `evolution.models.ts`, `evolution.schema.ts`, `evolution.types.ts`, `evolution.service.ts`, and `evolution.router.ts`.

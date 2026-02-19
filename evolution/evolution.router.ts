@@ -1,6 +1,6 @@
 // arken/packages/seer/packages/protocol/src/modules/evolution/evolution.router.ts
 import { z as zod } from 'zod';
-import { initTRPC } from '@trpc/server';
+import { initTRPC, TRPCError } from '@trpc/server';
 import { customErrorFormatter, hasRole } from '../util/rpc';
 import { Query, getQueryInput, inferRouterOutputs, inferRouterInputs } from '../util/schema';
 import { RouterContext, Core } from '../types';

@@ -11,6 +11,7 @@ describe('evolution router dispatch guards', () => {
     const updateSettingsBlock =
       source.match(/updateSettings:[\s\S]*?(?=\n\s*getPayments:)/)?.[0] ?? '';
 
+    expect(source).toMatch(/import\s+\{\s*initTRPC\s*,\s*TRPCError\s*\}\s+from\s+'@trpc\/server';/);
     expect(updateSettingsBlock.length).toBeGreaterThan(0);
     expect(updateSettingsBlock).toMatch(/\.mutation\(\(\{ input, ctx \}\) =>/);
     expect(updateSettingsBlock).not.toMatch(/\.query\(\(\{ input, ctx \}\) =>/);

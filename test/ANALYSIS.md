@@ -9,7 +9,8 @@ Provide a direct-repo regression gate for protocol router hardening work.
   - mutation semantics for `updateSettings`,
   - own-property descriptor handler resolution,
   - deterministic internal-error messaging when handler wiring is missing,
-  - context-preserving method invocation.
+  - context-preserving method invocation,
+  - explicit `TRPCError` import presence in `evolution.router.ts` so guarded error paths do not rely on undeclared globals.
 
 ## Follow-up
 - Expand tests from source-shape checks to runtime caller execution with fixture contexts for high-risk procedures (`saveRound`, payment flows, party mutations).
