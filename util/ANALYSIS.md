@@ -11,3 +11,8 @@ Utility schema helpers used across Seer protocol routers.
 
 ## Reliability impact
 Prevents pagination drift between callers that send `take` vs callers still sending `limit`.
+
+## 2026-02-19 maintenance update (logical clause normalization)
+- Hardened `createPrismaWhereSchema` logical operators (`AND`/`OR`/`NOT`) to accept either array form or single-object shorthand.
+- Added preprocessing that normalizes single-object logical clauses to one-element arrays while preserving array inputs.
+- Improves compatibility with callers that send Prisma-style object shorthand for logical groups.

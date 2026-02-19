@@ -246,10 +246,20 @@ export const createPrismaWhereSchema = <T extends zod.ZodRawShape>(
     });
   }
 
+  const logicalClauseSchema = zod.preprocess(
+    (input) => {
+      if (input === undefined) return input;
+      if (Array.isArray(input)) return input;
+      if (typeof input === 'object' && input !== null) return [input];
+      return input;
+    },
+    zod.array(zod.lazy(() => createPrismaWhereSchema(modelSchema, depth - 1)))
+  );
+
   return zod.object({
-    AND: zod.array(zod.lazy(() => createPrismaWhereSchema(modelSchema, depth - 1))).optional(),
-    OR: zod.array(zod.lazy(() => createPrismaWhereSchema(modelSchema, depth - 1))).optional(),
-    NOT: zod.array(zod.lazy(() => createPrismaWhereSchema(modelSchema, depth - 1))).optional(),
+    AND: logicalClauseSchema.optional(),
+    OR: logicalClauseSchema.optional(),
+    NOT: logicalClauseSchema.optional(),
     ...fieldFilters,
   });
 };

@@ -13,4 +13,15 @@ describe('util/schema query envelope shape', () => {
     expect(getQueryInputBlock).toMatch(/limit:\s*zod\.number\(\)\.default\(10\)\.optional\(\)/);
     expect(getQueryInputBlock).toMatch(/where:\s*isObjectSchema\s*\?\s*whereSchema\.optional\(\)\s*:\s*zod\.undefined\(\)\.optional\(\)/);
   });
+
+  test('createPrismaWhereSchema normalizes object-form AND/OR/NOT clauses', async () => {
+    const source = await fs.readFile(path.resolve(root, 'util', 'schema.ts'), 'utf8');
+
+    expect(source).toMatch(/const logicalClauseSchema = zod\.preprocess\(/);
+    expect(source).toMatch(/if \(Array\.isArray\(input\)\) return input;/);
+    expect(source).toMatch(/if \(typeof input === 'object' && input !== null\) return \[input\];/);
+    expect(source).toMatch(/AND:\s*logicalClauseSchema\.optional\(\)/);
+    expect(source).toMatch(/OR:\s*logicalClauseSchema\.optional\(\)/);
+    expect(source).toMatch(/NOT:\s*logicalClauseSchema\.optional\(\)/);
+  });
 });
