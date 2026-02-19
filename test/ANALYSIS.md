@@ -16,7 +16,8 @@ Provide a direct-repo regression gate for protocol router hardening work.
   - explicit `TRPCError` import in `oasis.router.ts`,
   - own-property descriptor resolution for `Oasis.getPatrons`,
   - deterministic unavailable-handler messaging,
-  - context-preserving invocation semantics for Oasis service dispatch.
+  - context-preserving invocation semantics for Oasis service dispatch,
+  - `getScene` non-object payload guarding before `applicationId` reads.
 
 - Added `test/router-routing.test.ts` to lock Isles/Infinite routing invariants:
   - own-property method resolution on `Isles`/`Infinite`,

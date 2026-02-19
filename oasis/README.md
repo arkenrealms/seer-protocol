@@ -11,6 +11,7 @@ Oasis-specific Seer protocol surface.
 - `getPatrons` aggregates top "Founder's Cube" holders and returns related profiles.
 - `interact` is currently a stub mutation returning `{ status: 1 }`.
 - `getScene` returns a hardcoded object payload for one application id.
+- `getScene` now guards `input.data` shape before reading `applicationId`, preventing runtime `TypeError` when clients send non-object payloads under current permissive schema.
 
 ## Protocol/testing note
 This module has low input validation depth (notably broad `z.any()` fields) and stubbed behavior paths; it is a candidate for contract-tightening and tests around malformed input/result handling.

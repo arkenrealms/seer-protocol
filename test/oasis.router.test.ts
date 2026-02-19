@@ -17,4 +17,15 @@ describe('oasis router dispatch guards', () => {
     expect(getPatronsBlock).toMatch(/Oasis\.getPatrons handler is unavailable for oasis\.getPatrons/);
     expect(getPatronsBlock).toMatch(/return method\.call\(oasisService, input, ctx\)/);
   });
+
+  test('getScene guards non-object data before reading applicationId', async () => {
+    const source = await fs.readFile(path.resolve(root, 'oasis', 'oasis.router.ts'), 'utf8');
+    const getSceneBlock = source.match(/getScene:[\s\S]*?\n\s*}\),/)?.[0] ?? '';
+
+    expect(getSceneBlock.length).toBeGreaterThan(0);
+    expect(getSceneBlock).toMatch(/const sceneInput = input\?\.data;/);
+    expect(getSceneBlock).toMatch(/typeof sceneInput === 'object'/);
+    expect(getSceneBlock).toMatch(/const applicationId =/);
+    expect(getSceneBlock).not.toMatch(/input\.data\.applicationId/);
+  });
 });

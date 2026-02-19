@@ -57,8 +57,11 @@ export const createRouter = () =>
       )
       .query(({ input, ctx }) => {
         let data = {};
+        const sceneInput = input?.data;
+        const applicationId =
+          sceneInput && typeof sceneInput === 'object' ? (sceneInput as any).applicationId : undefined;
 
-        if (input.data.applicationId === '668e4e805f9a03927caf883b') {
+        if (applicationId === '668e4e805f9a03927caf883b') {
           data = {
             ...data,
             objects: [
