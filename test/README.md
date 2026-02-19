@@ -15,7 +15,7 @@ Jest-based package-local tests for `@arken/seer-protocol`.
   - verifies `getPatrons` uses own-property descriptor guard lookup on `Oasis.getPatrons`
   - verifies deterministic unavailable-handler error string for missing Oasis handler wiring
   - verifies context-preserving `method.call(oasisService, input, ctx)` dispatch
-- `router-routing.test.js`
+- `router-routing.test.ts`
   - verifies `isles` and `infinite` resolve handlers by matching method names (`saveRound`/`interact`/`getScene`)
   - verifies Isles/Infinite service own-property handlers are preferred with Evolution method-matched fallback
   - verifies legacy blanket `Evolution.saveRound` routing is not reintroduced for `interact`/`getScene`

@@ -33,7 +33,7 @@
 - `evolution` centralizes critical reward/payment/round flows but still carries permissive contracts (`z.any`) and large monolithic logic that raises change risk.
 - Root router composes many node+seer routers, so module-level contract gaps can propagate widely.
 - Package-level strictness is intentionally relaxed (`noImplicitAny: false`, `strictNullChecks: false`) and eslint disables many safety rules, which increases protocol/type drift risk without compensating tests.
-- Package now has a local `npm test` harness (`node --test --experimental-strip-types test/*.test.ts`) for direct-repo regression checks.
+- Package now has a local `npm test` Jest harness (`jest --runInBand`) for direct-repo regression checks.
 
 ## Guard-script mapping (this chunk)
 - Verified package-level script surface is empty (`scripts: {}`), so local quality gates are currently implicit/ambient.
