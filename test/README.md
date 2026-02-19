@@ -4,6 +4,8 @@ Jest-based package-local tests for `@arken/seer-protocol`.
 
 ## Current coverage
 - `evolution.router.test.ts`
+  - verifies `info` uses own-property descriptor guard lookup on `Evolution.info`
+  - verifies deterministic unavailable-handler error string for missing `Evolution.info` wiring
   - verifies `updateConfig` and `updateSettings` remain mutation-based (not query-based)
   - verifies own-property descriptor guard usage for both `Evolution.updateConfig` and `Evolution.updateSettings`
   - verifies deterministic unavailable-handler error strings

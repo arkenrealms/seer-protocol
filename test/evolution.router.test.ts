@@ -5,14 +5,22 @@ const path = require('node:path');
 describe('evolution router dispatch guards', () => {
   const root = process.cwd();
 
-  test('updateConfig and updateSettings are mutation-based and use guarded own-property dispatch', async () => {
+  test('info, updateConfig, and updateSettings use guarded own-property dispatch', async () => {
     const source = await fs.readFile(path.resolve(root, 'evolution', 'evolution.router.ts'), 'utf8');
 
+    const infoBlock = source.match(/info:[\s\S]*?(?=\n\s*updateConfig:)/)?.[0] ?? '';
     const updateConfigBlock = source.match(/updateConfig:[\s\S]*?(?=\n\s*updateGameStats:)/)?.[0] ?? '';
     const updateSettingsBlock =
       source.match(/updateSettings:[\s\S]*?(?=\n\s*getPayments:)/)?.[0] ?? '';
 
     expect(source).toMatch(/import\s+\{\s*initTRPC\s*,\s*TRPCError\s*\}\s+from\s+'@trpc\/server';/);
+
+    expect(infoBlock.length).toBeGreaterThan(0);
+    expect(infoBlock).toMatch(/\.query\(\(\{ input, ctx \}\) =>/);
+    expect(infoBlock).toMatch(/Object\.prototype\.hasOwnProperty\.call\(evolutionService, 'info'\)/);
+    expect(infoBlock).toMatch(/Object\.getOwnPropertyDescriptor\(evolutionService, 'info'\)/);
+    expect(infoBlock).toMatch(/Evolution\.info handler is unavailable for evolution\.info/);
+    expect(infoBlock).toMatch(/return method\.call\(evolutionService, input, ctx\)/);
 
     expect(updateConfigBlock.length).toBeGreaterThan(0);
     expect(updateConfigBlock).toMatch(/\.mutation\(\(\{ input, ctx \}\) =>/);

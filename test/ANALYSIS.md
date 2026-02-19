@@ -6,6 +6,7 @@ Provide a direct-repo regression gate for protocol router hardening work.
 ## This run
 - Added Jest test harness entrypoint via package script (`npm test` -> `jest --runInBand`).
 - Added and expanded `test/evolution.router.test.ts` to enforce:
+  - guarded own-property dispatch and deterministic unavailable-handler messaging for `info`,
   - mutation semantics for `updateConfig` and `updateSettings`,
   - own-property descriptor handler resolution for both routes,
   - deterministic internal-error messaging when handler wiring is missing,

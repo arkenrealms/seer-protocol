@@ -31,6 +31,7 @@
 - [ ] Split large service concerns into domain slices (rounds/rewards/payments/party/chest) to reduce blast radius.
 
 ## 2026-02-18 maintenance update
+- Hardened `info` dispatch to use own-property descriptor method resolution (`Object.getOwnPropertyDescriptor(...).value`) and deterministic `TRPCError(INTERNAL_SERVER_ERROR)` fallback when `Evolution.info` wiring is missing/non-callable.
 - Hardened `updateSettings` dispatch to use own-property descriptor method resolution (`Object.getOwnPropertyDescriptor(...).value`) and deterministic `TRPCError(INTERNAL_SERVER_ERROR)` fallback when handler wiring is missing/non-callable.
 - Applied the same guarded-dispatch pattern to `updateConfig` so admin config writes fail deterministically (instead of throwing raw `TypeError`) when `Evolution.updateConfig` is absent/non-callable.
 - Added package-local Jest guard coverage in `test/evolution.router.test.ts` to keep mutation semantics and guarded dispatch behavior from regressing for both `updateConfig` and `updateSettings`.
