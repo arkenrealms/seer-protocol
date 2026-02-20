@@ -72,6 +72,24 @@ export const Entity = z
 
 export type Entity = zod.infer<typeof Entity>;
 
+const ReservedQueryEnvelopeKeys = new Set(['__proto__', 'constructor', 'prototype']);
+
+const rejectReservedQueryEnvelopeKey = (
+  key: string,
+  label: string,
+  ctx: zod.RefinementCtx
+) => {
+  if (ReservedQueryEnvelopeKeys.has(key)) {
+    ctx.addIssue({
+      code: zod.ZodIssueCode.custom,
+      message: `${label} cannot include reserved key \"${key}\"`,
+    });
+    return true;
+  }
+
+  return false;
+};
+
 const QueryFilterOperators = z.object({
   equals: z.any().optional(),
   not: z.any().optional(),
@@ -99,6 +117,10 @@ const NonBlankOrderByRecord = z
         });
         return;
       }
+
+      if (rejectReservedQueryEnvelopeKey(key, 'orderBy', ctx)) {
+        return;
+      }
     }
   });
 
@@ -113,6 +135,10 @@ const NonBlankBooleanRecord = z
         });
         return;
       }
+
+      if (rejectReservedQueryEnvelopeKey(key, 'selection', ctx)) {
+        return;
+      }
     }
   });
 
@@ -125,6 +151,10 @@ const NonBlankCursorRecord = z
           code: zod.ZodIssueCode.custom,
           message: 'cursor keys must be non-empty and non-whitespace',
         });
+        return;
+      }
+
+      if (rejectReservedQueryEnvelopeKey(key, 'cursor', ctx)) {
         return;
       }
     }

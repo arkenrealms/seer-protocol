@@ -41,3 +41,8 @@ Additionally constrains `skip`/`take`/`limit` to non-negative integers, blocking
 ## 2026-02-20 13:0x PST — logical where-array non-empty enforcement
 - Added `.min(1)` guards for recursive logical operators (`AND`, `OR`, `NOT`) in both util `QueryWhereSchema` and `createPrismaWhereSchema`.
 - Why: empty logical arrays are ambiguous no-op filters; rejecting them at schema boundary catches malformed queries before router/data-layer execution.
+
+## 2026-02-20 15:xx PST — reserved-key rejection for query envelope maps
+- Added `rejectReservedQueryEnvelopeKey` checks to `orderBy`, `include`/`select`, and `cursor` record validators in both root + util schema helpers.
+- Rejected keys: `__proto__`, `constructor`, `prototype`.
+- Why: these are prototype-pollution vectors in dynamic object maps; failing at protocol parse time keeps query envelopes deterministic and prevents polluted payloads from reaching downstream services.

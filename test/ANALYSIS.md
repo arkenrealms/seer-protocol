@@ -96,3 +96,7 @@ Provide a direct-repo regression gate for protocol router hardening work.
 - Expanded `schema.query-input.test.ts` and `schema.root-query-input.test.ts` to reject empty `AND`/`OR`/`NOT` arrays for both `Query` and `getQueryInput`.
 - Added positive assertions for valid non-empty logical arrays.
 - Why: locks deterministic query-filter semantics and prevents silent acceptance of ambiguous/no-op logical clauses.
+
+## 2026-02-20 15:xx PST — reserved-key query-map regression lock
+- Expanded both util/root query-envelope suites to reject reserved keys (`__proto__`, `constructor`, `prototype`) in `orderBy`, selection maps, and `cursor`.
+- Why: validates protocol-level rejection of prototype-pollution vector keys and keeps parse behavior deterministic for dynamic query maps.

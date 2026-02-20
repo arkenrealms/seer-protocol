@@ -113,3 +113,8 @@
 - Hardened both root and util query schemas so logical operators (`AND`, `OR`, `NOT`) reject empty arrays in both exported `Query` and recursive `createPrismaWhereSchema` paths.
 - Added behavior tests in root/util schema suites to assert empty-array rejection and valid non-empty logical clauses.
 - Rationale: empty logical arrays are effectively no-op/ambiguous filters that can mask caller bugs; failing fast at protocol ingress improves query determinism.
+
+## 2026-02-20 15:xx PST — reserved key guard for dynamic query maps
+- Hardened both root and util query-map validators (`orderBy`, `include`/`select`, `cursor`) to reject reserved keys: `__proto__`, `constructor`, `prototype`.
+- Expanded both schema regression suites to lock rejection behavior for these keys.
+- Rationale: these keys are common prototype-pollution vectors in dynamic object payloads; protocol-layer rejection prevents polluted envelopes from reaching router/service execution paths.

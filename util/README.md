@@ -10,3 +10,4 @@ Shared schema/util helpers for protocol routers and tests.
 - `orderBy` now rejects blank/whitespace-only keys to prevent malformed sort envelopes.
 - `include` and `select` now reject blank/whitespace-only keys so malformed projection envelopes fail fast.
 - `take` and legacy `limit` must now match when both are provided, preventing conflicting pagination aliases.
+- `orderBy`, `include`/`select`, and `cursor` now reject reserved keys (`__proto__`, `constructor`, `prototype`) to block prototype-pollution style payloads.

@@ -107,6 +107,15 @@ describe('root schema query envelope parity', () => {
     expect(schema.parse({ cursor: { id: 'abc' } }).cursor.id).toBe('abc');
   });
 
+  test('schema.ts Query and getQueryInput reject reserved prototype-pollution keys', () => {
+    const schema = getQueryInput(z.object({ name: z.string() }));
+
+    expect(() => Query.parse({ include: { constructor: true } })).toThrow(/reserved key/);
+    expect(() => Query.parse({ cursor: { prototype: 'abc' } })).toThrow(/reserved key/);
+
+    expect(() => schema.parse({ select: { constructor: true } })).toThrow(/reserved key/);
+    expect(() => schema.parse({ cursor: { prototype: 'abc' } })).toThrow(/reserved key/);
+  });
 
   test('schema.ts Query and getQueryInput reject empty logical where arrays', () => {
     expect(() => Query.parse({ where: { AND: [] } })).toThrow(/AND must contain at least one condition/);
