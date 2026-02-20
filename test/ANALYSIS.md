@@ -60,3 +60,10 @@ Provide a direct-repo regression gate for protocol router hardening work.
 - Replaced brittle regex/source-read assertions in `schema.root-query-input.test.ts` with runtime behavior tests that execute root `schema.ts` exports.
 - Added validation for accepted/rejected pagination inputs and strict `mode` enum enforcement through `getQueryInput` parsing.
 - Why: follow-up architect request (`highruned`) to remove fragile source-shape tests and use robust contract behavior checks.
+
+## 2026-02-20 00:10 PST — router/schema brittle test suite converted to runtime behavior
+- Reworked `evolution.router.test.ts` to validate actual router procedure types (`query` vs `mutation`) and service dispatch execution via `createCaller`, instead of matching source text.
+- Reworked `oasis.router.test.ts` to validate runtime dispatch for `getPatrons` and safe `getScene` behavior with both non-object and object `data` payloads.
+- Reworked `router-routing.test.ts` to validate Isles/Infinite method resolution behavior (service-first + Evolution fallback + deterministic missing-handler errors) using executable callers.
+- Reworked `schema.depth-normalization.test.ts` to validate depth normalization behavior through parse outcomes for NaN/negative/fractional depths rather than source regex checks.
+- Why: direct architect request (`highruned`) to replace brittle source-shape tests with robust behavior-based tests less prone to breakage from formatting/refactors.

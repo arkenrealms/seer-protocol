@@ -1,17 +1,64 @@
 // arken/packages/seer/packages/protocol/test/schema.depth-normalization.test.ts
-const fs = require('node:fs/promises');
+const fs = require('node:fs');
 const path = require('node:path');
+const Module = require('node:module');
+const ts = require('typescript');
 
-describe('schema where-depth normalization guard', () => {
+function loadRootSchemaRuntime() {
   const root = process.cwd();
+  const schemaPath = path.resolve(root, 'schema.ts');
+  const source = fs.readFileSync(schemaPath, 'utf8');
 
-  test('createPrismaWhereSchema normalizes depth before recursion in root schema', async () => {
-    const source = await fs.readFile(path.resolve(root, 'schema.ts'), 'utf8');
-    const block =
-      source.match(/export const createPrismaWhereSchema[\s\S]*?return zod\.object\(\{[\s\S]*?\}\);\n\};/)?.[0] ?? '';
+  const { outputText } = ts.transpileModule(source, {
+    compilerOptions: {
+      module: ts.ModuleKind.CommonJS,
+      target: ts.ScriptTarget.ES2020,
+      esModuleInterop: true,
+    },
+    fileName: schemaPath,
+  });
 
-    expect(block).toMatch(/const normalizedDepth = Number\.isFinite\(depth\) \? Math\.max\(0, Math\.floor\(depth\)\) : 0;/);
-    expect(block).toMatch(/if \(normalizedDepth <= 0\)/);
-    expect(block).toMatch(/createPrismaWhereSchema\(modelSchema, normalizedDepth - 1\)/);
+  const m = new Module.Module(schemaPath, module);
+  m.filename = schemaPath;
+  m.paths = Module.Module._nodeModulePaths(path.dirname(schemaPath));
+  m._compile(outputText, schemaPath);
+
+  return m.exports;
+}
+
+describe('schema where-depth normalization behavior', () => {
+  const { z, createPrismaWhereSchema } = loadRootSchemaRuntime();
+  const modelSchema = z.object({ name: z.string() });
+
+  test('normalizes non-finite and negative depth to base-shape behavior', () => {
+    const nanDepth = createPrismaWhereSchema(modelSchema, Number.NaN);
+    const negativeDepth = createPrismaWhereSchema(modelSchema, -2);
+
+    const parsedNaN = nanDepth.parse({ AND: [{ name: 'x' }], name: 'alice' });
+    const parsedNegative = negativeDepth.parse({ OR: [{ name: 'x' }], name: 'alice' });
+
+    expect(parsedNaN).toEqual({ name: { equals: 'alice' } });
+    expect(parsedNegative).toEqual({ name: { equals: 'alice' } });
+  });
+
+  test('normalizes fractional depth before recursive where construction', () => {
+    const depthOnePointNine = createPrismaWhereSchema(modelSchema, 1.9);
+
+    const parsed = depthOnePointNine.parse({
+      AND: [
+        {
+          name: 'alice',
+          AND: [{ name: 'nested-too-deep' }],
+        },
+      ],
+    });
+
+    expect(parsed).toEqual({
+      AND: [
+        {
+          name: { equals: 'alice' },
+        },
+      ],
+    });
   });
 });
