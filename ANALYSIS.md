@@ -108,3 +108,8 @@
 - Updated both root `schema.ts` and `util/schema.ts` query envelopes so `cursor` rejects blank/whitespace-only keys.
 - Expanded root/util schema tests to verify rejection of malformed cursor maps and acceptance of valid cursor keys.
 - Rationale: blank cursor keys create ambiguous pagination state and downstream query failures; protocol-boundary validation keeps cursor behavior deterministic.
+
+## 2026-02-20 13:0x PST — non-empty logical where-clause guard
+- Hardened both root and util query schemas so logical operators (`AND`, `OR`, `NOT`) reject empty arrays in both exported `Query` and recursive `createPrismaWhereSchema` paths.
+- Added behavior tests in root/util schema suites to assert empty-array rejection and valid non-empty logical clauses.
+- Rationale: empty logical arrays are effectively no-op/ambiguous filters that can mask caller bugs; failing fast at protocol ingress improves query determinism.

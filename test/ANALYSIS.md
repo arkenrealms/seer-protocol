@@ -91,3 +91,8 @@ Provide a direct-repo regression gate for protocol router hardening work.
 - Expanded both util/root schema suites to reject blank/whitespace-only keys in `cursor` maps.
 - Added positive assertions that valid cursor keys still parse.
 - Why: cursor payloads with empty keys can break pagination determinism; boundary-level tests lock reliable parse behavior.
+
+## 2026-02-20 13:0x PST — logical where-array regression lock
+- Expanded `schema.query-input.test.ts` and `schema.root-query-input.test.ts` to reject empty `AND`/`OR`/`NOT` arrays for both `Query` and `getQueryInput`.
+- Added positive assertions for valid non-empty logical arrays.
+- Why: locks deterministic query-filter semantics and prevents silent acceptance of ambiguous/no-op logical clauses.

@@ -107,6 +107,22 @@ describe('root schema query envelope parity', () => {
     expect(schema.parse({ cursor: { id: 'abc' } }).cursor.id).toBe('abc');
   });
 
+
+  test('schema.ts Query and getQueryInput reject empty logical where arrays', () => {
+    expect(() => Query.parse({ where: { AND: [] } })).toThrow(/AND must contain at least one condition/);
+    expect(() => Query.parse({ where: { OR: [] } })).toThrow(/OR must contain at least one condition/);
+    expect(() => Query.parse({ where: { NOT: [] } })).toThrow(/NOT must contain at least one condition/);
+
+    const schema = getQueryInput(z.object({ name: z.string() }));
+
+    expect(() => schema.parse({ where: { AND: [] } })).toThrow(/AND must contain at least one condition/);
+    expect(() => schema.parse({ where: { OR: [] } })).toThrow(/OR must contain at least one condition/);
+    expect(() => schema.parse({ where: { NOT: [] } })).toThrow(/NOT must contain at least one condition/);
+
+    const valid = schema.parse({ where: { OR: [{ name: { equals: 'abc' } }] } });
+    expect(valid.where.OR).toHaveLength(1);
+  });
+
   test('schema.ts getQueryInput enforces mode enum and legacy limit alias', () => {
     const schema = getQueryInput(z.object({ name: z.string() }));
 

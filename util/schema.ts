@@ -158,9 +158,9 @@ const normalizeTakeLimitAliases = <T extends { take?: number; limit?: number }>(
 
 const QueryWhereSchema = z.lazy(() =>
   z.object({
-    AND: z.array(QueryWhereSchema).optional(),
-    OR: z.array(QueryWhereSchema).optional(),
-    NOT: z.array(QueryWhereSchema).optional(),
+    AND: z.array(QueryWhereSchema).min(1, 'AND must contain at least one condition').optional(),
+    OR: z.array(QueryWhereSchema).min(1, 'OR must contain at least one condition').optional(),
+    NOT: z.array(QueryWhereSchema).min(1, 'NOT must contain at least one condition').optional(),
     id: QueryFilterOperators.optional(),
     key: QueryFilterOperators.optional(),
     name: QueryFilterOperators.optional(),
@@ -324,9 +324,9 @@ export const createPrismaWhereSchema = <T extends zod.ZodRawShape>(
   }
 
   return zod.object({
-    AND: zod.array(zod.lazy(() => createPrismaWhereSchema(modelSchema, normalizedDepth - 1))).optional(),
-    OR: zod.array(zod.lazy(() => createPrismaWhereSchema(modelSchema, normalizedDepth - 1))).optional(),
-    NOT: zod.array(zod.lazy(() => createPrismaWhereSchema(modelSchema, normalizedDepth - 1))).optional(),
+    AND: zod.array(zod.lazy(() => createPrismaWhereSchema(modelSchema, normalizedDepth - 1))).min(1, 'AND must contain at least one condition').optional(),
+    OR: zod.array(zod.lazy(() => createPrismaWhereSchema(modelSchema, normalizedDepth - 1))).min(1, 'OR must contain at least one condition').optional(),
+    NOT: zod.array(zod.lazy(() => createPrismaWhereSchema(modelSchema, normalizedDepth - 1))).min(1, 'NOT must contain at least one condition').optional(),
     ...fieldFilters,
   });
 };

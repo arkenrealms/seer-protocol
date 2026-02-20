@@ -127,6 +127,22 @@ describe('util/schema query envelope behavior', () => {
     expect(schema.parse({ cursor: { id: 'abc' } }).cursor.id).toBe('abc');
   });
 
+
+  test('Query and getQueryInput reject empty logical where arrays', () => {
+    expect(() => Query.parse({ where: { AND: [] } })).toThrow(/AND must contain at least one condition/);
+    expect(() => Query.parse({ where: { OR: [] } })).toThrow(/OR must contain at least one condition/);
+    expect(() => Query.parse({ where: { NOT: [] } })).toThrow(/NOT must contain at least one condition/);
+
+    const schema = getQueryInput(z.object({ name: z.string() }));
+
+    expect(() => schema.parse({ where: { AND: [] } })).toThrow(/AND must contain at least one condition/);
+    expect(() => schema.parse({ where: { OR: [] } })).toThrow(/OR must contain at least one condition/);
+    expect(() => schema.parse({ where: { NOT: [] } })).toThrow(/NOT must contain at least one condition/);
+
+    const valid = schema.parse({ where: { AND: [{ name: { equals: 'abc' } }] } });
+    expect(valid.where.AND).toHaveLength(1);
+  });
+
   test('getQueryInput disallows where for non-object schemas', () => {
     const schema = getQueryInput(z.array(z.string()));
 

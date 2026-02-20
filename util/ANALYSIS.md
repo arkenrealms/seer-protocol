@@ -37,3 +37,7 @@ Additionally constrains `skip`/`take`/`limit` to non-negative integers, blocking
 - Added `normalizeTakeLimitAliases` in both util/root schema query envelopes.
 - `Query` and `getQueryInput` now backfill missing alias fields (`limit` -> `take`, `take` -> `limit`) after parity checks.
 - Why: mixed callers still send a single alias; normalizing at the protocol boundary prevents downstream branching and keeps pagination handling deterministic.
+
+## 2026-02-20 13:0x PST — logical where-array non-empty enforcement
+- Added `.min(1)` guards for recursive logical operators (`AND`, `OR`, `NOT`) in both util `QueryWhereSchema` and `createPrismaWhereSchema`.
+- Why: empty logical arrays are ambiguous no-op filters; rejecting them at schema boundary catches malformed queries before router/data-layer execution.
