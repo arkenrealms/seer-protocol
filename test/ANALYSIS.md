@@ -41,3 +41,8 @@ Provide a direct-repo regression gate for protocol router hardening work.
 - Added `schema.depth-normalization.test.ts` to assert `createPrismaWhereSchema` normalizes depth before recursion.
 - Locks guardrails against non-finite and fractional depth values being used directly in recursive schema construction.
 - Added regression that `mode` in recursive query filters is constrained to `default | insensitive` (no arbitrary mode strings).
+
+## 2026-02-19 21:33 PST — root schema query-envelope parity lock
+- Added `schema.root-query-input.test.ts` to ensure root `schema.ts` matches util-layer strict pagination behavior (`skip`/`take`/`limit` are non-negative integers).
+- Locked root recursive filter `mode` operator to enum (`default | insensitive`) to prevent arbitrary string modes.
+- Test gate run via `rushx test` in `arken/seer/protocol` after source + test updates.

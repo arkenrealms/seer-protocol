@@ -78,3 +78,8 @@
 - Depth is now normalized via `Number.isFinite` + `Math.floor` + `Math.max(0, ...)` before recursion.
 - This prevents unbounded recursion from non-finite depth values while preserving existing behavior for valid integer depths.
 - Added focused regression lock in `test/schema.depth-normalization.test.ts`.
+
+## 2026-02-19 21:33 PST — root/util query schema parity hardening
+- Updated root `schema.ts` query filter operator `mode` to enum-constrained values (`default | insensitive`) to match util schema behavior.
+- Hardened root `getQueryInput` pagination envelope to require non-negative integer `skip`/`take`/`limit` values (retaining legacy `limit` alias).
+- Added `test/schema.root-query-input.test.ts` to lock these invariants and prevent drift between root and util schema implementations.
