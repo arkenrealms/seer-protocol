@@ -98,3 +98,8 @@
 - Added query-envelope refinement in both root `schema.ts` and `util/schema.ts` so `take` and legacy `limit` cannot conflict when both are present.
 - Extended root/util schema regression tests to reject mismatched alias values and accept matching values.
 - Rationale: mixed clients still send either alias; explicit parity check prevents ambiguous page sizing and makes pagination behavior deterministic.
+
+## 2026-02-20 09:0x PST — single-alias pagination normalization hardening
+- Updated both root `schema.ts` and `util/schema.ts` query envelopes to normalize one-sided `take`/`limit` payloads after validation.
+- Expanded root/util schema tests to assert normalized parse output for callers that send only one alias.
+- Rationale: many clients still emit one pagination key; normalization at protocol ingress keeps router behavior consistent without adding router-level wrappers.

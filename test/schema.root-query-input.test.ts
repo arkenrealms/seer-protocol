@@ -53,6 +53,26 @@ describe('root schema query envelope parity', () => {
   });
 
 
+  test('Query and getQueryInput normalize single pagination alias', () => {
+    const queryFromLimit = Query.parse({ limit: 7 });
+    expect(queryFromLimit.take).toBe(7);
+    expect(queryFromLimit.limit).toBe(7);
+
+    const queryFromTake = Query.parse({ take: 9 });
+    expect(queryFromTake.take).toBe(9);
+    expect(queryFromTake.limit).toBe(9);
+
+    const schema = getQueryInput(z.object({ name: z.string() }));
+
+    const inputFromLimit = schema.parse({ limit: 4 });
+    expect(inputFromLimit.take).toBe(4);
+    expect(inputFromLimit.limit).toBe(4);
+
+    const inputFromTake = schema.parse({ take: 6 });
+    expect(inputFromTake.take).toBe(6);
+    expect(inputFromTake.limit).toBe(6);
+  });
+
   test('schema.ts Query and getQueryInput reject blank/whitespace orderBy keys', () => {
     expect(() => Query.parse({ orderBy: { '': 'asc' } })).toThrow(/orderBy keys must be non-empty/);
     expect(() => Query.parse({ orderBy: { '   ': 'desc' } })).toThrow(/orderBy keys must be non-empty/);

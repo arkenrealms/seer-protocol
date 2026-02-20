@@ -130,6 +130,18 @@ const assertTakeLimitParity = (
   }
 };
 
+const normalizeTakeLimitAliases = <T extends { take?: number; limit?: number }>(query: T): T => {
+  if (query.take === undefined && query.limit !== undefined) {
+    return { ...query, take: query.limit };
+  }
+
+  if (query.limit === undefined && query.take !== undefined) {
+    return { ...query, limit: query.take };
+  }
+
+  return query;
+};
+
 const QueryWhereSchema = z.lazy(() =>
   z.object({
     AND: z.array(QueryWhereSchema).optional(),
@@ -157,7 +169,8 @@ export const Query = z
   })
   .superRefine((query, ctx) => {
     assertTakeLimitParity(query, ctx, ['limit']);
-  });
+  })
+  .transform((query) => normalizeTakeLimitAliases(query));
 
 // // Operators for filtering in a Prisma-like way
 // type PrismaFilterOperators<T extends ZodTypeAny> = zod.ZodObject<
@@ -345,7 +358,8 @@ export const getQueryInput = <S extends zod.ZodTypeAny>(schema: S, options: { pa
     .partial()
     .superRefine((query, ctx) => {
       assertTakeLimitParity(query, ctx, ['limit']);
-    });
+    })
+    .transform((query) => normalizeTakeLimitAliases(query));
 
   return zod.union([querySchema, zod.undefined()]);
 };

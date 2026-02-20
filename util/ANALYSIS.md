@@ -32,3 +32,8 @@ Additionally constrains `skip`/`take`/`limit` to non-negative integers, blocking
 - Added shared `assertTakeLimitParity` refinement in both root/util schema query envelopes.
 - `Query` and `getQueryInput` now reject payloads where `take` and legacy `limit` are both present but differ.
 - Why: conflicting pagination aliases can produce ambiguous downstream behavior; failing fast at protocol boundary keeps pagination deterministic.
+
+## 2026-02-20 09:0x PST — single-alias pagination normalization
+- Added `normalizeTakeLimitAliases` in both util/root schema query envelopes.
+- `Query` and `getQueryInput` now backfill missing alias fields (`limit` -> `take`, `take` -> `limit`) after parity checks.
+- Why: mixed callers still send a single alias; normalizing at the protocol boundary prevents downstream branching and keeps pagination handling deterministic.

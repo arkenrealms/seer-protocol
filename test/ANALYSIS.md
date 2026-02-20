@@ -82,3 +82,7 @@ Provide a direct-repo regression gate for protocol router hardening work.
 - Expanded both util/root schema suites to reject mismatched `take` + `limit` values.
 - Added positive assertions that matching aliases still parse.
 - Why: conflicting aliases can silently diverge query pagination semantics; tests now lock deterministic protocol behavior.
+
+## 2026-02-20 09:0x PST — single-alias pagination normalization lock
+- Expanded `schema.query-input.test.ts` and `schema.root-query-input.test.ts` with behavior assertions that a single pagination alias is normalized into both `take` and `limit`.
+- Why: ensures compatibility with legacy callers while preserving one canonical page-size value in parsed envelopes.
