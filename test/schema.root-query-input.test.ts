@@ -43,6 +43,15 @@ describe('root schema query envelope parity', () => {
     expect(() => Query.parse({ limit: '10' })).toThrow();
   });
 
+  test('schema.ts Query and getQueryInput reject mismatched take/limit values', () => {
+    expect(() => Query.parse({ take: 10, limit: 5 })).toThrow(/take and limit must match/);
+
+    const schema = getQueryInput(z.object({ name: z.string() }));
+
+    expect(() => schema.parse({ take: 10, limit: 5 })).toThrow(/take and limit must match/);
+    expect(schema.parse({ take: 10, limit: 10 }).take).toBe(10);
+  });
+
 
   test('schema.ts Query and getQueryInput reject blank/whitespace orderBy keys', () => {
     expect(() => Query.parse({ orderBy: { '': 'asc' } })).toThrow(/orderBy keys must be non-empty/);

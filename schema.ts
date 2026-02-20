@@ -116,6 +116,20 @@ const NonBlankBooleanRecord = z
     }
   });
 
+const assertTakeLimitParity = (
+  query: { take?: number; limit?: number },
+  ctx: zod.RefinementCtx,
+  path: Array<string>
+) => {
+  if (query.take !== undefined && query.limit !== undefined && query.take !== query.limit) {
+    ctx.addIssue({
+      code: zod.ZodIssueCode.custom,
+      path,
+      message: 'take and limit must match when both are provided',
+    });
+  }
+};
+
 const QueryWhereSchema = z.lazy(() =>
   z.object({
     AND: z.array(QueryWhereSchema).optional(),
@@ -129,17 +143,21 @@ const QueryWhereSchema = z.lazy(() =>
   })
 );
 
-export const Query = z.object({
-  skip: z.number().int().min(0).default(0).optional(),
-  take: z.number().int().min(0).default(10).optional(),
-  // legacy alias kept for backward compatibility across callers
-  limit: z.number().int().min(0).default(10).optional(),
-  cursor: z.record(z.any()).optional(),
-  where: QueryWhereSchema.optional(),
-  orderBy: NonBlankOrderByRecord.optional(),
-  include: NonBlankBooleanRecord.optional(),
-  select: NonBlankBooleanRecord.optional(),
-});
+export const Query = z
+  .object({
+    skip: z.number().int().min(0).default(0).optional(),
+    take: z.number().int().min(0).default(10).optional(),
+    // legacy alias kept for backward compatibility across callers
+    limit: z.number().int().min(0).default(10).optional(),
+    cursor: z.record(z.any()).optional(),
+    where: QueryWhereSchema.optional(),
+    orderBy: NonBlankOrderByRecord.optional(),
+    include: NonBlankBooleanRecord.optional(),
+    select: NonBlankBooleanRecord.optional(),
+  })
+  .superRefine((query, ctx) => {
+    assertTakeLimitParity(query, ctx, ['limit']);
+  });
 
 // // Operators for filtering in a Prisma-like way
 // type PrismaFilterOperators<T extends ZodTypeAny> = zod.ZodObject<
@@ -324,7 +342,10 @@ export const getQueryInput = <S extends zod.ZodTypeAny>(schema: S, options: { pa
       include: NonBlankBooleanRecord.optional(),
       select: NonBlankBooleanRecord.optional(),
     })
-    .partial();
+    .partial()
+    .superRefine((query, ctx) => {
+      assertTakeLimitParity(query, ctx, ['limit']);
+    });
 
   return zod.union([querySchema, zod.undefined()]);
 };

@@ -27,3 +27,8 @@ Additionally constrains `skip`/`take`/`limit` to non-negative integers, blocking
 - Hardened both root/util query envelopes to reject blank or whitespace-only keys in `include` and `select`.
 - Added shared `NonBlankBooleanRecord` validation and applied it to exported `Query` plus `getQueryInput`.
 - Why: blank projection keys silently create invalid selection maps and can cause confusing downstream query behavior; this keeps projection validation parity with `orderBy` hardening.
+
+## 2026-02-20 06:5x PST — take/limit parity guard
+- Added shared `assertTakeLimitParity` refinement in both root/util schema query envelopes.
+- `Query` and `getQueryInput` now reject payloads where `take` and legacy `limit` are both present but differ.
+- Why: conflicting pagination aliases can produce ambiguous downstream behavior; failing fast at protocol boundary keeps pagination deterministic.

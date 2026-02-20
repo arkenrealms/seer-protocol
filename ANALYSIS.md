@@ -93,3 +93,8 @@
 - Applied shared non-blank boolean-record validation in both exported `Query` and `getQueryInput` envelopes.
 - Added behavior-based tests in both root/util schema suites to lock rejection + valid-key acceptance.
 - Rationale: malformed projection keys are otherwise accepted and can surface as opaque data-layer query errors; this catches them at protocol boundary.
+
+## 2026-02-20 06:5x PST — pagination alias parity hardening
+- Added query-envelope refinement in both root `schema.ts` and `util/schema.ts` so `take` and legacy `limit` cannot conflict when both are present.
+- Extended root/util schema regression tests to reject mismatched alias values and accept matching values.
+- Rationale: mixed clients still send either alias; explicit parity check prevents ambiguous page sizing and makes pagination behavior deterministic.

@@ -77,3 +77,8 @@ Provide a direct-repo regression gate for protocol router hardening work.
 - Expanded `schema.query-input.test.ts` and `schema.root-query-input.test.ts` to enforce rejection of blank/whitespace-only keys in `include` and `select`.
 - Added positive assertions that valid projection keys continue to parse.
 - Why: projection payloads with empty keys create hard-to-debug downstream failures; boundary-level validation keeps projection behavior deterministic.
+
+## 2026-02-20 06:5x PST — pagination alias conflict lock
+- Expanded both util/root schema suites to reject mismatched `take` + `limit` values.
+- Added positive assertions that matching aliases still parse.
+- Why: conflicting aliases can silently diverge query pagination semantics; tests now lock deterministic protocol behavior.

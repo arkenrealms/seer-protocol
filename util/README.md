@@ -9,3 +9,4 @@ Shared schema/util helpers for protocol routers and tests.
 - Prisma-style filter `mode` is constrained to `default | insensitive` in recursive `where` schemas to prevent silent invalid mode values.
 - `orderBy` now rejects blank/whitespace-only keys to prevent malformed sort envelopes.
 - `include` and `select` now reject blank/whitespace-only keys so malformed projection envelopes fail fast.
+- `take` and legacy `limit` must now match when both are provided, preventing conflicting pagination aliases.

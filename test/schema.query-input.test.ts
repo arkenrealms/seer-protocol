@@ -43,6 +43,15 @@ describe('util/schema query envelope behavior', () => {
     expect(() => Query.parse({ limit: '10' })).toThrow();
   });
 
+  test('Query and getQueryInput reject mismatched take/limit values', () => {
+    expect(() => Query.parse({ take: 10, limit: 5 })).toThrow(/take and limit must match/);
+
+    const schema = getQueryInput(z.object({ name: z.string() }));
+
+    expect(() => schema.parse({ take: 10, limit: 5 })).toThrow(/take and limit must match/);
+    expect(schema.parse({ take: 10, limit: 10 }).take).toBe(10);
+  });
+
   test('getQueryInput supports object where mode enum and legacy limit alias', () => {
     const schema = getQueryInput(z.object({ name: z.string() }));
 
