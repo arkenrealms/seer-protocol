@@ -50,3 +50,8 @@ Provide a direct-repo regression gate for protocol router hardening work.
 ## 2026-02-19 23:xx PST — exported Query schema strictness lock
 - Expanded `schema.query-input.test.ts` and `schema.root-query-input.test.ts` with explicit checks for exported `Query` helper strictness.
 - New assertions lock parity that both root/util `Query` enforce non-negative integer pagination and expose legacy `limit` alias.
+
+## 2026-02-19 23:45 PST — replace brittle source-text assertions with behavior tests
+- Replaced regex/source-read assertions in `schema.query-input.test.ts` with runtime behavior tests against `Query` and `getQueryInput` parsing outcomes.
+- Added coverage for valid pagination acceptance, invalid pagination rejection, strict `mode` enum enforcement, and array-schema `where` rejection.
+- Why: requested by architect (`highruned`) after review feedback that source-code string matching is brittle and prone to false breakage from harmless formatting/refactor changes.

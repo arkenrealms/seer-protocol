@@ -1,27 +1,72 @@
 // arken/packages/seer/packages/protocol/test/schema.query-input.test.ts
-const fs = require('node:fs/promises');
+const fs = require('node:fs');
 const path = require('node:path');
+const Module = require('node:module');
+const ts = require('typescript');
 
-describe('util/schema query envelope shape', () => {
+function loadSchemaRuntime() {
   const root = process.cwd();
+  const schemaPath = path.resolve(root, 'util', 'schema.ts');
+  const source = fs.readFileSync(schemaPath, 'utf8');
 
-  test('getQueryInput supports take + legacy limit, strict where mode enum, and array where guard', async () => {
-    const source = await fs.readFile(path.resolve(root, 'util', 'schema.ts'), 'utf8');
-    const getQueryInputBlock = source.match(/export const getQueryInput[\s\S]*?return zod\.union\(\[querySchema, zod\.undefined\(\)\]\);/)?.[0] ?? '';
-
-    expect(getQueryInputBlock).toMatch(/skip:\s*zod\.number\(\)\.int\(\)\.min\(0\)\.default\(0\)\.optional\(\)/);
-    expect(getQueryInputBlock).toMatch(/take:\s*zod\.number\(\)\.int\(\)\.min\(0\)\.default\(10\)\.optional\(\)/);
-    expect(getQueryInputBlock).toMatch(/limit:\s*zod\.number\(\)\.int\(\)\.min\(0\)\.default\(10\)\.optional\(\)/);
-    expect(getQueryInputBlock).toMatch(/where:\s*isObjectSchema\s*\?\s*whereSchema\.optional\(\)\s*:\s*zod\.undefined\(\)\.optional\(\)/);
-    expect(source).toMatch(/mode:\s*zod\.enum\(\['default',\s*'insensitive'\]\)\.optional\(\)/);
+  const { outputText } = ts.transpileModule(source, {
+    compilerOptions: {
+      module: ts.ModuleKind.CommonJS,
+      target: ts.ScriptTarget.ES2020,
+      esModuleInterop: true,
+    },
+    fileName: schemaPath,
   });
 
-  test('Query helper uses strict pagination fields and legacy limit alias', async () => {
-    const source = await fs.readFile(path.resolve(root, 'util', 'schema.ts'), 'utf8');
-    const queryBlock = source.match(/export const Query = z\.object\([\s\S]*?\n\}\);/)?.[0] ?? '';
+  const m = new Module.Module(schemaPath, module);
+  m.filename = schemaPath;
+  m.paths = Module.Module._nodeModulePaths(path.dirname(schemaPath));
+  m._compile(outputText, schemaPath);
 
-    expect(queryBlock).toMatch(/skip:\s*z\.number\(\)\.int\(\)\.min\(0\)\.default\(0\)\.optional\(\)/);
-    expect(queryBlock).toMatch(/take:\s*z\.number\(\)\.int\(\)\.min\(0\)\.default\(10\)\.optional\(\)/);
-    expect(queryBlock).toMatch(/limit:\s*z\.number\(\)\.int\(\)\.min\(0\)\.default\(10\)\.optional\(\)/);
+  return m.exports;
+}
+
+describe('util/schema query envelope behavior', () => {
+  const { z, Query, getQueryInput } = loadSchemaRuntime();
+
+  test('Query accepts strict pagination fields including legacy limit alias', () => {
+    const parsed = Query.parse({ skip: 0, take: 10, limit: 10 });
+
+    expect(parsed.skip).toBe(0);
+    expect(parsed.take).toBe(10);
+    expect(parsed.limit).toBe(10);
+  });
+
+  test('Query rejects invalid pagination values', () => {
+    expect(() => Query.parse({ skip: -1 })).toThrow();
+    expect(() => Query.parse({ take: 1.5 })).toThrow();
+    expect(() => Query.parse({ limit: '10' })).toThrow();
+  });
+
+  test('getQueryInput supports object where mode enum and legacy limit alias', () => {
+    const schema = getQueryInput(z.object({ name: z.string() }));
+
+    const valid = schema.parse({
+      where: { name: { contains: 'abc', mode: 'insensitive' } },
+      skip: 0,
+      take: 10,
+      limit: 10,
+    });
+
+    expect(valid.where.name.mode).toBe('insensitive');
+    expect(valid.limit).toBe(10);
+
+    expect(() =>
+      schema.parse({
+        where: { name: { contains: 'abc', mode: 'invalid' } },
+      })
+    ).toThrow();
+  });
+
+  test('getQueryInput disallows where for non-object schemas', () => {
+    const schema = getQueryInput(z.array(z.string()));
+
+    expect(() => schema.parse({ where: { anything: { equals: 'x' } } })).toThrow();
+    expect(schema.parse({ data: ['a', 'b'], limit: 10 }).limit).toBe(10);
   });
 });
