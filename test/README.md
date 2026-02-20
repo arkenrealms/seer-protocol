@@ -26,10 +26,12 @@ Jest-based package-local tests for `@arken/seer-protocol`.
   - verifies legacy `limit` alias remains accepted for compatibility
   - verifies pagination fields (`skip`/`take`/`limit`) are constrained to non-negative integers
   - verifies recursive schema filter `mode` is constrained to `default | insensitive`
+  - verifies `include`/`select` reject blank/whitespace-only keys while valid keys continue to parse
   - verifies array-schema query envelopes reject unsupported `where` filters
 - `schema.root-query-input.test.ts`
   - verifies root `schema.ts` keeps parity with strict query-envelope pagination constraints
   - verifies root recursive filter `mode` is constrained to `default | insensitive`
+  - verifies root `include`/`select` reject blank/whitespace-only keys while valid keys continue to parse
 
 ## Run
 - `rushx test` (from `arken/seer/protocol`)

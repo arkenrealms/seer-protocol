@@ -55,6 +55,18 @@ describe('root schema query envelope parity', () => {
     expect(schema.parse({ orderBy: { name: 'desc' } }).orderBy.name).toBe('desc');
   });
 
+  test('schema.ts Query and getQueryInput reject blank/whitespace include/select keys', () => {
+    expect(() => Query.parse({ include: { '': true } })).toThrow(/selection keys must be non-empty/);
+    expect(() => Query.parse({ select: { '   ': false } })).toThrow(/selection keys must be non-empty/);
+
+    const schema = getQueryInput(z.object({ name: z.string() }));
+
+    expect(() => schema.parse({ include: { '': true } })).toThrow(/selection keys must be non-empty/);
+    expect(() => schema.parse({ select: { '   ': false } })).toThrow(/selection keys must be non-empty/);
+    expect(schema.parse({ include: { profile: true } }).include.profile).toBe(true);
+    expect(schema.parse({ select: { name: true } }).select.name).toBe(true);
+  });
+
   test('schema.ts getQueryInput enforces mode enum and legacy limit alias', () => {
     const schema = getQueryInput(z.object({ name: z.string() }));
 

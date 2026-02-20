@@ -87,3 +87,9 @@
 ## 2026-02-19 23:xx PST — Query export parity follow-up
 - Hardened exported `Query` objects in both root `schema.ts` and `util/schema.ts` to enforce non-negative integer `skip`/`take` and include legacy `limit` alias.
 - Added regression assertions in existing schema tests so `Query` helper strictness cannot silently drift from `getQueryInput` behavior.
+
+## 2026-02-20 04:xx PST — projection key hygiene hardening
+- Hardened both root and util query envelopes so `include`/`select` reject blank or whitespace-only keys.
+- Applied shared non-blank boolean-record validation in both exported `Query` and `getQueryInput` envelopes.
+- Added behavior-based tests in both root/util schema suites to lock rejection + valid-key acceptance.
+- Rationale: malformed projection keys are otherwise accepted and can surface as opaque data-layer query errors; this catches them at protocol boundary.

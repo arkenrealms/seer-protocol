@@ -75,6 +75,18 @@ describe('util/schema query envelope behavior', () => {
     expect(schema.parse({ orderBy: { name: 'asc' } }).orderBy.name).toBe('asc');
   });
 
+  test('Query and getQueryInput reject blank/whitespace include/select keys', () => {
+    expect(() => Query.parse({ include: { '': true } })).toThrow(/selection keys must be non-empty/);
+    expect(() => Query.parse({ select: { '   ': false } })).toThrow(/selection keys must be non-empty/);
+
+    const schema = getQueryInput(z.object({ name: z.string() }));
+
+    expect(() => schema.parse({ include: { '': true } })).toThrow(/selection keys must be non-empty/);
+    expect(() => schema.parse({ select: { '   ': false } })).toThrow(/selection keys must be non-empty/);
+    expect(schema.parse({ include: { profile: true } }).include.profile).toBe(true);
+    expect(schema.parse({ select: { name: true } }).select.name).toBe(true);
+  });
+
   test('getQueryInput disallows where for non-object schemas', () => {
     const schema = getQueryInput(z.array(z.string()));
 

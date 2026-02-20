@@ -102,6 +102,20 @@ const NonBlankOrderByRecord = z
     }
   });
 
+const NonBlankBooleanRecord = z
+  .record(z.boolean())
+  .superRefine((selectionMap, ctx) => {
+    for (const key of Object.keys(selectionMap)) {
+      if (key.trim().length === 0) {
+        ctx.addIssue({
+          code: zod.ZodIssueCode.custom,
+          message: 'selection keys must be non-empty and non-whitespace',
+        });
+        return;
+      }
+    }
+  });
+
 const QueryWhereSchema = z.lazy(() =>
   z.object({
     AND: z.array(QueryWhereSchema).optional(),
@@ -123,8 +137,8 @@ export const Query = z.object({
   cursor: z.record(z.any()).optional(),
   where: QueryWhereSchema.optional(),
   orderBy: NonBlankOrderByRecord.optional(),
-  include: z.record(z.boolean()).optional(),
-  select: z.record(z.boolean()).optional(),
+  include: NonBlankBooleanRecord.optional(),
+  select: NonBlankBooleanRecord.optional(),
 });
 
 // // Operators for filtering in a Prisma-like way
@@ -307,8 +321,8 @@ export const getQueryInput = <S extends zod.ZodTypeAny>(schema: S, options: { pa
       where: isObjectSchema ? whereSchema.optional() : zod.undefined().optional(),
 
       orderBy: NonBlankOrderByRecord.optional(),
-      include: zod.record(zod.boolean()).optional(),
-      select: zod.record(zod.boolean()).optional(),
+      include: NonBlankBooleanRecord.optional(),
+      select: NonBlankBooleanRecord.optional(),
     })
     .partial();
 

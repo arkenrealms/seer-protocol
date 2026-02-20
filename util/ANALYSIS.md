@@ -22,3 +22,8 @@ Additionally constrains `skip`/`take`/`limit` to non-negative integers, blocking
 - Hardened both root/util query envelopes to reject blank or whitespace-only `orderBy` keys.
 - Added shared `NonBlankOrderByRecord` validation and applied it to exported `Query` plus `getQueryInput`.
 - Why: empty sort keys can leak malformed query envelopes into downstream data layers where they are hard to diagnose.
+
+## 2026-02-20 04:xx PST — include/select blank-key guard parity
+- Hardened both root/util query envelopes to reject blank or whitespace-only keys in `include` and `select`.
+- Added shared `NonBlankBooleanRecord` validation and applied it to exported `Query` plus `getQueryInput`.
+- Why: blank projection keys silently create invalid selection maps and can cause confusing downstream query behavior; this keeps projection validation parity with `orderBy` hardening.

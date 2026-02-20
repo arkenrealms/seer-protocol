@@ -72,3 +72,8 @@ Provide a direct-repo regression gate for protocol router hardening work.
 - Expanded `schema.query-input.test.ts` and `schema.root-query-input.test.ts` to enforce rejection of blank/whitespace-only `orderBy` keys.
 - Added positive assertions that valid non-empty keys continue to parse.
 - Why: protect query envelope reliability by catching malformed sort payloads at protocol boundary.
+
+## 2026-02-20 04:xx PST — include/select key validation regression lock
+- Expanded `schema.query-input.test.ts` and `schema.root-query-input.test.ts` to enforce rejection of blank/whitespace-only keys in `include` and `select`.
+- Added positive assertions that valid projection keys continue to parse.
+- Why: projection payloads with empty keys create hard-to-debug downstream failures; boundary-level validation keeps projection behavior deterministic.
