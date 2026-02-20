@@ -124,7 +124,7 @@ export const MarketETF = Entity.merge(
     leverage: z.number().optional(), // Leverage factor if applicable (e.g., 3x)
     country: z.string().optional(), // Country where the ETF is based
     currency: z.string().optional(), // Currency the ETF is traded in
-    AUM: z.number().optional(), // Assets under management
+    aum: z.number().optional(), // Assets under management
     industry: z.string().optional(), // Industry the ETF is focused on
     sector: z.string().optional(), // Sector the ETF is focused on
   })
@@ -145,5 +145,19 @@ export const MarketStockSentiment = Entity.merge(
       .number()
       .min(0)
       .max(1), // overall confidence level for the analysis
+  })
+);
+
+export const MarketListing = Entity.merge(
+  z.object({
+    price: z.number(),
+    currency: z.string(),
+    quantity: z.number().default(1),
+    exchangeId: ObjectId,
+    sellerId: ObjectId,
+    marketId: ObjectId,
+    category: z.enum(['Stock', 'ChainToken', 'GameItem']),
+    status: z.enum(['Active', 'Closed', 'Withdrawn', 'Expired']),
+    expiryDate: z.date().optional(),
   })
 );
