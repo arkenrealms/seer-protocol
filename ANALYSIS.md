@@ -83,3 +83,7 @@
 - Updated root `schema.ts` query filter operator `mode` to enum-constrained values (`default | insensitive`) to match util schema behavior.
 - Hardened root `getQueryInput` pagination envelope to require non-negative integer `skip`/`take`/`limit` values (retaining legacy `limit` alias).
 - Added `test/schema.root-query-input.test.ts` to lock these invariants and prevent drift between root and util schema implementations.
+
+## 2026-02-19 23:xx PST — Query export parity follow-up
+- Hardened exported `Query` objects in both root `schema.ts` and `util/schema.ts` to enforce non-negative integer `skip`/`take` and include legacy `limit` alias.
+- Added regression assertions in existing schema tests so `Query` helper strictness cannot silently drift from `getQueryInput` behavior.

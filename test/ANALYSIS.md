@@ -46,3 +46,7 @@ Provide a direct-repo regression gate for protocol router hardening work.
 - Added `schema.root-query-input.test.ts` to ensure root `schema.ts` matches util-layer strict pagination behavior (`skip`/`take`/`limit` are non-negative integers).
 - Locked root recursive filter `mode` operator to enum (`default | insensitive`) to prevent arbitrary string modes.
 - Test gate run via `rushx test` in `arken/seer/protocol` after source + test updates.
+
+## 2026-02-19 23:xx PST — exported Query schema strictness lock
+- Expanded `schema.query-input.test.ts` and `schema.root-query-input.test.ts` with explicit checks for exported `Query` helper strictness.
+- New assertions lock parity that both root/util `Query` enforce non-negative integer pagination and expose legacy `limit` alias.

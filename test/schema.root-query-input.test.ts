@@ -14,4 +14,13 @@ describe('root schema query envelope parity', () => {
     expect(getQueryInputBlock).toMatch(/limit:\s*zod\.number\(\)\.int\(\)\.min\(0\)\.default\(10\)\.optional\(\)/);
     expect(source).toMatch(/mode:\s*zod\.enum\(\['default',\s*'insensitive'\]\)\.optional\(\)/);
   });
+
+  test('schema.ts Query envelope keeps strict pagination fields and legacy limit alias', async () => {
+    const source = await fs.readFile(path.resolve(root, 'schema.ts'), 'utf8');
+    const queryBlock = source.match(/export const Query = z\.object\([\s\S]*?\n\}\);/)?.[0] ?? '';
+
+    expect(queryBlock).toMatch(/skip:\s*z\.number\(\)\.int\(\)\.min\(0\)\.default\(0\)\.optional\(\)/);
+    expect(queryBlock).toMatch(/take:\s*z\.number\(\)\.int\(\)\.min\(0\)\.default\(10\)\.optional\(\)/);
+    expect(queryBlock).toMatch(/limit:\s*z\.number\(\)\.int\(\)\.min\(0\)\.default\(10\)\.optional\(\)/);
+  });
 });

@@ -13,3 +13,7 @@ Utility schema helpers used across Seer protocol routers.
 Prevents pagination drift between callers that send `take` vs callers still sending `limit`.
 Also narrows recursive query-filter `mode` to supported values (`default`/`insensitive`), reducing typo-driven mismatches that previously passed as arbitrary strings.
 Additionally constrains `skip`/`take`/`limit` to non-negative integers, blocking malformed negative/decimal pagination values earlier at protocol boundaries.
+
+## 2026-02-19 23:xx PST — Query envelope parity hardening
+- Tightened exported `Query` helper pagination fields to non-negative integers (`skip`, `take`) and added legacy `limit` alias for parity with `getQueryInput`.
+- This closes a schema drift where `Query` was more permissive than `getQueryInput`, allowing negative/float pagination in some call paths.

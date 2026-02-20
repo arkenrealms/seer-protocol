@@ -15,4 +15,13 @@ describe('util/schema query envelope shape', () => {
     expect(getQueryInputBlock).toMatch(/where:\s*isObjectSchema\s*\?\s*whereSchema\.optional\(\)\s*:\s*zod\.undefined\(\)\.optional\(\)/);
     expect(source).toMatch(/mode:\s*zod\.enum\(\['default',\s*'insensitive'\]\)\.optional\(\)/);
   });
+
+  test('Query helper uses strict pagination fields and legacy limit alias', async () => {
+    const source = await fs.readFile(path.resolve(root, 'util', 'schema.ts'), 'utf8');
+    const queryBlock = source.match(/export const Query = z\.object\([\s\S]*?\n\}\);/)?.[0] ?? '';
+
+    expect(queryBlock).toMatch(/skip:\s*z\.number\(\)\.int\(\)\.min\(0\)\.default\(0\)\.optional\(\)/);
+    expect(queryBlock).toMatch(/take:\s*z\.number\(\)\.int\(\)\.min\(0\)\.default\(10\)\.optional\(\)/);
+    expect(queryBlock).toMatch(/limit:\s*z\.number\(\)\.int\(\)\.min\(0\)\.default\(10\)\.optional\(\)/);
+  });
 });

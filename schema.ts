@@ -1,4 +1,4 @@
-// arken/packages/node/schema.ts
+// arken/packages/seer/packages/protocol/schema.ts
 //
 import Mongoose, { Types } from 'mongoose';
 import { z as zod, ZodTypeAny, ZodLazy, ZodObject, ZodArray } from 'zod';
@@ -101,8 +101,10 @@ const QueryWhereSchema = z.lazy(() =>
 );
 
 export const Query = z.object({
-  skip: z.number().default(0).optional(),
-  take: z.number().default(10).optional(),
+  skip: z.number().int().min(0).default(0).optional(),
+  take: z.number().int().min(0).default(10).optional(),
+  // legacy alias kept for backward compatibility across callers
+  limit: z.number().int().min(0).default(10).optional(),
   cursor: z.record(z.any()).optional(),
   where: QueryWhereSchema.optional(),
   orderBy: z.record(z.enum(['asc', 'desc'])).optional(),
