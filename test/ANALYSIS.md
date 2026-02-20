@@ -55,3 +55,8 @@ Provide a direct-repo regression gate for protocol router hardening work.
 - Replaced regex/source-read assertions in `schema.query-input.test.ts` with runtime behavior tests against `Query` and `getQueryInput` parsing outcomes.
 - Added coverage for valid pagination acceptance, invalid pagination rejection, strict `mode` enum enforcement, and array-schema `where` rejection.
 - Why: requested by architect (`highruned`) after review feedback that source-code string matching is brittle and prone to false breakage from harmless formatting/refactor changes.
+
+## 2026-02-19 23:55 PST — root query-input test hardened to behavior assertions
+- Replaced brittle regex/source-read assertions in `schema.root-query-input.test.ts` with runtime behavior tests that execute root `schema.ts` exports.
+- Added validation for accepted/rejected pagination inputs and strict `mode` enum enforcement through `getQueryInput` parsing.
+- Why: follow-up architect request (`highruned`) to remove fragile source-shape tests and use robust contract behavior checks.
