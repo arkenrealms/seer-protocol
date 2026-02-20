@@ -24,6 +24,7 @@ Jest-based package-local tests for `@arken/seer-protocol`.
 - `schema.query-input.test.ts`
   - verifies `getQueryInput` accepts `take` for pagination
   - verifies legacy `limit` alias remains accepted for compatibility
+  - verifies recursive schema filter `mode` is constrained to `default | insensitive`
   - verifies array-schema query envelopes reject unsupported `where` filters
 
 ## Run

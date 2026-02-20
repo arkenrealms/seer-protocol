@@ -217,7 +217,7 @@ export const createPrismaWhereSchema = <T extends zod.ZodRawShape>(
         contains: zod.string().optional(),
         startsWith: zod.string().optional(),
         endsWith: zod.string().optional(),
-        mode: zod.string().optional(),
+        mode: zod.enum(['default', 'insensitive']).optional(),
       })
       .partial();
 
