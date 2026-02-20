@@ -87,6 +87,21 @@ const QueryFilterOperators = z.object({
   mode: z.enum(['default', 'insensitive']).optional(),
 });
 
+
+const NonBlankOrderByRecord = z
+  .record(z.enum(['asc', 'desc']))
+  .superRefine((orderBy, ctx) => {
+    for (const key of Object.keys(orderBy)) {
+      if (key.trim().length === 0) {
+        ctx.addIssue({
+          code: zod.ZodIssueCode.custom,
+          message: 'orderBy keys must be non-empty and non-whitespace',
+        });
+        return;
+      }
+    }
+  });
+
 const QueryWhereSchema = z.lazy(() =>
   z.object({
     AND: z.array(QueryWhereSchema).optional(),
@@ -107,7 +122,7 @@ export const Query = z.object({
   limit: z.number().int().min(0).default(10).optional(),
   cursor: z.record(z.any()).optional(),
   where: QueryWhereSchema.optional(),
-  orderBy: z.record(z.enum(['asc', 'desc'])).optional(),
+  orderBy: NonBlankOrderByRecord.optional(),
   include: z.record(z.boolean()).optional(),
   select: z.record(z.boolean()).optional(),
 });
@@ -291,7 +306,7 @@ export const getQueryInput = <S extends zod.ZodTypeAny>(schema: S, options: { pa
       // only valid for object schemas
       where: isObjectSchema ? whereSchema.optional() : zod.undefined().optional(),
 
-      orderBy: zod.record(zod.enum(['asc', 'desc'])).optional(),
+      orderBy: NonBlankOrderByRecord.optional(),
       include: zod.record(zod.boolean()).optional(),
       select: zod.record(zod.boolean()).optional(),
     })

@@ -67,3 +67,8 @@ Provide a direct-repo regression gate for protocol router hardening work.
 - Reworked `router-routing.test.ts` to validate Isles/Infinite method resolution behavior (service-first + Evolution fallback + deterministic missing-handler errors) using executable callers.
 - Reworked `schema.depth-normalization.test.ts` to validate depth normalization behavior through parse outcomes for NaN/negative/fractional depths rather than source regex checks.
 - Why: direct architect request (`highruned`) to replace brittle source-shape tests with robust behavior-based tests less prone to breakage from formatting/refactors.
+
+## 2026-02-20 02:xx PST — orderBy key validation regression lock
+- Expanded `schema.query-input.test.ts` and `schema.root-query-input.test.ts` to enforce rejection of blank/whitespace-only `orderBy` keys.
+- Added positive assertions that valid non-empty keys continue to parse.
+- Why: protect query envelope reliability by catching malformed sort payloads at protocol boundary.

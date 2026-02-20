@@ -43,6 +43,18 @@ describe('root schema query envelope parity', () => {
     expect(() => Query.parse({ limit: '10' })).toThrow();
   });
 
+
+  test('schema.ts Query and getQueryInput reject blank/whitespace orderBy keys', () => {
+    expect(() => Query.parse({ orderBy: { '': 'asc' } })).toThrow(/orderBy keys must be non-empty/);
+    expect(() => Query.parse({ orderBy: { '   ': 'desc' } })).toThrow(/orderBy keys must be non-empty/);
+
+    const schema = getQueryInput(z.object({ name: z.string() }));
+
+    expect(() => schema.parse({ orderBy: { '': 'asc' } })).toThrow(/orderBy keys must be non-empty/);
+    expect(() => schema.parse({ orderBy: { '   ': 'desc' } })).toThrow(/orderBy keys must be non-empty/);
+    expect(schema.parse({ orderBy: { name: 'desc' } }).orderBy.name).toBe('desc');
+  });
+
   test('schema.ts getQueryInput enforces mode enum and legacy limit alias', () => {
     const schema = getQueryInput(z.object({ name: z.string() }));
 

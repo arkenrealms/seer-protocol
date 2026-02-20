@@ -17,3 +17,8 @@ Additionally constrains `skip`/`take`/`limit` to non-negative integers, blocking
 ## 2026-02-19 23:xx PST — Query envelope parity hardening
 - Tightened exported `Query` helper pagination fields to non-negative integers (`skip`, `take`) and added legacy `limit` alias for parity with `getQueryInput`.
 - This closes a schema drift where `Query` was more permissive than `getQueryInput`, allowing negative/float pagination in some call paths.
+
+## 2026-02-20 02:xx PST — orderBy blank-key guard
+- Hardened both root/util query envelopes to reject blank or whitespace-only `orderBy` keys.
+- Added shared `NonBlankOrderByRecord` validation and applied it to exported `Query` plus `getQueryInput`.
+- Why: empty sort keys can leak malformed query envelopes into downstream data layers where they are hard to diagnose.

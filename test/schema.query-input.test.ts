@@ -63,6 +63,18 @@ describe('util/schema query envelope behavior', () => {
     ).toThrow();
   });
 
+
+  test('Query and getQueryInput reject blank/whitespace orderBy keys', () => {
+    expect(() => Query.parse({ orderBy: { '': 'asc' } })).toThrow(/orderBy keys must be non-empty/);
+    expect(() => Query.parse({ orderBy: { '   ': 'desc' } })).toThrow(/orderBy keys must be non-empty/);
+
+    const schema = getQueryInput(z.object({ name: z.string() }));
+
+    expect(() => schema.parse({ orderBy: { '': 'asc' } })).toThrow(/orderBy keys must be non-empty/);
+    expect(() => schema.parse({ orderBy: { '   ': 'desc' } })).toThrow(/orderBy keys must be non-empty/);
+    expect(schema.parse({ orderBy: { name: 'asc' } }).orderBy.name).toBe('asc');
+  });
+
   test('getQueryInput disallows where for non-object schemas', () => {
     const schema = getQueryInput(z.array(z.string()));
 
