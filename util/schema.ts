@@ -197,6 +197,7 @@ export const createPrismaWhereSchema = <T extends zod.ZodRawShape>(
   depth: number = 3
 ): zod.ZodObject<any> => {
   const fields = modelSchema.shape;
+  const normalizedDepth = Number.isFinite(depth) ? Math.max(0, Math.floor(depth)) : 0;
 
   /**
    * For each field, accept either:
@@ -239,7 +240,7 @@ export const createPrismaWhereSchema = <T extends zod.ZodRawShape>(
 
   const fieldFilters = Object.fromEntries(Object.entries(fields).map(([key, value]) => [key, makeFieldFilter(value)]));
 
-  if (depth <= 0) {
+  if (normalizedDepth <= 0) {
     // Base case: no AND/OR/NOT
     return zod.object({
       ...fieldFilters,
@@ -247,9 +248,9 @@ export const createPrismaWhereSchema = <T extends zod.ZodRawShape>(
   }
 
   return zod.object({
-    AND: zod.array(zod.lazy(() => createPrismaWhereSchema(modelSchema, depth - 1))).optional(),
-    OR: zod.array(zod.lazy(() => createPrismaWhereSchema(modelSchema, depth - 1))).optional(),
-    NOT: zod.array(zod.lazy(() => createPrismaWhereSchema(modelSchema, depth - 1))).optional(),
+    AND: zod.array(zod.lazy(() => createPrismaWhereSchema(modelSchema, normalizedDepth - 1))).optional(),
+    OR: zod.array(zod.lazy(() => createPrismaWhereSchema(modelSchema, normalizedDepth - 1))).optional(),
+    NOT: zod.array(zod.lazy(() => createPrismaWhereSchema(modelSchema, normalizedDepth - 1))).optional(),
     ...fieldFilters,
   });
 };

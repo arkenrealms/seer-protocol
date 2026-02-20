@@ -36,4 +36,8 @@ Provide a direct-repo regression gate for protocol router hardening work.
 - Locked acceptance for both `take` (preferred) and `limit` (legacy alias) in `getQueryInput`.
 - Added regression coverage that pagination fields (`skip`/`take`/`limit`) remain constrained to non-negative integers.
 - Added regression for array-schema query envelopes to reject unsupported `where` filters.
+
+## 2026-02-19 15:45 PST — depth normalization regression lock
+- Added `schema.depth-normalization.test.ts` to assert `createPrismaWhereSchema` normalizes depth before recursion.
+- Locks guardrails against non-finite and fractional depth values being used directly in recursive schema construction.
 - Added regression that `mode` in recursive query filters is constrained to `default | insensitive` (no arbitrary mode strings).
