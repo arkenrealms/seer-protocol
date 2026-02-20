@@ -1,4 +1,4 @@
-// arken/packages/node/schema.ts
+// arken/packages/seer/packages/protocol/schema.ts
 //
 import Mongoose, { Types } from 'mongoose';
 import { z as zod, ZodTypeAny, ZodLazy, ZodObject, ZodArray } from 'zod';
@@ -101,8 +101,10 @@ const QueryWhereSchema = z.lazy(() =>
 );
 
 export const Query = z.object({
-  skip: z.number().default(0).optional(),
-  take: z.number().default(10).optional(),
+  skip: z.number().int().min(0).default(0).optional(),
+  take: z.number().int().min(0).default(10).optional(),
+  // legacy alias kept for backward compatibility across callers
+  limit: z.number().int().min(0).default(10).optional(),
   cursor: z.record(z.any()).optional(),
   where: QueryWhereSchema.optional(),
   orderBy: z.record(z.enum(['asc', 'desc'])).optional(),
@@ -218,7 +220,7 @@ export const createPrismaWhereSchema = <T extends zod.ZodRawShape>(
         contains: zod.string().optional(),
         startsWith: zod.string().optional(),
         endsWith: zod.string().optional(),
-        mode: zod.string().optional(),
+        mode: zod.enum(['default', 'insensitive']).optional(),
       })
       .partial();
 
@@ -280,8 +282,10 @@ export const getQueryInput = <S extends zod.ZodTypeAny>(schema: S, options: { pa
       data: dataSchema,
 
       // keep your query envelope fields
-      skip: zod.number().default(0).optional(),
-      limit: zod.number().default(10).optional(),
+      skip: zod.number().int().min(0).default(0).optional(),
+      take: zod.number().int().min(0).default(10).optional(),
+      // legacy alias kept for backward compatibility across callers
+      limit: zod.number().int().min(0).default(10).optional(),
       cursor: zod.record(zod.any()).optional(),
 
       // only valid for object schemas

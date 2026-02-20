@@ -27,6 +27,9 @@ Jest-based package-local tests for `@arken/seer-protocol`.
   - verifies pagination fields (`skip`/`take`/`limit`) are constrained to non-negative integers
   - verifies recursive schema filter `mode` is constrained to `default | insensitive`
   - verifies array-schema query envelopes reject unsupported `where` filters
+- `schema.root-query-input.test.ts`
+  - verifies root `schema.ts` keeps parity with strict query-envelope pagination constraints
+  - verifies root recursive filter `mode` is constrained to `default | insensitive`
 
 ## Run
-- `npm test` (from `arken/packages/seer/packages/protocol`)
+- `rushx test` (from `arken/seer/protocol`)
