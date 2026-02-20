@@ -9,8 +9,9 @@ describe('util/schema query envelope shape', () => {
     const source = await fs.readFile(path.resolve(root, 'util', 'schema.ts'), 'utf8');
     const getQueryInputBlock = source.match(/export const getQueryInput[\s\S]*?return zod\.union\(\[querySchema, zod\.undefined\(\)\]\);/)?.[0] ?? '';
 
-    expect(getQueryInputBlock).toMatch(/take:\s*zod\.number\(\)\.default\(10\)\.optional\(\)/);
-    expect(getQueryInputBlock).toMatch(/limit:\s*zod\.number\(\)\.default\(10\)\.optional\(\)/);
+    expect(getQueryInputBlock).toMatch(/skip:\s*zod\.number\(\)\.int\(\)\.min\(0\)\.default\(0\)\.optional\(\)/);
+    expect(getQueryInputBlock).toMatch(/take:\s*zod\.number\(\)\.int\(\)\.min\(0\)\.default\(10\)\.optional\(\)/);
+    expect(getQueryInputBlock).toMatch(/limit:\s*zod\.number\(\)\.int\(\)\.min\(0\)\.default\(10\)\.optional\(\)/);
     expect(getQueryInputBlock).toMatch(/where:\s*isObjectSchema\s*\?\s*whereSchema\.optional\(\)\s*:\s*zod\.undefined\(\)\.optional\(\)/);
     expect(source).toMatch(/mode:\s*zod\.enum\(\['default',\s*'insensitive'\]\)\.optional\(\)/);
   });

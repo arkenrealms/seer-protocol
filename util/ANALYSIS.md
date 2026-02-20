@@ -12,3 +12,4 @@ Utility schema helpers used across Seer protocol routers.
 ## Reliability impact
 Prevents pagination drift between callers that send `take` vs callers still sending `limit`.
 Also narrows recursive query-filter `mode` to supported values (`default`/`insensitive`), reducing typo-driven mismatches that previously passed as arbitrary strings.
+Additionally constrains `skip`/`take`/`limit` to non-negative integers, blocking malformed negative/decimal pagination values earlier at protocol boundaries.

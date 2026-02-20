@@ -34,5 +34,6 @@ Provide a direct-repo regression gate for protocol router hardening work.
 ## 2026-02-19 maintenance update
 - Added `test/schema.query-input.test.ts` to cover `util/schema.ts` query envelope compatibility.
 - Locked acceptance for both `take` (preferred) and `limit` (legacy alias) in `getQueryInput`.
+- Added regression coverage that pagination fields (`skip`/`take`/`limit`) remain constrained to non-negative integers.
 - Added regression for array-schema query envelopes to reject unsupported `where` filters.
 - Added regression that `mode` in recursive query filters is constrained to `default | insensitive` (no arbitrary mode strings).
