@@ -116,6 +116,17 @@ describe('util/schema query envelope behavior', () => {
     expect(schema.parse({ select: { name: true } }).select.name).toBe(true);
   });
 
+  test('Query and getQueryInput reject blank/whitespace cursor keys', () => {
+    expect(() => Query.parse({ cursor: { '': 'abc' } })).toThrow(/cursor keys must be non-empty/);
+    expect(() => Query.parse({ cursor: { '   ': 1 } })).toThrow(/cursor keys must be non-empty/);
+
+    const schema = getQueryInput(z.object({ name: z.string() }));
+
+    expect(() => schema.parse({ cursor: { '': 'abc' } })).toThrow(/cursor keys must be non-empty/);
+    expect(() => schema.parse({ cursor: { '   ': 1 } })).toThrow(/cursor keys must be non-empty/);
+    expect(schema.parse({ cursor: { id: 'abc' } }).cursor.id).toBe('abc');
+  });
+
   test('getQueryInput disallows where for non-object schemas', () => {
     const schema = getQueryInput(z.array(z.string()));
 

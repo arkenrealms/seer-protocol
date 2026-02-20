@@ -96,6 +96,17 @@ describe('root schema query envelope parity', () => {
     expect(schema.parse({ select: { name: true } }).select.name).toBe(true);
   });
 
+  test('schema.ts Query and getQueryInput reject blank/whitespace cursor keys', () => {
+    expect(() => Query.parse({ cursor: { '': 'abc' } })).toThrow(/cursor keys must be non-empty/);
+    expect(() => Query.parse({ cursor: { '   ': 1 } })).toThrow(/cursor keys must be non-empty/);
+
+    const schema = getQueryInput(z.object({ name: z.string() }));
+
+    expect(() => schema.parse({ cursor: { '': 'abc' } })).toThrow(/cursor keys must be non-empty/);
+    expect(() => schema.parse({ cursor: { '   ': 1 } })).toThrow(/cursor keys must be non-empty/);
+    expect(schema.parse({ cursor: { id: 'abc' } }).cursor.id).toBe('abc');
+  });
+
   test('schema.ts getQueryInput enforces mode enum and legacy limit alias', () => {
     const schema = getQueryInput(z.object({ name: z.string() }));
 

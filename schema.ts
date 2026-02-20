@@ -116,6 +116,20 @@ const NonBlankBooleanRecord = z
     }
   });
 
+const NonBlankCursorRecord = z
+  .record(z.any())
+  .superRefine((cursorMap, ctx) => {
+    for (const key of Object.keys(cursorMap)) {
+      if (key.trim().length === 0) {
+        ctx.addIssue({
+          code: zod.ZodIssueCode.custom,
+          message: 'cursor keys must be non-empty and non-whitespace',
+        });
+        return;
+      }
+    }
+  });
+
 const assertTakeLimitParity = (
   query: { take?: number; limit?: number },
   ctx: zod.RefinementCtx,
@@ -161,7 +175,7 @@ export const Query = z
     take: z.number().int().min(0).default(10).optional(),
     // legacy alias kept for backward compatibility across callers
     limit: z.number().int().min(0).default(10).optional(),
-    cursor: z.record(z.any()).optional(),
+    cursor: NonBlankCursorRecord.optional(),
     where: QueryWhereSchema.optional(),
     orderBy: NonBlankOrderByRecord.optional(),
     include: NonBlankBooleanRecord.optional(),
@@ -346,7 +360,7 @@ export const getQueryInput = <S extends zod.ZodTypeAny>(schema: S, options: { pa
       take: zod.number().int().min(0).default(10).optional(),
       // legacy alias kept for backward compatibility across callers
       limit: zod.number().int().min(0).default(10).optional(),
-      cursor: zod.record(zod.any()).optional(),
+      cursor: NonBlankCursorRecord.optional(),
 
       // only valid for object schemas
       where: isObjectSchema ? whereSchema.optional() : zod.undefined().optional(),

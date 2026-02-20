@@ -103,3 +103,8 @@
 - Updated both root `schema.ts` and `util/schema.ts` query envelopes to normalize one-sided `take`/`limit` payloads after validation.
 - Expanded root/util schema tests to assert normalized parse output for callers that send only one alias.
 - Rationale: many clients still emit one pagination key; normalization at protocol ingress keeps router behavior consistent without adding router-level wrappers.
+
+## 2026-02-20 11:1x PST — cursor key hygiene hardening
+- Updated both root `schema.ts` and `util/schema.ts` query envelopes so `cursor` rejects blank/whitespace-only keys.
+- Expanded root/util schema tests to verify rejection of malformed cursor maps and acceptance of valid cursor keys.
+- Rationale: blank cursor keys create ambiguous pagination state and downstream query failures; protocol-boundary validation keeps cursor behavior deterministic.

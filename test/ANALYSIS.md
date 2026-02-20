@@ -86,3 +86,8 @@ Provide a direct-repo regression gate for protocol router hardening work.
 ## 2026-02-20 09:0x PST — single-alias pagination normalization lock
 - Expanded `schema.query-input.test.ts` and `schema.root-query-input.test.ts` with behavior assertions that a single pagination alias is normalized into both `take` and `limit`.
 - Why: ensures compatibility with legacy callers while preserving one canonical page-size value in parsed envelopes.
+
+## 2026-02-20 11:1x PST — cursor key validation lock
+- Expanded both util/root schema suites to reject blank/whitespace-only keys in `cursor` maps.
+- Added positive assertions that valid cursor keys still parse.
+- Why: cursor payloads with empty keys can break pagination determinism; boundary-level tests lock reliable parse behavior.
