@@ -218,7 +218,7 @@ export const createPrismaWhereSchema = <T extends zod.ZodRawShape>(
         contains: zod.string().optional(),
         startsWith: zod.string().optional(),
         endsWith: zod.string().optional(),
-        mode: zod.string().optional(),
+        mode: zod.enum(['default', 'insensitive']).optional(),
       })
       .partial();
 
@@ -280,10 +280,10 @@ export const getQueryInput = <S extends zod.ZodTypeAny>(schema: S, options: { pa
       data: dataSchema,
 
       // keep your query envelope fields
-      skip: zod.number().default(0).optional(),
-      take: zod.number().default(10).optional(),
+      skip: zod.number().int().min(0).default(0).optional(),
+      take: zod.number().int().min(0).default(10).optional(),
       // legacy alias kept for backward compatibility across callers
-      limit: zod.number().default(10).optional(),
+      limit: zod.number().int().min(0).default(10).optional(),
       cursor: zod.record(zod.any()).optional(),
 
       // only valid for object schemas
