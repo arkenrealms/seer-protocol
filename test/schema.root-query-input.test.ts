@@ -112,9 +112,11 @@ describe('root schema query envelope parity', () => {
 
     expect(() => Query.parse({ include: { constructor: true } })).toThrow(/reserved key/);
     expect(() => Query.parse({ cursor: { prototype: 'abc' } })).toThrow(/reserved key/);
+    expect(() => Query.parse({ orderBy: { ' __proto__ ': 'desc' } })).toThrow(/reserved key/);
 
     expect(() => schema.parse({ select: { constructor: true } })).toThrow(/reserved key/);
     expect(() => schema.parse({ cursor: { prototype: 'abc' } })).toThrow(/reserved key/);
+    expect(() => schema.parse({ include: { ' constructor ': true } })).toThrow(/reserved key/);
   });
 
   test('schema.ts Query and getQueryInput reject empty logical where arrays', () => {

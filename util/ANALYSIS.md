@@ -46,3 +46,7 @@ Additionally constrains `skip`/`take`/`limit` to non-negative integers, blocking
 - Added `rejectReservedQueryEnvelopeKey` checks to `orderBy`, `include`/`select`, and `cursor` record validators in both root + util schema helpers.
 - Rejected keys: `__proto__`, `constructor`, `prototype`.
 - Why: these are prototype-pollution vectors in dynamic object maps; failing at protocol parse time keeps query envelopes deterministic and prevents polluted payloads from reaching downstream services.
+
+## 2026-02-20 17:xx PST — whitespace-trimmed reserved-key guard
+- Hardened `rejectReservedQueryEnvelopeKey` in both util/root schema helpers to trim map keys before reserved-key checks.
+- Why: previously payloads like `' __proto__ '` or `' constructor '` bypassed reserved-key rejection despite representing the same dangerous keys.

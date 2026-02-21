@@ -100,3 +100,7 @@ Provide a direct-repo regression gate for protocol router hardening work.
 ## 2026-02-20 15:xx PST — reserved-key query-map regression lock
 - Expanded both util/root query-envelope suites to reject reserved keys (`__proto__`, `constructor`, `prototype`) in `orderBy`, selection maps, and `cursor`.
 - Why: validates protocol-level rejection of prototype-pollution vector keys and keeps parse behavior deterministic for dynamic query maps.
+
+## 2026-02-20 17:xx PST — trimmed reserved-key bypass regression lock
+- Expanded both util/root query-envelope suites with whitespace-padded reserved-key cases (for example `' __proto__ '` and `' constructor '`).
+- Why: ensures reserved-key guards cannot be bypassed by surrounding whitespace in dynamic query-map payloads.

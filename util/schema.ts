@@ -79,10 +79,12 @@ const rejectReservedQueryEnvelopeKey = (
   label: string,
   ctx: zod.RefinementCtx
 ) => {
-  if (ReservedQueryEnvelopeKeys.has(key)) {
+  const normalizedKey = key.trim();
+
+  if (ReservedQueryEnvelopeKeys.has(normalizedKey)) {
     ctx.addIssue({
       code: zod.ZodIssueCode.custom,
-      message: `${label} cannot include reserved key \"${key}\"`,
+      message: `${label} cannot include reserved key \"${normalizedKey}\"`,
     });
     return true;
   }

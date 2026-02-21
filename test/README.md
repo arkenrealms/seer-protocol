@@ -34,6 +34,7 @@ Jest-based package-local tests for `@arken/seer-protocol`.
   - verifies root `take` + `limit` mismatch is rejected for parity with util schema
   - verifies root recursive filter `mode` is constrained to `default | insensitive`
   - verifies root `include`/`select` reject blank/whitespace-only keys while valid keys continue to parse
+  - verifies reserved keys are rejected even when padded with whitespace
 
 ## Run
 - `rushx test` (from `arken/seer/protocol`)
