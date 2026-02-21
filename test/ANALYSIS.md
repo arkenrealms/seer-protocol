@@ -137,3 +137,8 @@ Provide a direct-repo regression gate for protocol router hardening work.
 ## 2026-02-21 06:1x PST — empty where-envelope regression lock
 - Expanded `schema.query-input.test.ts` and `schema.root-query-input.test.ts` with behavior assertions that `{ where: {} }` is rejected by both `Query` and `getQueryInput`.
 - Why: locks new non-empty where-envelope guard so protocol schemas cannot regress to silently accepting no-op filters.
+
+## 2026-02-21 07:1x PST — hasRole middleware side-effect regression lock
+- Added `test/rpc.hasRole.test.ts` to validate `hasRole` authorization behavior for allowed and forbidden role sets.
+- Added assertion that successful `hasRole` middleware execution does not emit `console.log` side effects.
+- Why: middleware-level auth checks run frequently; this locks intended behavior while preventing regression to noisy debug logging.

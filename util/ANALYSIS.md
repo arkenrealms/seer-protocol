@@ -77,3 +77,8 @@ Additionally constrains `skip`/`take`/`limit` to non-negative integers, blocking
 ## 2026-02-21 06:1x PST — empty where-envelope rejection
 - Added shared `rejectEmptyWhereObject` guard and applied it to util `QueryWhereSchema` plus recursive `createPrismaWhereSchema` branches.
 - Why: payloads like `{ where: {} }` are no-op/ambiguous and can hide caller defects; rejecting them at parse time preserves deterministic filtering behavior.
+
+## 2026-02-21 07:1x PST — hasRole middleware log-noise reduction
+- Removed debug `console.log` output from `hasRole` in `util/rpc.ts`.
+- Why: `hasRole` executes across most router calls; unconditional logging polluted test/ops output without improving authorization correctness.
+- Kept role-check behavior and FORBIDDEN error semantics unchanged.
