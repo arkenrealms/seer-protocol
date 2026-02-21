@@ -150,3 +150,9 @@
 - Hardened both root (`schema.ts`) and util (`util/schema.ts`) where schemas to reject empty where objects (`{ where: {} }`) in top-level `QueryWhereSchema` and recursive `createPrismaWhereSchema` paths.
 - Expanded root/util schema behavior tests to lock rejection and preserve valid non-empty where parsing.
 - Rationale: empty where envelopes are ambiguous no-op filters that can mask client bugs and accidentally broaden result sets; protocol-level rejection keeps filtering intent explicit.
+
+## 2026-02-21 12:0x PST — non-blank string pattern operator enforcement
+- Hardened both root (`schema.ts`) and util (`util/schema.ts`) filter operator schemas so `contains`, `startsWith`, and `endsWith` require trimmed non-empty string values.
+- Applied the same contract in recursive `createPrismaWhereSchema` operator builders to keep nested where behavior aligned with top-level `Query` parsing.
+- Expanded root/util schema behavior tests to reject blank/whitespace-only values while preserving acceptance for valid non-empty values.
+- Rationale: blank pattern operators are effectively ambiguous no-op filters; failing fast at protocol ingress prevents silent caller mistakes and improves query determinism.

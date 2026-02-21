@@ -90,3 +90,8 @@ Additionally constrains `skip`/`take`/`limit` to non-negative integers, blocking
 ## 2026-02-21 11:0x PST — empty order/selection map guard
 - Hardened both util/root query-envelope validators so `orderBy`, `include`, and `select` reject empty objects (`{}`) with deterministic parse errors.
 - Why: empty sort/projection maps are ambiguous no-op payloads that hide caller intent bugs; rejecting them aligns these envelopes with existing empty-cursor and empty-where protections.
+
+## 2026-02-21 12:0x PST — non-blank string pattern operators
+- Hardened both util/root filter-operator schemas so `contains`, `startsWith`, and `endsWith` require trimmed non-empty string values.
+- Applied the same operator contract in recursive `createPrismaWhereSchema` field-filter builders for parity across top-level and nested where paths.
+- Why: blank/whitespace-only string operators act like ambiguous no-op filters and can hide caller mistakes; protocol-boundary rejection keeps filter intent explicit.

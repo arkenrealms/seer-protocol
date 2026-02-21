@@ -138,6 +138,8 @@ const rejectEmptyWhereObject = (
   return false;
 };
 
+const NonBlankStringOperator = z.string().trim().min(1, 'string operators must contain at least one non-whitespace character');
+
 const QueryFilterOperators = z
   .object({
     equals: z.any().optional(),
@@ -148,9 +150,9 @@ const QueryFilterOperators = z
     lte: z.any().optional(),
     gt: z.any().optional(),
     gte: z.any().optional(),
-    contains: z.string().optional(),
-    startsWith: z.string().optional(),
-    endsWith: z.string().optional(),
+    contains: NonBlankStringOperator.optional(),
+    startsWith: NonBlankStringOperator.optional(),
+    endsWith: NonBlankStringOperator.optional(),
     mode: z.enum(['default', 'insensitive']).optional(),
   })
   .superRefine((operators, ctx) => {
@@ -430,9 +432,9 @@ export const createPrismaWhereSchema = <T extends zod.ZodRawShape>(
         lte: value.optional(),
         gt: value.optional(),
         gte: value.optional(),
-        contains: zod.string().optional(),
-        startsWith: zod.string().optional(),
-        endsWith: zod.string().optional(),
+        contains: NonBlankStringOperator.optional(),
+        startsWith: NonBlankStringOperator.optional(),
+        endsWith: NonBlankStringOperator.optional(),
         mode: zod.enum(['default', 'insensitive']).optional(),
       })
       .partial()

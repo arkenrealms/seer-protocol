@@ -195,6 +195,18 @@ describe('util/schema query envelope behavior', () => {
     expect(valid.where.name.in).toEqual(['abc']);
   });
 
+  test('Query and getQueryInput reject blank string pattern operators', () => {
+    expect(() => Query.parse({ where: { name: { contains: '' } } })).toThrow(/string operators must contain at least one non-whitespace character/);
+    expect(() => Query.parse({ where: { name: { startsWith: '   ' } } })).toThrow(/string operators must contain at least one non-whitespace character/);
+
+    const schema = getQueryInput(z.object({ name: z.string() }));
+
+    expect(() => schema.parse({ where: { name: { endsWith: '' } } })).toThrow(/string operators must contain at least one non-whitespace character/);
+
+    const valid = schema.parse({ where: { name: { contains: 'abc' } } });
+    expect(valid.where.name.contains).toBe('abc');
+  });
+
   test('Query and getQueryInput reject empty where objects', () => {
     expect(() => Query.parse({ where: {} })).toThrow(/where must include at least one filter or logical clause/);
 

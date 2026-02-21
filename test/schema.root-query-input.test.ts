@@ -160,6 +160,18 @@ describe('root schema query envelope parity', () => {
     expect(valid.where.name.notIn).toEqual(['xyz']);
   });
 
+  test('schema.ts Query and getQueryInput reject blank string pattern operators', () => {
+    expect(() => Query.parse({ where: { name: { contains: '' } } })).toThrow(/string operators must contain at least one non-whitespace character/);
+    expect(() => Query.parse({ where: { name: { startsWith: '   ' } } })).toThrow(/string operators must contain at least one non-whitespace character/);
+
+    const schema = getQueryInput(z.object({ name: z.string() }));
+
+    expect(() => schema.parse({ where: { name: { endsWith: '' } } })).toThrow(/string operators must contain at least one non-whitespace character/);
+
+    const valid = schema.parse({ where: { name: { contains: 'abc' } } });
+    expect(valid.where.name.contains).toBe('abc');
+  });
+
   test('schema.ts Query and getQueryInput reject empty where operator objects', () => {
     expect(() => Query.parse({ where: { name: {} } })).toThrow(/must include at least one operator/);
 

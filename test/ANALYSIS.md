@@ -123,6 +123,11 @@ Provide a direct-repo regression gate for protocol router hardening work.
 - Expanded `schema.query-input.test.ts` and `schema.root-query-input.test.ts` with behavior assertions that empty `orderBy`, `include`, and `select` maps are rejected by both `Query` and `getQueryInput`.
 - Why: locks deterministic rejection for no-op sort/projection envelopes and prevents silent acceptance of ambiguous client payloads.
 
+## 2026-02-21 12:0x PST — blank string pattern-operator regression lock
+- Expanded `schema.query-input.test.ts` and `schema.root-query-input.test.ts` with behavior assertions that `contains`, `startsWith`, and `endsWith` reject blank/whitespace-only values in both `Query` and `getQueryInput` paths.
+- Added positive parse assertions that non-empty operator values are still accepted.
+- Why: prevents silent acceptance of ambiguous no-op string filters and keeps root/util schema behavior in parity.
+
 ## 2026-02-21 01:4x PST — default pagination envelope regression lock
 - Added behavior assertions in both root/util schema suites that `{}` parses to default pagination values (`skip:0`, `take:10`, `limit:10`).
 - Added assertions that `getQueryInput(...).parse(undefined)` still returns `undefined` to preserve optional query payload compatibility.
