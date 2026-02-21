@@ -123,3 +123,8 @@ Provide a direct-repo regression gate for protocol router hardening work.
 - Added behavior assertions in both root/util schema suites that `{}` parses to default pagination values (`skip:0`, `take:10`, `limit:10`).
 - Added assertions that `getQueryInput(...).parse(undefined)` still returns `undefined` to preserve optional query payload compatibility.
 - Why: guards the new default-materialization behavior while keeping existing undefined-query call paths stable.
+
+## 2026-02-21 03:3x PST — empty where-operator regression lock
+- Expanded both util/root schema suites to reject empty where-operator objects (for example `{ where: { name: {} } }`).
+- Added positive assertions that valid operators still parse.
+- Why: ensures new non-empty operator guard cannot silently regress and keeps query-filter semantics deterministic.

@@ -108,20 +108,39 @@ const rejectUntrimmedQueryEnvelopeKey = (
   return false;
 };
 
-const QueryFilterOperators = z.object({
-  equals: z.any().optional(),
-  not: z.any().optional(),
-  in: z.array(z.any()).min(1, 'in must contain at least one value').optional(),
-  notIn: z.array(z.any()).min(1, 'notIn must contain at least one value').optional(),
-  lt: z.any().optional(),
-  lte: z.any().optional(),
-  gt: z.any().optional(),
-  gte: z.any().optional(),
-  contains: z.string().optional(),
-  startsWith: z.string().optional(),
-  endsWith: z.string().optional(),
-  mode: z.enum(['default', 'insensitive']).optional(),
-});
+const rejectEmptyQueryFilterOperators = (
+  operators: Record<string, unknown>,
+  ctx: zod.RefinementCtx
+) => {
+  if (Object.keys(operators).length === 0) {
+    ctx.addIssue({
+      code: zod.ZodIssueCode.custom,
+      message: 'where filter operators must include at least one operator',
+    });
+    return true;
+  }
+
+  return false;
+};
+
+const QueryFilterOperators = z
+  .object({
+    equals: z.any().optional(),
+    not: z.any().optional(),
+    in: z.array(z.any()).min(1, 'in must contain at least one value').optional(),
+    notIn: z.array(z.any()).min(1, 'notIn must contain at least one value').optional(),
+    lt: z.any().optional(),
+    lte: z.any().optional(),
+    gt: z.any().optional(),
+    gte: z.any().optional(),
+    contains: z.string().optional(),
+    startsWith: z.string().optional(),
+    endsWith: z.string().optional(),
+    mode: z.enum(['default', 'insensitive']).optional(),
+  })
+  .superRefine((operators, ctx) => {
+    rejectEmptyQueryFilterOperators(operators, ctx);
+  });
 
 
 const NonBlankOrderByRecord = z
@@ -372,7 +391,10 @@ export const createPrismaWhereSchema = <T extends zod.ZodRawShape>(
         endsWith: zod.string().optional(),
         mode: zod.enum(['default', 'insensitive']).optional(),
       })
-      .partial();
+      .partial()
+      .superRefine((operators, ctx) => {
+        rejectEmptyQueryFilterOperators(operators, ctx);
+      });
 
     return zod
       .preprocess((input) => {

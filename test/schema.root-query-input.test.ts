@@ -152,6 +152,15 @@ describe('root schema query envelope parity', () => {
     expect(valid.where.name.notIn).toEqual(['xyz']);
   });
 
+  test('schema.ts Query and getQueryInput reject empty where operator objects', () => {
+    expect(() => Query.parse({ where: { name: {} } })).toThrow(/must include at least one operator/);
+
+    const schema = getQueryInput(z.object({ name: z.string() }));
+
+    expect(() => schema.parse({ where: { name: {} } })).toThrow(/must include at least one operator/);
+    expect(schema.parse({ where: { name: { equals: 'abc' } } }).where.name.equals).toBe('abc');
+  });
+
   test('schema.ts getQueryInput enforces mode enum and legacy limit alias', () => {
     const schema = getQueryInput(z.object({ name: z.string() }));
 

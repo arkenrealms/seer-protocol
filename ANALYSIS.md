@@ -124,6 +124,12 @@
 - Removed `querySchema.partial()` from `getQueryInput` now that all fields are already intentionally optional.
 - Rationale: with `.partial()` in place, empty query objects bypassed default materialization; deterministic defaulted envelopes reduce router/service branching and avoid implicit pagination drift.
 
+## 2026-02-21 03:3x PST — empty where-operator object rejection
+- Hardened both root (`schema.ts`) and util (`util/schema.ts`) query filter operator schemas to reject empty operator objects such as `{ where: { name: {} } }`.
+- Applied the same non-empty-operator check inside recursive `createPrismaWhereSchema` field-filter builders to keep deep where-clause behavior in parity.
+- Added behavior tests in both root/util schema suites to assert rejection and preserve valid `equals` operator acceptance.
+- Rationale: empty operator maps are ambiguous no-op filters that can silently hide caller bugs and produce inconsistent filtering behavior downstream.
+
 ## 2026-02-20 21:1x PST — non-plain where shorthand normalization fix
 - Hardened `createPrismaWhereSchema` in both root `schema.ts` and `util/schema.ts` to treat only plain records as operator objects.
 - Non-plain objects (for example boxed primitives and class instances) are now normalized through shorthand equality (`{ equals: value }`) instead of being stripped into empty operator payloads.

@@ -64,3 +64,8 @@ Additionally constrains `skip`/`take`/`limit` to non-negative integers, blocking
 - Reordered pagination defaults in util/root query schemas to `optional().default(...)` for `skip`, `take`, and legacy `limit`.
 - Removed redundant `querySchema.partial()` in `getQueryInput`, which previously prevented defaults from materializing on `{}` payloads.
 - Why: callers omitting pagination now receive deterministic parsed envelopes (`skip:0`, `take:10`, `limit:10`) without router-level fallback logic.
+
+## 2026-02-21 03:3x PST — empty where-operator object guard
+- Added shared non-empty operator validation so query where filters reject empty operator maps in both util/root schemas.
+- Applied guard in both top-level `QueryWhereSchema` operators and recursive `createPrismaWhereSchema` operator objects.
+- Why: payloads like `{ where: { name: {} } }` are ambiguous no-op filters; failing fast at schema boundary keeps filter intent explicit and deterministic.
