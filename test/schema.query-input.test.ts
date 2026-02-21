@@ -136,12 +136,14 @@ describe('util/schema query envelope behavior', () => {
   });
 
   test('Query and getQueryInput reject blank/whitespace cursor keys', () => {
+    expect(() => Query.parse({ cursor: {} })).toThrow(/cursor must include at least one key/);
     expect(() => Query.parse({ cursor: { '': 'abc' } })).toThrow(/cursor keys must be non-empty/);
     expect(() => Query.parse({ cursor: { '   ': 1 } })).toThrow(/cursor keys must be non-empty/);
     expect(() => Query.parse({ cursor: { ' id ': 'abc' } })).toThrow(/must not contain leading or trailing whitespace/);
 
     const schema = getQueryInput(z.object({ name: z.string() }));
 
+    expect(() => schema.parse({ cursor: {} })).toThrow(/cursor must include at least one key/);
     expect(() => schema.parse({ cursor: { '': 'abc' } })).toThrow(/cursor keys must be non-empty/);
     expect(() => schema.parse({ cursor: { '   ': 1 } })).toThrow(/cursor keys must be non-empty/);
     expect(() => schema.parse({ cursor: { ' id ': 'abc' } })).toThrow(/must not contain leading or trailing whitespace/);

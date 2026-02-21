@@ -205,6 +205,14 @@ const NonBlankBooleanRecord = z
 const NonBlankCursorRecord = z
   .record(z.any())
   .superRefine((cursorMap, ctx) => {
+    if (Object.keys(cursorMap).length === 0) {
+      ctx.addIssue({
+        code: zod.ZodIssueCode.custom,
+        message: 'cursor must include at least one key',
+      });
+      return;
+    }
+
     for (const key of Object.keys(cursorMap)) {
       if (key.trim().length === 0) {
         ctx.addIssue({

@@ -142,3 +142,7 @@ Provide a direct-repo regression gate for protocol router hardening work.
 - Added `test/rpc.hasRole.test.ts` to validate `hasRole` authorization behavior for allowed and forbidden role sets.
 - Added assertion that successful `hasRole` middleware execution does not emit `console.log` side effects.
 - Why: middleware-level auth checks run frequently; this locks intended behavior while preventing regression to noisy debug logging.
+
+## 2026-02-21 09:0x PST — empty cursor-envelope regression lock
+- Expanded both `schema.query-input.test.ts` and `schema.root-query-input.test.ts` with behavior assertions that `cursor: {}` is rejected for `Query` and `getQueryInput`.
+- Why: locks new protocol-boundary guard against empty cursor envelopes so util/root schema layers cannot drift.

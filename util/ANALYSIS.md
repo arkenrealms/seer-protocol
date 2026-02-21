@@ -82,3 +82,7 @@ Additionally constrains `skip`/`take`/`limit` to non-negative integers, blocking
 - Removed debug `console.log` output from `hasRole` in `util/rpc.ts`.
 - Why: `hasRole` executes across most router calls; unconditional logging polluted test/ops output without improving authorization correctness.
 - Kept role-check behavior and FORBIDDEN error semantics unchanged.
+
+## 2026-02-21 09:0x PST — empty cursor-envelope guard
+- Hardened both util/root `NonBlankCursorRecord` validators to reject empty cursor objects (`{}`) with explicit `cursor must include at least one key` errors.
+- Why: empty cursor maps are ambiguous no-op pagination state and can mask caller bugs; failing fast at schema parse time keeps cursor semantics deterministic.
