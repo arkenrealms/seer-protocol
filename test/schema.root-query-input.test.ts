@@ -183,6 +183,15 @@ describe('root schema query envelope parity', () => {
     expect(schema.parse({ where: { name: { equals: 'abc' } } }).where.name.equals).toBe('abc');
   });
 
+  test('schema.ts Query and getQueryInput reject unknown where operators instead of silently stripping', () => {
+    expect(() => Query.parse({ where: { name: { equals: 'abc', typoOp: 'x' } } })).toThrow(/Unrecognized key\(s\) in object: 'typoOp'/);
+
+    const schema = getQueryInput(z.object({ name: z.string() }));
+
+    expect(() => schema.parse({ where: { name: { equals: 'abc', typoOp: 'x' } } })).toThrow(/Unrecognized key\(s\) in object: 'typoOp'/);
+    expect(schema.parse({ where: { name: { equals: 'abc', mode: 'insensitive' } } }).where.name.mode).toBe('insensitive');
+  });
+
   test('schema.ts getQueryInput enforces mode enum and legacy limit alias', () => {
     const schema = getQueryInput(z.object({ name: z.string() }));
 

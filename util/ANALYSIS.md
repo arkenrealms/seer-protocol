@@ -100,3 +100,7 @@ Additionally constrains `skip`/`take`/`limit` to non-negative integers, blocking
 - Hardened both util/root query envelopes so `skip`, `take`, and legacy `limit` require finite numbers (`.finite()`), not just integer/non-negative values.
 - Why: non-finite values like `Infinity` can still satisfy integer checks and create invalid pagination contracts downstream.
 - Added regression coverage in util/root schema tests to ensure `±Infinity` pagination values are rejected.
+
+## 2026-02-21 14:3x PST — strict where-operator key enforcement
+- Added `.strict()` on util/root filter operator object schemas (top-level `QueryFilterOperators` and recursive `createPrismaWhereSchema` operator maps).
+- Why: unknown operator keys were previously stripped if any valid operator key existed, which could hide client typos and produce silently-broadened filters.

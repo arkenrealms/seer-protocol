@@ -161,3 +161,8 @@
 - Hardened both root and util query envelopes so `skip`, `take`, and legacy `limit` require finite numbers in addition to existing integer/non-negative checks.
 - Why: `z.number().int()` can still permit `Infinity` values; allowing non-finite pagination inputs can leak invalid page bounds into router/data-layer logic.
 - Added matching behavior tests in both root/util schema suites to lock rejection of `±Infinity` pagination inputs.
+
+## 2026-02-21 14:3x PST — strict where-operator key enforcement
+- Hardened both root (`schema.ts`) and util (`util/schema.ts`) where-operator objects with `.strict()` so unknown operator keys fail fast instead of being silently stripped.
+- Applied this to shared `QueryFilterOperators` and recursive `createPrismaWhereSchema` operator builders.
+- Rationale: typos like `typoOp` previously disappeared when a valid operator was also present, masking caller defects and causing ambiguous filter behavior.

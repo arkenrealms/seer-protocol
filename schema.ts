@@ -155,6 +155,7 @@ const QueryFilterOperators = z
     endsWith: NonBlankStringOperator.optional(),
     mode: z.enum(['default', 'insensitive']).optional(),
   })
+  .strict()
   .superRefine((operators, ctx) => {
     rejectEmptyQueryFilterOperators(operators, ctx);
   });
@@ -438,6 +439,7 @@ export const createPrismaWhereSchema = <T extends zod.ZodRawShape>(
         mode: zod.enum(['default', 'insensitive']).optional(),
       })
       .partial()
+      .strict()
       .superRefine((operators, ctx) => {
         rejectEmptyQueryFilterOperators(operators, ctx);
       });

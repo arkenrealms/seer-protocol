@@ -227,6 +227,15 @@ describe('util/schema query envelope behavior', () => {
     expect(schema.parse({ where: { name: { equals: 'abc' } } }).where.name.equals).toBe('abc');
   });
 
+  test('Query and getQueryInput reject unknown where operators instead of silently stripping', () => {
+    expect(() => Query.parse({ where: { name: { equals: 'abc', typoOp: 'x' } } })).toThrow(/Unrecognized key\(s\) in object: 'typoOp'/);
+
+    const schema = getQueryInput(z.object({ name: z.string() }));
+
+    expect(() => schema.parse({ where: { name: { equals: 'abc', typoOp: 'x' } } })).toThrow(/Unrecognized key\(s\) in object: 'typoOp'/);
+    expect(schema.parse({ where: { name: { equals: 'abc', mode: 'insensitive' } } }).where.name.mode).toBe('insensitive');
+  });
+
   test('getQueryInput disallows where for non-object schemas', () => {
     const schema = getQueryInput(z.array(z.string()));
 

@@ -159,3 +159,8 @@ Provide a direct-repo regression gate for protocol router hardening work.
 ## 2026-02-21 14:0x PST — finite-pagination regression lock
 - Expanded both `schema.query-input.test.ts` and `schema.root-query-input.test.ts` to assert `Query` rejects `skip/take` values of `±Infinity`.
 - Why: locks protocol parse behavior so non-finite pagination cannot regress into accepted input when schema helpers evolve.
+
+## 2026-02-21 14:3x PST — unknown where-operator regression lock
+- Expanded both util/root schema behavior suites to reject unknown where operators (example: `typoOp`) instead of silently stripping them.
+- Added positive assertions that valid operators continue to parse (`equals`, `mode`).
+- Why: locks new strict where-operator contracts and prevents typo-driven filter drift from regressing.
