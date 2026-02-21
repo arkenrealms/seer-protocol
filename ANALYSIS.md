@@ -141,3 +141,7 @@
 - Applied the same `.min(1)` enforcement in recursive `createPrismaWhereSchema` operator builders so deep/nested where clauses follow identical rules.
 - Expanded root/util behavior suites to verify rejection for empty arrays and acceptance for non-empty arrays.
 - Rationale: empty membership arrays are ambiguous no-op filters; rejecting them at protocol ingress prevents silent caller mistakes and keeps filter semantics deterministic.
+
+## 2026-02-21 04:xx PST — strict where-key enforcement parity
+- Applied strict unknown-key rejection to both root and util query-where schemas (`QueryWhereSchema` + `createPrismaWhereSchema`).
+- Rationale: protocol boundary should fail fast on mistyped where keys rather than silently dropping them.

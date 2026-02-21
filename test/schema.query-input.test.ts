@@ -208,4 +208,13 @@ describe('util/schema query envelope behavior', () => {
 
     expect(() => schema.parse({ where: { name: new String('abc') } })).toThrow(/Expected string/);
   });
+
+  test('Query and getQueryInput reject unknown where keys instead of silently stripping', () => {
+    expect(() => Query.parse({ where: { unknownField: { equals: 'abc' } } })).toThrow(/Unrecognized key\(s\) in object: 'unknownField'/);
+
+    const schema = getQueryInput(z.object({ name: z.string() }));
+
+    expect(() => schema.parse({ where: { unknownField: { equals: 'abc' } } })).toThrow(/Unrecognized key\(s\) in object: 'unknownField'/);
+    expect(() => schema.parse({ where: { ' name ': { equals: 'abc' } } })).toThrow(/Unrecognized key\(s\) in object: ' name '/);
+  });
 });

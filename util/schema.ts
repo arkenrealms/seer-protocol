@@ -252,16 +252,18 @@ const isPlainRecord = (value: unknown): value is Record<string, unknown> => {
 };
 
 const QueryWhereSchema = z.lazy(() =>
-  z.object({
-    AND: z.array(QueryWhereSchema).min(1, 'AND must contain at least one condition').optional(),
-    OR: z.array(QueryWhereSchema).min(1, 'OR must contain at least one condition').optional(),
-    NOT: z.array(QueryWhereSchema).min(1, 'NOT must contain at least one condition').optional(),
-    id: QueryFilterOperators.optional(),
-    key: QueryFilterOperators.optional(),
-    name: QueryFilterOperators.optional(),
-    email: QueryFilterOperators.optional(),
-    status: QueryFilterOperators.optional(),
-  })
+  z
+    .object({
+      AND: z.array(QueryWhereSchema).min(1, 'AND must contain at least one condition').optional(),
+      OR: z.array(QueryWhereSchema).min(1, 'OR must contain at least one condition').optional(),
+      NOT: z.array(QueryWhereSchema).min(1, 'NOT must contain at least one condition').optional(),
+      id: QueryFilterOperators.optional(),
+      key: QueryFilterOperators.optional(),
+      name: QueryFilterOperators.optional(),
+      email: QueryFilterOperators.optional(),
+      status: QueryFilterOperators.optional(),
+    })
+    .strict()
 );
 
 export const Query = z
@@ -416,17 +418,21 @@ export const createPrismaWhereSchema = <T extends zod.ZodRawShape>(
 
   if (normalizedDepth <= 0) {
     // Base case: no AND/OR/NOT
-    return zod.object({
-      ...fieldFilters,
-    });
+    return zod
+      .object({
+        ...fieldFilters,
+      })
+      .strict();
   }
 
-  return zod.object({
-    AND: zod.array(zod.lazy(() => createPrismaWhereSchema(modelSchema, normalizedDepth - 1))).min(1, 'AND must contain at least one condition').optional(),
-    OR: zod.array(zod.lazy(() => createPrismaWhereSchema(modelSchema, normalizedDepth - 1))).min(1, 'OR must contain at least one condition').optional(),
-    NOT: zod.array(zod.lazy(() => createPrismaWhereSchema(modelSchema, normalizedDepth - 1))).min(1, 'NOT must contain at least one condition').optional(),
-    ...fieldFilters,
-  });
+  return zod
+    .object({
+      AND: zod.array(zod.lazy(() => createPrismaWhereSchema(modelSchema, normalizedDepth - 1))).min(1, 'AND must contain at least one condition').optional(),
+      OR: zod.array(zod.lazy(() => createPrismaWhereSchema(modelSchema, normalizedDepth - 1))).min(1, 'OR must contain at least one condition').optional(),
+      NOT: zod.array(zod.lazy(() => createPrismaWhereSchema(modelSchema, normalizedDepth - 1))).min(1, 'NOT must contain at least one condition').optional(),
+      ...fieldFilters,
+    })
+    .strict();
 };
 
 export const getQueryOutput = <T extends zod.ZodTypeAny>(data: T) => {

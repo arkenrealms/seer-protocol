@@ -128,3 +128,8 @@ Provide a direct-repo regression gate for protocol router hardening work.
 - Expanded both util/root schema suites to reject empty where-operator objects (for example `{ where: { name: {} } }`).
 - Added positive assertions that valid operators still parse.
 - Why: ensures new non-empty operator guard cannot silently regress and keeps query-filter semantics deterministic.
+
+## 2026-02-21 04:xx PST — strict where-key regression lock
+- Expanded `schema.query-input.test.ts` to assert unknown and whitespace-padded where keys are rejected.
+- Updated `schema.depth-normalization.test.ts` expectations to validate strict-key behavior at normalized recursive depths.
+- Why: with strict where parsing enabled, depth normalization tests should lock explicit rejection of out-of-shape logical keys instead of expecting silent stripping.

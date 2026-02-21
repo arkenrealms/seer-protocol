@@ -69,3 +69,7 @@ Additionally constrains `skip`/`take`/`limit` to non-negative integers, blocking
 - Added shared non-empty operator validation so query where filters reject empty operator maps in both util/root schemas.
 - Applied guard in both top-level `QueryWhereSchema` operators and recursive `createPrismaWhereSchema` operator objects.
 - Why: payloads like `{ where: { name: {} } }` are ambiguous no-op filters; failing fast at schema boundary keeps filter intent explicit and deterministic.
+
+## 2026-02-21 04:xx PST — strict where-key enforcement
+- Hardened `QueryWhereSchema` and recursive `createPrismaWhereSchema` objects with `.strict()`.
+- Why: unknown filter keys were previously stripped silently, hiding client typos and producing ambiguous no-op filters.
