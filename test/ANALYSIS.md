@@ -78,6 +78,11 @@ Provide a direct-repo regression gate for protocol router hardening work.
 - Added positive assertions that valid projection keys continue to parse.
 - Why: projection payloads with empty keys create hard-to-debug downstream failures; boundary-level validation keeps projection behavior deterministic.
 
+## 2026-02-20 19:xx PST — untrimmed query-key regression lock
+- Expanded `schema.query-input.test.ts` and `schema.root-query-input.test.ts` to reject leading/trailing-whitespace keys across `orderBy`, `include`/`select`, and `cursor`.
+- Added parity assertions in both util/root test suites so schema layers cannot drift.
+- Why: untrimmed keys silently behave like different field names (`' name '` vs `name`) and can break query/cursor behavior in non-obvious ways.
+
 ## 2026-02-20 06:5x PST — pagination alias conflict lock
 - Expanded both util/root schema suites to reject mismatched `take` + `limit` values.
 - Added positive assertions that matching aliases still parse.

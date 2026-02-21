@@ -50,3 +50,7 @@ Additionally constrains `skip`/`take`/`limit` to non-negative integers, blocking
 ## 2026-02-20 17:xx PST — whitespace-trimmed reserved-key guard
 - Hardened `rejectReservedQueryEnvelopeKey` in both util/root schema helpers to trim map keys before reserved-key checks.
 - Why: previously payloads like `' __proto__ '` or `' constructor '` bypassed reserved-key rejection despite representing the same dangerous keys.
+
+## 2026-02-20 19:xx PST — untrimmed key rejection for query envelope maps
+- Added `rejectUntrimmedQueryEnvelopeKey` in both util/root schema helpers and applied it to `orderBy`, `include`/`select`, and `cursor` validators.
+- Why: keys like `' name '` parsed as distinct field names and could create hard-to-debug sort/selection/cursor mismatches downstream; rejecting boundary whitespace keeps query envelopes deterministic.

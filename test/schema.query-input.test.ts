@@ -96,22 +96,26 @@ describe('util/schema query envelope behavior', () => {
   test('Query and getQueryInput reject blank/whitespace orderBy keys', () => {
     expect(() => Query.parse({ orderBy: { '': 'asc' } })).toThrow(/orderBy keys must be non-empty/);
     expect(() => Query.parse({ orderBy: { '   ': 'desc' } })).toThrow(/orderBy keys must be non-empty/);
+    expect(() => Query.parse({ orderBy: { ' name ': 'asc' } })).toThrow(/must not contain leading or trailing whitespace/);
 
     const schema = getQueryInput(z.object({ name: z.string() }));
 
     expect(() => schema.parse({ orderBy: { '': 'asc' } })).toThrow(/orderBy keys must be non-empty/);
     expect(() => schema.parse({ orderBy: { '   ': 'desc' } })).toThrow(/orderBy keys must be non-empty/);
+    expect(() => schema.parse({ orderBy: { ' name ': 'asc' } })).toThrow(/must not contain leading or trailing whitespace/);
     expect(schema.parse({ orderBy: { name: 'asc' } }).orderBy.name).toBe('asc');
   });
 
   test('Query and getQueryInput reject blank/whitespace include/select keys', () => {
     expect(() => Query.parse({ include: { '': true } })).toThrow(/selection keys must be non-empty/);
     expect(() => Query.parse({ select: { '   ': false } })).toThrow(/selection keys must be non-empty/);
+    expect(() => Query.parse({ include: { ' profile ': true } })).toThrow(/must not contain leading or trailing whitespace/);
 
     const schema = getQueryInput(z.object({ name: z.string() }));
 
     expect(() => schema.parse({ include: { '': true } })).toThrow(/selection keys must be non-empty/);
     expect(() => schema.parse({ select: { '   ': false } })).toThrow(/selection keys must be non-empty/);
+    expect(() => schema.parse({ select: { ' name ': true } })).toThrow(/must not contain leading or trailing whitespace/);
     expect(schema.parse({ include: { profile: true } }).include.profile).toBe(true);
     expect(schema.parse({ select: { name: true } }).select.name).toBe(true);
   });
@@ -119,11 +123,13 @@ describe('util/schema query envelope behavior', () => {
   test('Query and getQueryInput reject blank/whitespace cursor keys', () => {
     expect(() => Query.parse({ cursor: { '': 'abc' } })).toThrow(/cursor keys must be non-empty/);
     expect(() => Query.parse({ cursor: { '   ': 1 } })).toThrow(/cursor keys must be non-empty/);
+    expect(() => Query.parse({ cursor: { ' id ': 'abc' } })).toThrow(/must not contain leading or trailing whitespace/);
 
     const schema = getQueryInput(z.object({ name: z.string() }));
 
     expect(() => schema.parse({ cursor: { '': 'abc' } })).toThrow(/cursor keys must be non-empty/);
     expect(() => schema.parse({ cursor: { '   ': 1 } })).toThrow(/cursor keys must be non-empty/);
+    expect(() => schema.parse({ cursor: { ' id ': 'abc' } })).toThrow(/must not contain leading or trailing whitespace/);
     expect(schema.parse({ cursor: { id: 'abc' } }).cursor.id).toBe('abc');
   });
 
@@ -132,11 +138,10 @@ describe('util/schema query envelope behavior', () => {
 
     expect(() => Query.parse({ include: { constructor: true } })).toThrow(/reserved key/);
     expect(() => Query.parse({ cursor: { prototype: 'abc' } })).toThrow(/reserved key/);
-    expect(() => Query.parse({ orderBy: { ' __proto__ ': 'asc' } })).toThrow(/reserved key/);
 
     expect(() => schema.parse({ select: { constructor: true } })).toThrow(/reserved key/);
     expect(() => schema.parse({ cursor: { prototype: 'abc' } })).toThrow(/reserved key/);
-    expect(() => schema.parse({ include: { ' constructor ': true } })).toThrow(/reserved key/);
+    expect(() => schema.parse({ include: { constructor: true } })).toThrow(/reserved key/);
   });
 
   test('Query and getQueryInput reject empty logical where arrays', () => {

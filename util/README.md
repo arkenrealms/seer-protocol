@@ -12,3 +12,4 @@ Shared schema/util helpers for protocol routers and tests.
 - `take` and legacy `limit` must now match when both are provided, preventing conflicting pagination aliases.
 - `orderBy`, `include`/`select`, and `cursor` now reject reserved keys (`__proto__`, `constructor`, `prototype`) to block prototype-pollution style payloads.
 - Reserved-key validation trims surrounding whitespace first, so disguised variants like `' __proto__ '` are also rejected.
+- Query map keys now also reject leading/trailing whitespace (for `orderBy`, `include`/`select`, and `cursor`) to prevent subtly mismatched field names from slipping through.

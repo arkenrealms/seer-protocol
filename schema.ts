@@ -92,6 +92,22 @@ const rejectReservedQueryEnvelopeKey = (
   return false;
 };
 
+const rejectUntrimmedQueryEnvelopeKey = (
+  key: string,
+  label: string,
+  ctx: zod.RefinementCtx
+) => {
+  if (key !== key.trim()) {
+    ctx.addIssue({
+      code: zod.ZodIssueCode.custom,
+      message: `${label} keys must not contain leading or trailing whitespace`,
+    });
+    return true;
+  }
+
+  return false;
+};
+
 const QueryFilterOperators = z.object({
   equals: z.any().optional(),
   not: z.any().optional(),
@@ -120,6 +136,10 @@ const NonBlankOrderByRecord = z
         return;
       }
 
+      if (rejectUntrimmedQueryEnvelopeKey(key, 'orderBy', ctx)) {
+        return;
+      }
+
       if (rejectReservedQueryEnvelopeKey(key, 'orderBy', ctx)) {
         return;
       }
@@ -138,6 +158,10 @@ const NonBlankBooleanRecord = z
         return;
       }
 
+      if (rejectUntrimmedQueryEnvelopeKey(key, 'selection', ctx)) {
+        return;
+      }
+
       if (rejectReservedQueryEnvelopeKey(key, 'selection', ctx)) {
         return;
       }
@@ -153,6 +177,10 @@ const NonBlankCursorRecord = z
           code: zod.ZodIssueCode.custom,
           message: 'cursor keys must be non-empty and non-whitespace',
         });
+        return;
+      }
+
+      if (rejectUntrimmedQueryEnvelopeKey(key, 'cursor', ctx)) {
         return;
       }
 
