@@ -139,6 +139,19 @@ describe('root schema query envelope parity', () => {
     expect(valid.where.OR).toHaveLength(1);
   });
 
+  test('schema.ts Query and getQueryInput reject empty in/notIn arrays in where filters', () => {
+    expect(() => Query.parse({ where: { name: { in: [] } } })).toThrow(/in must contain at least one value/);
+    expect(() => Query.parse({ where: { name: { notIn: [] } } })).toThrow(/notIn must contain at least one value/);
+
+    const schema = getQueryInput(z.object({ name: z.string() }));
+
+    expect(() => schema.parse({ where: { name: { in: [] } } })).toThrow(/in must contain at least one value/);
+    expect(() => schema.parse({ where: { name: { notIn: [] } } })).toThrow(/notIn must contain at least one value/);
+
+    const valid = schema.parse({ where: { name: { notIn: ['xyz'] } } });
+    expect(valid.where.name.notIn).toEqual(['xyz']);
+  });
+
   test('schema.ts getQueryInput enforces mode enum and legacy limit alias', () => {
     const schema = getQueryInput(z.object({ name: z.string() }));
 

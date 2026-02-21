@@ -54,3 +54,8 @@ Additionally constrains `skip`/`take`/`limit` to non-negative integers, blocking
 ## 2026-02-20 19:xx PST — untrimmed key rejection for query envelope maps
 - Added `rejectUntrimmedQueryEnvelopeKey` in both util/root schema helpers and applied it to `orderBy`, `include`/`select`, and `cursor` validators.
 - Why: keys like `' name '` parsed as distinct field names and could create hard-to-debug sort/selection/cursor mismatches downstream; rejecting boundary whitespace keeps query envelopes deterministic.
+
+## 2026-02-20 23:xx PST — empty membership-operator guard
+- Hardened both util/root query filter operator schemas so `in` and `notIn` require at least one value.
+- Applied the same non-empty guard inside recursive `createPrismaWhereSchema` field-filter operator objects.
+- Why: empty membership arrays are ambiguous no-op filters that hide caller mistakes and can lead to inconsistent data-layer behavior; failing fast at protocol boundary keeps where semantics explicit.

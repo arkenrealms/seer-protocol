@@ -124,3 +124,9 @@
 - Non-plain objects (for example boxed primitives and class instances) are now normalized through shorthand equality (`{ equals: value }`) instead of being stripped into empty operator payloads.
 - Expanded util/root schema tests to lock non-plain shorthand rejection behavior for string fields.
 - Rationale: non-plain object filters previously parsed as empty operator maps due to broad object detection, silently dropping caller filter intent and causing inconsistent query behavior.
+
+## 2026-02-20 23:xx PST — empty membership-array guard in where filters
+- Hardened query operator contracts in both root `schema.ts` and `util/schema.ts` to reject empty `in` / `notIn` arrays.
+- Applied the same `.min(1)` enforcement in recursive `createPrismaWhereSchema` operator builders so deep/nested where clauses follow identical rules.
+- Expanded root/util behavior suites to verify rejection for empty arrays and acceptance for non-empty arrays.
+- Rationale: empty membership arrays are ambiguous no-op filters; rejecting them at protocol ingress prevents silent caller mistakes and keeps filter semantics deterministic.

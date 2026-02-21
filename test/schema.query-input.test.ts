@@ -159,6 +159,19 @@ describe('util/schema query envelope behavior', () => {
     expect(valid.where.AND).toHaveLength(1);
   });
 
+  test('Query and getQueryInput reject empty in/notIn arrays in where filters', () => {
+    expect(() => Query.parse({ where: { name: { in: [] } } })).toThrow(/in must contain at least one value/);
+    expect(() => Query.parse({ where: { name: { notIn: [] } } })).toThrow(/notIn must contain at least one value/);
+
+    const schema = getQueryInput(z.object({ name: z.string() }));
+
+    expect(() => schema.parse({ where: { name: { in: [] } } })).toThrow(/in must contain at least one value/);
+    expect(() => schema.parse({ where: { name: { notIn: [] } } })).toThrow(/notIn must contain at least one value/);
+
+    const valid = schema.parse({ where: { name: { in: ['abc'] } } });
+    expect(valid.where.name.in).toEqual(['abc']);
+  });
+
   test('getQueryInput disallows where for non-object schemas', () => {
     const schema = getQueryInput(z.array(z.string()));
 

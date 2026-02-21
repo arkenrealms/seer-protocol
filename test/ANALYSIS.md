@@ -113,3 +113,8 @@ Provide a direct-repo regression gate for protocol router hardening work.
 ## 2026-02-20 21:1x PST — non-plain shorthand regression lock
 - Expanded `schema.query-input.test.ts` and `schema.root-query-input.test.ts` with behavior assertions that non-plain shorthand objects (example: `new String('abc')`) are not silently stripped.
 - Why: root/util schemas previously treated every object as an operator map, so non-plain shorthand payloads could parse as `{}` and silently lose caller filter intent.
+
+## 2026-02-20 23:xx PST — empty in/notIn membership-array regression lock
+- Expanded both `schema.query-input.test.ts` and `schema.root-query-input.test.ts` with behavior assertions that empty `where.<field>.in` and `where.<field>.notIn` arrays are rejected by both `Query` and `getQueryInput`.
+- Added positive parse assertions for non-empty membership arrays to lock valid-path behavior.
+- Why: ensures util/root schema layers enforce explicit membership filters instead of silently accepting no-op arrays.

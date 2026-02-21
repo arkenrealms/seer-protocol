@@ -111,8 +111,8 @@ const rejectUntrimmedQueryEnvelopeKey = (
 const QueryFilterOperators = z.object({
   equals: z.any().optional(),
   not: z.any().optional(),
-  in: z.array(z.any()).optional(),
-  notIn: z.array(z.any()).optional(),
+  in: z.array(z.any()).min(1, 'in must contain at least one value').optional(),
+  notIn: z.array(z.any()).min(1, 'notIn must contain at least one value').optional(),
   lt: z.any().optional(),
   lte: z.any().optional(),
   gt: z.any().optional(),
@@ -353,8 +353,8 @@ export const createPrismaWhereSchema = <T extends zod.ZodRawShape>(
       .object({
         equals: value.optional(),
         not: value.optional(),
-        in: zod.array(value).optional(),
-        notIn: zod.array(value).optional(),
+        in: zod.array(value).min(1, 'in must contain at least one value').optional(),
+        notIn: zod.array(value).min(1, 'notIn must contain at least one value').optional(),
         lt: value.optional(),
         lte: value.optional(),
         gt: value.optional(),
