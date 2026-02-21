@@ -109,3 +109,7 @@ Provide a direct-repo regression gate for protocol router hardening work.
 ## 2026-02-20 17:xx PST — trimmed reserved-key bypass regression lock
 - Expanded both util/root query-envelope suites with whitespace-padded reserved-key cases (for example `' __proto__ '` and `' constructor '`).
 - Why: ensures reserved-key guards cannot be bypassed by surrounding whitespace in dynamic query-map payloads.
+
+## 2026-02-20 21:1x PST — non-plain shorthand regression lock
+- Expanded `schema.query-input.test.ts` and `schema.root-query-input.test.ts` with behavior assertions that non-plain shorthand objects (example: `new String('abc')`) are not silently stripped.
+- Why: root/util schemas previously treated every object as an operator map, so non-plain shorthand payloads could parse as `{}` and silently lose caller filter intent.

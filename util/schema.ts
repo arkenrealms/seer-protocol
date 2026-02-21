@@ -216,6 +216,14 @@ const normalizeTakeLimitAliases = <T extends { take?: number; limit?: number }>(
   return query;
 };
 
+const isPlainRecord = (value: unknown): value is Record<string, unknown> => {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    return false;
+  }
+
+  return Object.prototype.toString.call(value) === '[object Object]';
+};
+
 const QueryWhereSchema = z.lazy(() =>
   z.object({
     AND: z.array(QueryWhereSchema).min(1, 'AND must contain at least one condition').optional(),
@@ -363,8 +371,8 @@ export const createPrismaWhereSchema = <T extends zod.ZodRawShape>(
         // let undefined through
         if (input === undefined) return input;
 
-        // Already an object (likely { equals, in, ... }) → validate as-is
-        if (typeof input === 'object' && input !== null && !Array.isArray(input)) {
+        // Plain records are likely operator objects ({ equals, in, ... })
+        if (isPlainRecord(input)) {
           return input;
         }
 

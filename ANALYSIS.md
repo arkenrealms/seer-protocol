@@ -118,3 +118,9 @@
 - Hardened both root and util query-map validators (`orderBy`, `include`/`select`, `cursor`) to reject reserved keys: `__proto__`, `constructor`, `prototype`.
 - Expanded both schema regression suites to lock rejection behavior for these keys.
 - Rationale: these keys are common prototype-pollution vectors in dynamic object payloads; protocol-layer rejection prevents polluted envelopes from reaching router/service execution paths.
+
+## 2026-02-20 21:1x PST — non-plain where shorthand normalization fix
+- Hardened `createPrismaWhereSchema` in both root `schema.ts` and `util/schema.ts` to treat only plain records as operator objects.
+- Non-plain objects (for example boxed primitives and class instances) are now normalized through shorthand equality (`{ equals: value }`) instead of being stripped into empty operator payloads.
+- Expanded util/root schema tests to lock non-plain shorthand rejection behavior for string fields.
+- Rationale: non-plain object filters previously parsed as empty operator maps due to broad object detection, silently dropping caller filter intent and causing inconsistent query behavior.

@@ -156,4 +156,10 @@ describe('root schema query envelope parity', () => {
       })
     ).toThrow();
   });
+
+  test('schema.ts getQueryInput rejects non-plain shorthand objects instead of silently stripping them', () => {
+    const schema = getQueryInput(z.object({ name: z.string() }));
+
+    expect(() => schema.parse({ where: { name: new String('abc') } })).toThrow(/Expected string/);
+  });
 });

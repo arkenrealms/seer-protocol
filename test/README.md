@@ -28,6 +28,7 @@ Jest-based package-local tests for `@arken/seer-protocol`.
   - verifies `take` and `limit` must match when both are sent
   - verifies recursive schema filter `mode` is constrained to `default | insensitive`
   - verifies `include`/`select` reject blank/whitespace-only keys while valid keys continue to parse
+  - verifies non-plain shorthand objects are rejected instead of being silently stripped
   - verifies array-schema query envelopes reject unsupported `where` filters
 - `schema.root-query-input.test.ts`
   - verifies root `schema.ts` keeps parity with strict query-envelope pagination constraints
@@ -35,6 +36,7 @@ Jest-based package-local tests for `@arken/seer-protocol`.
   - verifies root recursive filter `mode` is constrained to `default | insensitive`
   - verifies root `include`/`select` reject blank/whitespace-only keys while valid keys continue to parse
   - verifies reserved keys are rejected even when padded with whitespace
+  - verifies non-plain shorthand objects are rejected instead of being silently stripped
 
 ## Run
 - `rushx test` (from `arken/seer/protocol`)

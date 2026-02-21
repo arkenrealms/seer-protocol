@@ -165,4 +165,10 @@ describe('util/schema query envelope behavior', () => {
     expect(() => schema.parse({ where: { anything: { equals: 'x' } } })).toThrow();
     expect(schema.parse({ data: ['a', 'b'], limit: 10 }).limit).toBe(10);
   });
+
+  test('getQueryInput rejects non-plain shorthand objects instead of silently stripping them', () => {
+    const schema = getQueryInput(z.object({ name: z.string() }));
+
+    expect(() => schema.parse({ where: { name: new String('abc') } })).toThrow(/Expected string/);
+  });
 });
