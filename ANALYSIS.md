@@ -87,3 +87,46 @@
 ## 2026-02-19 23:xx PST — Query export parity follow-up
 - Hardened exported `Query` objects in both root `schema.ts` and `util/schema.ts` to enforce non-negative integer `skip`/`take` and include legacy `limit` alias.
 - Added regression assertions in existing schema tests so `Query` helper strictness cannot silently drift from `getQueryInput` behavior.
+
+## 2026-02-20 04:xx PST — projection key hygiene hardening
+- Hardened both root and util query envelopes so `include`/`select` reject blank or whitespace-only keys.
+- Applied shared non-blank boolean-record validation in both exported `Query` and `getQueryInput` envelopes.
+- Added behavior-based tests in both root/util schema suites to lock rejection + valid-key acceptance.
+- Rationale: malformed projection keys are otherwise accepted and can surface as opaque data-layer query errors; this catches them at protocol boundary.
+
+## 2026-02-20 06:5x PST — pagination alias parity hardening
+- Added query-envelope refinement in both root `schema.ts` and `util/schema.ts` so `take` and legacy `limit` cannot conflict when both are present.
+- Extended root/util schema regression tests to reject mismatched alias values and accept matching values.
+- Rationale: mixed clients still send either alias; explicit parity check prevents ambiguous page sizing and makes pagination behavior deterministic.
+
+## 2026-02-20 09:0x PST — single-alias pagination normalization hardening
+- Updated both root `schema.ts` and `util/schema.ts` query envelopes to normalize one-sided `take`/`limit` payloads after validation.
+- Expanded root/util schema tests to assert normalized parse output for callers that send only one alias.
+- Rationale: many clients still emit one pagination key; normalization at protocol ingress keeps router behavior consistent without adding router-level wrappers.
+
+## 2026-02-20 11:1x PST — cursor key hygiene hardening
+- Updated both root `schema.ts` and `util/schema.ts` query envelopes so `cursor` rejects blank/whitespace-only keys.
+- Expanded root/util schema tests to verify rejection of malformed cursor maps and acceptance of valid cursor keys.
+- Rationale: blank cursor keys create ambiguous pagination state and downstream query failures; protocol-boundary validation keeps cursor behavior deterministic.
+
+## 2026-02-20 13:0x PST — non-empty logical where-clause guard
+- Hardened both root and util query schemas so logical operators (`AND`, `OR`, `NOT`) reject empty arrays in both exported `Query` and recursive `createPrismaWhereSchema` paths.
+- Added behavior tests in root/util schema suites to assert empty-array rejection and valid non-empty logical clauses.
+- Rationale: empty logical arrays are effectively no-op/ambiguous filters that can mask caller bugs; failing fast at protocol ingress improves query determinism.
+
+## 2026-02-20 15:xx PST — reserved key guard for dynamic query maps
+- Hardened both root and util query-map validators (`orderBy`, `include`/`select`, `cursor`) to reject reserved keys: `__proto__`, `constructor`, `prototype`.
+- Expanded both schema regression suites to lock rejection behavior for these keys.
+- Rationale: these keys are common prototype-pollution vectors in dynamic object payloads; protocol-layer rejection prevents polluted envelopes from reaching router/service execution paths.
+
+## 2026-02-20 21:1x PST — non-plain where shorthand normalization fix
+- Hardened `createPrismaWhereSchema` in both root `schema.ts` and `util/schema.ts` to treat only plain records as operator objects.
+- Non-plain objects (for example boxed primitives and class instances) are now normalized through shorthand equality (`{ equals: value }`) instead of being stripped into empty operator payloads.
+- Expanded util/root schema tests to lock non-plain shorthand rejection behavior for string fields.
+- Rationale: non-plain object filters previously parsed as empty operator maps due to broad object detection, silently dropping caller filter intent and causing inconsistent query behavior.
+
+## 2026-02-20 23:xx PST — empty membership-array guard in where filters
+- Hardened query operator contracts in both root `schema.ts` and `util/schema.ts` to reject empty `in` / `notIn` arrays.
+- Applied the same `.min(1)` enforcement in recursive `createPrismaWhereSchema` operator builders so deep/nested where clauses follow identical rules.
+- Expanded root/util behavior suites to verify rejection for empty arrays and acceptance for non-empty arrays.
+- Rationale: empty membership arrays are ambiguous no-op filters; rejecting them at protocol ingress prevents silent caller mistakes and keeps filter semantics deterministic.

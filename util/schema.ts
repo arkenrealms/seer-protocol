@@ -72,11 +72,47 @@ export const Entity = z
 
 export type Entity = zod.infer<typeof Entity>;
 
+const ReservedQueryEnvelopeKeys = new Set(['__proto__', 'constructor', 'prototype']);
+
+const rejectReservedQueryEnvelopeKey = (
+  key: string,
+  label: string,
+  ctx: zod.RefinementCtx
+) => {
+  const normalizedKey = key.trim();
+
+  if (ReservedQueryEnvelopeKeys.has(normalizedKey)) {
+    ctx.addIssue({
+      code: zod.ZodIssueCode.custom,
+      message: `${label} cannot include reserved key \"${normalizedKey}\"`,
+    });
+    return true;
+  }
+
+  return false;
+};
+
+const rejectUntrimmedQueryEnvelopeKey = (
+  key: string,
+  label: string,
+  ctx: zod.RefinementCtx
+) => {
+  if (key !== key.trim()) {
+    ctx.addIssue({
+      code: zod.ZodIssueCode.custom,
+      message: `${label} keys must not contain leading or trailing whitespace`,
+    });
+    return true;
+  }
+
+  return false;
+};
+
 const QueryFilterOperators = z.object({
   equals: z.any().optional(),
   not: z.any().optional(),
-  in: z.array(z.any()).optional(),
-  notIn: z.array(z.any()).optional(),
+  in: z.array(z.any()).min(1, 'in must contain at least one value').optional(),
+  notIn: z.array(z.any()).min(1, 'notIn must contain at least one value').optional(),
   lt: z.any().optional(),
   lte: z.any().optional(),
   gt: z.any().optional(),
@@ -87,11 +123,112 @@ const QueryFilterOperators = z.object({
   mode: z.enum(['default', 'insensitive']).optional(),
 });
 
+
+const NonBlankOrderByRecord = z
+  .record(z.enum(['asc', 'desc']))
+  .superRefine((orderBy, ctx) => {
+    for (const key of Object.keys(orderBy)) {
+      if (key.trim().length === 0) {
+        ctx.addIssue({
+          code: zod.ZodIssueCode.custom,
+          message: 'orderBy keys must be non-empty and non-whitespace',
+        });
+        return;
+      }
+
+      if (rejectUntrimmedQueryEnvelopeKey(key, 'orderBy', ctx)) {
+        return;
+      }
+
+      if (rejectReservedQueryEnvelopeKey(key, 'orderBy', ctx)) {
+        return;
+      }
+    }
+  });
+
+const NonBlankBooleanRecord = z
+  .record(z.boolean())
+  .superRefine((selectionMap, ctx) => {
+    for (const key of Object.keys(selectionMap)) {
+      if (key.trim().length === 0) {
+        ctx.addIssue({
+          code: zod.ZodIssueCode.custom,
+          message: 'selection keys must be non-empty and non-whitespace',
+        });
+        return;
+      }
+
+      if (rejectUntrimmedQueryEnvelopeKey(key, 'selection', ctx)) {
+        return;
+      }
+
+      if (rejectReservedQueryEnvelopeKey(key, 'selection', ctx)) {
+        return;
+      }
+    }
+  });
+
+const NonBlankCursorRecord = z
+  .record(z.any())
+  .superRefine((cursorMap, ctx) => {
+    for (const key of Object.keys(cursorMap)) {
+      if (key.trim().length === 0) {
+        ctx.addIssue({
+          code: zod.ZodIssueCode.custom,
+          message: 'cursor keys must be non-empty and non-whitespace',
+        });
+        return;
+      }
+
+      if (rejectUntrimmedQueryEnvelopeKey(key, 'cursor', ctx)) {
+        return;
+      }
+
+      if (rejectReservedQueryEnvelopeKey(key, 'cursor', ctx)) {
+        return;
+      }
+    }
+  });
+
+const assertTakeLimitParity = (
+  query: { take?: number; limit?: number },
+  ctx: zod.RefinementCtx,
+  path: Array<string>
+) => {
+  if (query.take !== undefined && query.limit !== undefined && query.take !== query.limit) {
+    ctx.addIssue({
+      code: zod.ZodIssueCode.custom,
+      path,
+      message: 'take and limit must match when both are provided',
+    });
+  }
+};
+
+const normalizeTakeLimitAliases = <T extends { take?: number; limit?: number }>(query: T): T => {
+  if (query.take === undefined && query.limit !== undefined) {
+    return { ...query, take: query.limit };
+  }
+
+  if (query.limit === undefined && query.take !== undefined) {
+    return { ...query, limit: query.take };
+  }
+
+  return query;
+};
+
+const isPlainRecord = (value: unknown): value is Record<string, unknown> => {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    return false;
+  }
+
+  return Object.prototype.toString.call(value) === '[object Object]';
+};
+
 const QueryWhereSchema = z.lazy(() =>
   z.object({
-    AND: z.array(QueryWhereSchema).optional(),
-    OR: z.array(QueryWhereSchema).optional(),
-    NOT: z.array(QueryWhereSchema).optional(),
+    AND: z.array(QueryWhereSchema).min(1, 'AND must contain at least one condition').optional(),
+    OR: z.array(QueryWhereSchema).min(1, 'OR must contain at least one condition').optional(),
+    NOT: z.array(QueryWhereSchema).min(1, 'NOT must contain at least one condition').optional(),
     id: QueryFilterOperators.optional(),
     key: QueryFilterOperators.optional(),
     name: QueryFilterOperators.optional(),
@@ -100,17 +237,22 @@ const QueryWhereSchema = z.lazy(() =>
   })
 );
 
-export const Query = z.object({
-  skip: z.number().int().min(0).default(0).optional(),
-  take: z.number().int().min(0).default(10).optional(),
-  // legacy alias kept for backward compatibility across callers
-  limit: z.number().int().min(0).default(10).optional(),
-  cursor: z.record(z.any()).optional(),
-  where: QueryWhereSchema.optional(),
-  orderBy: z.record(z.enum(['asc', 'desc'])).optional(),
-  include: z.record(z.boolean()).optional(),
-  select: z.record(z.boolean()).optional(),
-});
+export const Query = z
+  .object({
+    skip: z.number().int().min(0).default(0).optional(),
+    take: z.number().int().min(0).default(10).optional(),
+    // legacy alias kept for backward compatibility across callers
+    limit: z.number().int().min(0).default(10).optional(),
+    cursor: NonBlankCursorRecord.optional(),
+    where: QueryWhereSchema.optional(),
+    orderBy: NonBlankOrderByRecord.optional(),
+    include: NonBlankBooleanRecord.optional(),
+    select: NonBlankBooleanRecord.optional(),
+  })
+  .superRefine((query, ctx) => {
+    assertTakeLimitParity(query, ctx, ['limit']);
+  })
+  .transform((query) => normalizeTakeLimitAliases(query));
 
 // // Operators for filtering in a Prisma-like way
 // type PrismaFilterOperators<T extends ZodTypeAny> = zod.ZodObject<
@@ -211,8 +353,8 @@ export const createPrismaWhereSchema = <T extends zod.ZodRawShape>(
       .object({
         equals: value.optional(),
         not: value.optional(),
-        in: zod.array(value).optional(),
-        notIn: zod.array(value).optional(),
+        in: zod.array(value).min(1, 'in must contain at least one value').optional(),
+        notIn: zod.array(value).min(1, 'notIn must contain at least one value').optional(),
         lt: value.optional(),
         lte: value.optional(),
         gt: value.optional(),
@@ -229,8 +371,8 @@ export const createPrismaWhereSchema = <T extends zod.ZodRawShape>(
         // let undefined through
         if (input === undefined) return input;
 
-        // Already an object (likely { equals, in, ... }) → validate as-is
-        if (typeof input === 'object' && input !== null && !Array.isArray(input)) {
+        // Plain records are likely operator objects ({ equals, in, ... })
+        if (isPlainRecord(input)) {
           return input;
         }
 
@@ -250,9 +392,9 @@ export const createPrismaWhereSchema = <T extends zod.ZodRawShape>(
   }
 
   return zod.object({
-    AND: zod.array(zod.lazy(() => createPrismaWhereSchema(modelSchema, normalizedDepth - 1))).optional(),
-    OR: zod.array(zod.lazy(() => createPrismaWhereSchema(modelSchema, normalizedDepth - 1))).optional(),
-    NOT: zod.array(zod.lazy(() => createPrismaWhereSchema(modelSchema, normalizedDepth - 1))).optional(),
+    AND: zod.array(zod.lazy(() => createPrismaWhereSchema(modelSchema, normalizedDepth - 1))).min(1, 'AND must contain at least one condition').optional(),
+    OR: zod.array(zod.lazy(() => createPrismaWhereSchema(modelSchema, normalizedDepth - 1))).min(1, 'OR must contain at least one condition').optional(),
+    NOT: zod.array(zod.lazy(() => createPrismaWhereSchema(modelSchema, normalizedDepth - 1))).min(1, 'NOT must contain at least one condition').optional(),
     ...fieldFilters,
   });
 };
@@ -286,16 +428,20 @@ export const getQueryInput = <S extends zod.ZodTypeAny>(schema: S, options: { pa
       take: zod.number().int().min(0).default(10).optional(),
       // legacy alias kept for backward compatibility across callers
       limit: zod.number().int().min(0).default(10).optional(),
-      cursor: zod.record(zod.any()).optional(),
+      cursor: NonBlankCursorRecord.optional(),
 
       // only valid for object schemas
       where: isObjectSchema ? whereSchema.optional() : zod.undefined().optional(),
 
-      orderBy: zod.record(zod.enum(['asc', 'desc'])).optional(),
-      include: zod.record(zod.boolean()).optional(),
-      select: zod.record(zod.boolean()).optional(),
+      orderBy: NonBlankOrderByRecord.optional(),
+      include: NonBlankBooleanRecord.optional(),
+      select: NonBlankBooleanRecord.optional(),
     })
-    .partial();
+    .partial()
+    .superRefine((query, ctx) => {
+      assertTakeLimitParity(query, ctx, ['limit']);
+    })
+    .transform((query) => normalizeTakeLimitAliases(query));
 
   return zod.union([querySchema, zod.undefined()]);
 };

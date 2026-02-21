@@ -7,3 +7,9 @@ Shared schema/util helpers for protocol routers and tests.
 - Query envelopes now accept both `take` (preferred) and legacy `limit` for pagination compatibility.
 - Pagination controls (`skip`, `take`, `limit`) are now constrained to non-negative integers to prevent invalid negative/float pagination payloads from reaching service/query layers.
 - Prisma-style filter `mode` is constrained to `default | insensitive` in recursive `where` schemas to prevent silent invalid mode values.
+- `orderBy` now rejects blank/whitespace-only keys to prevent malformed sort envelopes.
+- `include` and `select` now reject blank/whitespace-only keys so malformed projection envelopes fail fast.
+- `take` and legacy `limit` must now match when both are provided, preventing conflicting pagination aliases.
+- `orderBy`, `include`/`select`, and `cursor` now reject reserved keys (`__proto__`, `constructor`, `prototype`) to block prototype-pollution style payloads.
+- Reserved-key validation trims surrounding whitespace first, so disguised variants like `' __proto__ '` are also rejected.
+- Query map keys now also reject leading/trailing whitespace (for `orderBy`, `include`/`select`, and `cursor`) to prevent subtly mismatched field names from slipping through.

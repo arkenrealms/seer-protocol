@@ -67,3 +67,54 @@ Provide a direct-repo regression gate for protocol router hardening work.
 - Reworked `router-routing.test.ts` to validate Isles/Infinite method resolution behavior (service-first + Evolution fallback + deterministic missing-handler errors) using executable callers.
 - Reworked `schema.depth-normalization.test.ts` to validate depth normalization behavior through parse outcomes for NaN/negative/fractional depths rather than source regex checks.
 - Why: direct architect request (`highruned`) to replace brittle source-shape tests with robust behavior-based tests less prone to breakage from formatting/refactors.
+
+## 2026-02-20 02:xx PST — orderBy key validation regression lock
+- Expanded `schema.query-input.test.ts` and `schema.root-query-input.test.ts` to enforce rejection of blank/whitespace-only `orderBy` keys.
+- Added positive assertions that valid non-empty keys continue to parse.
+- Why: protect query envelope reliability by catching malformed sort payloads at protocol boundary.
+
+## 2026-02-20 04:xx PST — include/select key validation regression lock
+- Expanded `schema.query-input.test.ts` and `schema.root-query-input.test.ts` to enforce rejection of blank/whitespace-only keys in `include` and `select`.
+- Added positive assertions that valid projection keys continue to parse.
+- Why: projection payloads with empty keys create hard-to-debug downstream failures; boundary-level validation keeps projection behavior deterministic.
+
+## 2026-02-20 19:xx PST — untrimmed query-key regression lock
+- Expanded `schema.query-input.test.ts` and `schema.root-query-input.test.ts` to reject leading/trailing-whitespace keys across `orderBy`, `include`/`select`, and `cursor`.
+- Added parity assertions in both util/root test suites so schema layers cannot drift.
+- Why: untrimmed keys silently behave like different field names (`' name '` vs `name`) and can break query/cursor behavior in non-obvious ways.
+
+## 2026-02-20 06:5x PST — pagination alias conflict lock
+- Expanded both util/root schema suites to reject mismatched `take` + `limit` values.
+- Added positive assertions that matching aliases still parse.
+- Why: conflicting aliases can silently diverge query pagination semantics; tests now lock deterministic protocol behavior.
+
+## 2026-02-20 09:0x PST — single-alias pagination normalization lock
+- Expanded `schema.query-input.test.ts` and `schema.root-query-input.test.ts` with behavior assertions that a single pagination alias is normalized into both `take` and `limit`.
+- Why: ensures compatibility with legacy callers while preserving one canonical page-size value in parsed envelopes.
+
+## 2026-02-20 11:1x PST — cursor key validation lock
+- Expanded both util/root schema suites to reject blank/whitespace-only keys in `cursor` maps.
+- Added positive assertions that valid cursor keys still parse.
+- Why: cursor payloads with empty keys can break pagination determinism; boundary-level tests lock reliable parse behavior.
+
+## 2026-02-20 13:0x PST — logical where-array regression lock
+- Expanded `schema.query-input.test.ts` and `schema.root-query-input.test.ts` to reject empty `AND`/`OR`/`NOT` arrays for both `Query` and `getQueryInput`.
+- Added positive assertions for valid non-empty logical arrays.
+- Why: locks deterministic query-filter semantics and prevents silent acceptance of ambiguous/no-op logical clauses.
+
+## 2026-02-20 15:xx PST — reserved-key query-map regression lock
+- Expanded both util/root query-envelope suites to reject reserved keys (`__proto__`, `constructor`, `prototype`) in `orderBy`, selection maps, and `cursor`.
+- Why: validates protocol-level rejection of prototype-pollution vector keys and keeps parse behavior deterministic for dynamic query maps.
+
+## 2026-02-20 17:xx PST — trimmed reserved-key bypass regression lock
+- Expanded both util/root query-envelope suites with whitespace-padded reserved-key cases (for example `' __proto__ '` and `' constructor '`).
+- Why: ensures reserved-key guards cannot be bypassed by surrounding whitespace in dynamic query-map payloads.
+
+## 2026-02-20 21:1x PST — non-plain shorthand regression lock
+- Expanded `schema.query-input.test.ts` and `schema.root-query-input.test.ts` with behavior assertions that non-plain shorthand objects (example: `new String('abc')`) are not silently stripped.
+- Why: root/util schemas previously treated every object as an operator map, so non-plain shorthand payloads could parse as `{}` and silently lose caller filter intent.
+
+## 2026-02-20 23:xx PST — empty in/notIn membership-array regression lock
+- Expanded both `schema.query-input.test.ts` and `schema.root-query-input.test.ts` with behavior assertions that empty `where.<field>.in` and `where.<field>.notIn` arrays are rejected by both `Query` and `getQueryInput`.
+- Added positive parse assertions for non-empty membership arrays to lock valid-path behavior.
+- Why: ensures util/root schema layers enforce explicit membership filters instead of silently accepting no-op arrays.
