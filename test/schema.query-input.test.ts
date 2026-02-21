@@ -109,12 +109,14 @@ describe('util/schema query envelope behavior', () => {
 
 
   test('Query and getQueryInput reject blank/whitespace orderBy keys', () => {
+    expect(() => Query.parse({ orderBy: {} })).toThrow(/orderBy must include at least one key/);
     expect(() => Query.parse({ orderBy: { '': 'asc' } })).toThrow(/orderBy keys must be non-empty/);
     expect(() => Query.parse({ orderBy: { '   ': 'desc' } })).toThrow(/orderBy keys must be non-empty/);
     expect(() => Query.parse({ orderBy: { ' name ': 'asc' } })).toThrow(/must not contain leading or trailing whitespace/);
 
     const schema = getQueryInput(z.object({ name: z.string() }));
 
+    expect(() => schema.parse({ orderBy: {} })).toThrow(/orderBy must include at least one key/);
     expect(() => schema.parse({ orderBy: { '': 'asc' } })).toThrow(/orderBy keys must be non-empty/);
     expect(() => schema.parse({ orderBy: { '   ': 'desc' } })).toThrow(/orderBy keys must be non-empty/);
     expect(() => schema.parse({ orderBy: { ' name ': 'asc' } })).toThrow(/must not contain leading or trailing whitespace/);
@@ -122,12 +124,16 @@ describe('util/schema query envelope behavior', () => {
   });
 
   test('Query and getQueryInput reject blank/whitespace include/select keys', () => {
+    expect(() => Query.parse({ include: {} })).toThrow(/selection map must include at least one key/);
+    expect(() => Query.parse({ select: {} })).toThrow(/selection map must include at least one key/);
     expect(() => Query.parse({ include: { '': true } })).toThrow(/selection keys must be non-empty/);
     expect(() => Query.parse({ select: { '   ': false } })).toThrow(/selection keys must be non-empty/);
     expect(() => Query.parse({ include: { ' profile ': true } })).toThrow(/must not contain leading or trailing whitespace/);
 
     const schema = getQueryInput(z.object({ name: z.string() }));
 
+    expect(() => schema.parse({ include: {} })).toThrow(/selection map must include at least one key/);
+    expect(() => schema.parse({ select: {} })).toThrow(/selection map must include at least one key/);
     expect(() => schema.parse({ include: { '': true } })).toThrow(/selection keys must be non-empty/);
     expect(() => schema.parse({ select: { '   ': false } })).toThrow(/selection keys must be non-empty/);
     expect(() => schema.parse({ select: { ' name ': true } })).toThrow(/must not contain leading or trailing whitespace/);

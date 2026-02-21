@@ -161,6 +161,14 @@ const QueryFilterOperators = z
 const NonBlankOrderByRecord = z
   .record(z.enum(['asc', 'desc']))
   .superRefine((orderBy, ctx) => {
+    if (Object.keys(orderBy).length === 0) {
+      ctx.addIssue({
+        code: zod.ZodIssueCode.custom,
+        message: 'orderBy must include at least one key',
+      });
+      return;
+    }
+
     for (const key of Object.keys(orderBy)) {
       if (key.trim().length === 0) {
         ctx.addIssue({
@@ -183,6 +191,14 @@ const NonBlankOrderByRecord = z
 const NonBlankBooleanRecord = z
   .record(z.boolean())
   .superRefine((selectionMap, ctx) => {
+    if (Object.keys(selectionMap).length === 0) {
+      ctx.addIssue({
+        code: zod.ZodIssueCode.custom,
+        message: 'selection map must include at least one key',
+      });
+      return;
+    }
+
     for (const key of Object.keys(selectionMap)) {
       if (key.trim().length === 0) {
         ctx.addIssue({

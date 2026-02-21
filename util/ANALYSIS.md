@@ -86,3 +86,7 @@ Additionally constrains `skip`/`take`/`limit` to non-negative integers, blocking
 ## 2026-02-21 09:0x PST — empty cursor-envelope guard
 - Hardened both util/root `NonBlankCursorRecord` validators to reject empty cursor objects (`{}`) with explicit `cursor must include at least one key` errors.
 - Why: empty cursor maps are ambiguous no-op pagination state and can mask caller bugs; failing fast at schema parse time keeps cursor semantics deterministic.
+
+## 2026-02-21 11:0x PST — empty order/selection map guard
+- Hardened both util/root query-envelope validators so `orderBy`, `include`, and `select` reject empty objects (`{}`) with deterministic parse errors.
+- Why: empty sort/projection maps are ambiguous no-op payloads that hide caller intent bugs; rejecting them aligns these envelopes with existing empty-cursor and empty-where protections.

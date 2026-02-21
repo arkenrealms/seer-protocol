@@ -27,6 +27,7 @@ Jest-based package-local tests for `@arken/seer-protocol`.
   - verifies pagination fields (`skip`/`take`/`limit`) are constrained to non-negative integers
   - verifies `take` and `limit` must match when both are sent
   - verifies recursive schema filter `mode` is constrained to `default | insensitive`
+  - verifies `orderBy`/`include`/`select` reject empty object maps (`{}`)
   - verifies `include`/`select` reject blank/whitespace-only keys while valid keys continue to parse
   - verifies non-plain shorthand objects are rejected instead of being silently stripped
   - verifies array-schema query envelopes reject unsupported `where` filters
