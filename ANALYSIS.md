@@ -119,6 +119,11 @@
 - Expanded both schema regression suites to lock rejection behavior for these keys.
 - Rationale: these keys are common prototype-pollution vectors in dynamic object payloads; protocol-layer rejection prevents polluted envelopes from reaching router/service execution paths.
 
+## 2026-02-21 01:4x PST — pagination-default envelope determinism
+- Updated both root and util query envelope schemas so pagination defaults are expressed as `optional().default(...)` for `skip`, `take`, and legacy `limit`.
+- Removed `querySchema.partial()` from `getQueryInput` now that all fields are already intentionally optional.
+- Rationale: with `.partial()` in place, empty query objects bypassed default materialization; deterministic defaulted envelopes reduce router/service branching and avoid implicit pagination drift.
+
 ## 2026-02-20 21:1x PST — non-plain where shorthand normalization fix
 - Hardened `createPrismaWhereSchema` in both root `schema.ts` and `util/schema.ts` to treat only plain records as operator objects.
 - Non-plain objects (for example boxed primitives and class instances) are now normalized through shorthand equality (`{ equals: value }`) instead of being stripped into empty operator payloads.

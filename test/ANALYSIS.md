@@ -118,3 +118,8 @@ Provide a direct-repo regression gate for protocol router hardening work.
 - Expanded both `schema.query-input.test.ts` and `schema.root-query-input.test.ts` with behavior assertions that empty `where.<field>.in` and `where.<field>.notIn` arrays are rejected by both `Query` and `getQueryInput`.
 - Added positive parse assertions for non-empty membership arrays to lock valid-path behavior.
 - Why: ensures util/root schema layers enforce explicit membership filters instead of silently accepting no-op arrays.
+
+## 2026-02-21 01:4x PST — default pagination envelope regression lock
+- Added behavior assertions in both root/util schema suites that `{}` parses to default pagination values (`skip:0`, `take:10`, `limit:10`).
+- Added assertions that `getQueryInput(...).parse(undefined)` still returns `undefined` to preserve optional query payload compatibility.
+- Why: guards the new default-materialization behavior while keeping existing undefined-query call paths stable.

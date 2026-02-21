@@ -216,6 +216,14 @@ const normalizeTakeLimitAliases = <T extends { take?: number; limit?: number }>(
   return query;
 };
 
+const applyTakeLimitDefaults = <T extends { take?: number; limit?: number }>(query: T): T => {
+  if (query.take === undefined && query.limit === undefined) {
+    return { ...query, take: 10, limit: 10 };
+  }
+
+  return query;
+};
+
 const isPlainRecord = (value: unknown): value is Record<string, unknown> => {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) {
     return false;
@@ -239,10 +247,10 @@ const QueryWhereSchema = z.lazy(() =>
 
 export const Query = z
   .object({
-    skip: z.number().int().min(0).default(0).optional(),
-    take: z.number().int().min(0).default(10).optional(),
+    skip: z.number().int().min(0).optional().default(0),
+    take: z.number().int().min(0).optional(),
     // legacy alias kept for backward compatibility across callers
-    limit: z.number().int().min(0).default(10).optional(),
+    limit: z.number().int().min(0).optional(),
     cursor: NonBlankCursorRecord.optional(),
     where: QueryWhereSchema.optional(),
     orderBy: NonBlankOrderByRecord.optional(),
@@ -252,7 +260,7 @@ export const Query = z
   .superRefine((query, ctx) => {
     assertTakeLimitParity(query, ctx, ['limit']);
   })
-  .transform((query) => normalizeTakeLimitAliases(query));
+  .transform((query) => applyTakeLimitDefaults(normalizeTakeLimitAliases(query)));
 
 // // Operators for filtering in a Prisma-like way
 // type PrismaFilterOperators<T extends ZodTypeAny> = zod.ZodObject<
@@ -424,10 +432,10 @@ export const getQueryInput = <S extends zod.ZodTypeAny>(schema: S, options: { pa
       data: dataSchema,
 
       // keep your query envelope fields
-      skip: zod.number().int().min(0).default(0).optional(),
-      take: zod.number().int().min(0).default(10).optional(),
+      skip: zod.number().int().min(0).optional().default(0),
+      take: zod.number().int().min(0).optional(),
       // legacy alias kept for backward compatibility across callers
-      limit: zod.number().int().min(0).default(10).optional(),
+      limit: zod.number().int().min(0).optional(),
       cursor: NonBlankCursorRecord.optional(),
 
       // only valid for object schemas
@@ -437,11 +445,10 @@ export const getQueryInput = <S extends zod.ZodTypeAny>(schema: S, options: { pa
       include: NonBlankBooleanRecord.optional(),
       select: NonBlankBooleanRecord.optional(),
     })
-    .partial()
     .superRefine((query, ctx) => {
       assertTakeLimitParity(query, ctx, ['limit']);
     })
-    .transform((query) => normalizeTakeLimitAliases(query));
+    .transform((query) => applyTakeLimitDefaults(normalizeTakeLimitAliases(query)));
 
   return zod.union([querySchema, zod.undefined()]);
 };

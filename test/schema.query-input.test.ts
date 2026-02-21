@@ -29,6 +29,21 @@ function loadSchemaRuntime() {
 describe('util/schema query envelope behavior', () => {
   const { z, Query, getQueryInput } = loadSchemaRuntime();
 
+  test('Query and getQueryInput apply default pagination envelope values when omitted', () => {
+    const queryDefaults = Query.parse({});
+    expect(queryDefaults.skip).toBe(0);
+    expect(queryDefaults.take).toBe(10);
+    expect(queryDefaults.limit).toBe(10);
+
+    const schema = getQueryInput(z.object({ name: z.string() }));
+    const inputDefaults = schema.parse({});
+    expect(inputDefaults.skip).toBe(0);
+    expect(inputDefaults.take).toBe(10);
+    expect(inputDefaults.limit).toBe(10);
+
+    expect(schema.parse(undefined)).toBeUndefined();
+  });
+
   test('Query accepts strict pagination fields including legacy limit alias', () => {
     const parsed = Query.parse({ skip: 0, take: 10, limit: 10 });
 

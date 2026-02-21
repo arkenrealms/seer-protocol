@@ -59,3 +59,8 @@ Additionally constrains `skip`/`take`/`limit` to non-negative integers, blocking
 - Hardened both util/root query filter operator schemas so `in` and `notIn` require at least one value.
 - Applied the same non-empty guard inside recursive `createPrismaWhereSchema` field-filter operator objects.
 - Why: empty membership arrays are ambiguous no-op filters that hide caller mistakes and can lead to inconsistent data-layer behavior; failing fast at protocol boundary keeps where semantics explicit.
+
+## 2026-02-21 01:4x PST — default pagination envelope normalization
+- Reordered pagination defaults in util/root query schemas to `optional().default(...)` for `skip`, `take`, and legacy `limit`.
+- Removed redundant `querySchema.partial()` in `getQueryInput`, which previously prevented defaults from materializing on `{}` payloads.
+- Why: callers omitting pagination now receive deterministic parsed envelopes (`skip:0`, `take:10`, `limit:10`) without router-level fallback logic.
