@@ -156,3 +156,8 @@
 - Applied the same contract in recursive `createPrismaWhereSchema` operator builders to keep nested where behavior aligned with top-level `Query` parsing.
 - Expanded root/util schema behavior tests to reject blank/whitespace-only values while preserving acceptance for valid non-empty values.
 - Rationale: blank pattern operators are effectively ambiguous no-op filters; failing fast at protocol ingress prevents silent caller mistakes and improves query determinism.
+
+## 2026-02-21 14:0x PST — finite pagination-number guard
+- Hardened both root and util query envelopes so `skip`, `take`, and legacy `limit` require finite numbers in addition to existing integer/non-negative checks.
+- Why: `z.number().int()` can still permit `Infinity` values; allowing non-finite pagination inputs can leak invalid page bounds into router/data-layer logic.
+- Added matching behavior tests in both root/util schema suites to lock rejection of `±Infinity` pagination inputs.

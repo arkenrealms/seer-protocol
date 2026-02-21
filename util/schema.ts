@@ -312,10 +312,10 @@ const QueryWhereSchema = z.lazy(() =>
 
 export const Query = z
   .object({
-    skip: z.number().int().min(0).optional().default(0),
-    take: z.number().int().min(0).optional(),
+    skip: z.number().finite().int().min(0).optional().default(0),
+    take: z.number().finite().int().min(0).optional(),
     // legacy alias kept for backward compatibility across callers
-    limit: z.number().int().min(0).optional(),
+    limit: z.number().finite().int().min(0).optional(),
     cursor: NonBlankCursorRecord.optional(),
     where: QueryWhereSchema.optional(),
     orderBy: NonBlankOrderByRecord.optional(),
@@ -510,10 +510,10 @@ export const getQueryInput = <S extends zod.ZodTypeAny>(schema: S, options: { pa
       data: dataSchema,
 
       // keep your query envelope fields
-      skip: zod.number().int().min(0).optional().default(0),
-      take: zod.number().int().min(0).optional(),
+      skip: zod.number().finite().int().min(0).optional().default(0),
+      take: zod.number().finite().int().min(0).optional(),
       // legacy alias kept for backward compatibility across callers
-      limit: zod.number().int().min(0).optional(),
+      limit: zod.number().finite().int().min(0).optional(),
       cursor: NonBlankCursorRecord.optional(),
 
       // only valid for object schemas

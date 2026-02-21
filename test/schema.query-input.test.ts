@@ -55,6 +55,8 @@ describe('util/schema query envelope behavior', () => {
   test('Query rejects invalid pagination values', () => {
     expect(() => Query.parse({ skip: -1 })).toThrow();
     expect(() => Query.parse({ take: 1.5 })).toThrow();
+    expect(() => Query.parse({ skip: Number.POSITIVE_INFINITY })).toThrow();
+    expect(() => Query.parse({ take: Number.NEGATIVE_INFINITY })).toThrow();
     expect(() => Query.parse({ limit: '10' })).toThrow();
   });
 

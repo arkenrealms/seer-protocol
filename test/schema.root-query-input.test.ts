@@ -40,6 +40,8 @@ describe('root schema query envelope parity', () => {
   test('schema.ts Query rejects invalid pagination values', () => {
     expect(() => Query.parse({ skip: -1 })).toThrow();
     expect(() => Query.parse({ take: 2.5 })).toThrow();
+    expect(() => Query.parse({ skip: Number.POSITIVE_INFINITY })).toThrow();
+    expect(() => Query.parse({ take: Number.NEGATIVE_INFINITY })).toThrow();
     expect(() => Query.parse({ limit: '10' })).toThrow();
   });
 

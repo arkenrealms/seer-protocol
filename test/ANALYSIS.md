@@ -155,3 +155,7 @@ Provide a direct-repo regression gate for protocol router hardening work.
 ## 2026-02-21 09:0x PST — empty cursor-envelope regression lock
 - Expanded both `schema.query-input.test.ts` and `schema.root-query-input.test.ts` with behavior assertions that `cursor: {}` is rejected for `Query` and `getQueryInput`.
 - Why: locks new protocol-boundary guard against empty cursor envelopes so util/root schema layers cannot drift.
+
+## 2026-02-21 14:0x PST — finite-pagination regression lock
+- Expanded both `schema.query-input.test.ts` and `schema.root-query-input.test.ts` to assert `Query` rejects `skip/take` values of `±Infinity`.
+- Why: locks protocol parse behavior so non-finite pagination cannot regress into accepted input when schema helpers evolve.

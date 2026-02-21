@@ -95,3 +95,8 @@ Additionally constrains `skip`/`take`/`limit` to non-negative integers, blocking
 - Hardened both util/root filter-operator schemas so `contains`, `startsWith`, and `endsWith` require trimmed non-empty string values.
 - Applied the same operator contract in recursive `createPrismaWhereSchema` field-filter builders for parity across top-level and nested where paths.
 - Why: blank/whitespace-only string operators act like ambiguous no-op filters and can hide caller mistakes; protocol-boundary rejection keeps filter intent explicit.
+
+## 2026-02-21 14:0x PST — finite pagination-number guard
+- Hardened both util/root query envelopes so `skip`, `take`, and legacy `limit` require finite numbers (`.finite()`), not just integer/non-negative values.
+- Why: non-finite values like `Infinity` can still satisfy integer checks and create invalid pagination contracts downstream.
+- Added regression coverage in util/root schema tests to ensure `±Infinity` pagination values are rejected.
