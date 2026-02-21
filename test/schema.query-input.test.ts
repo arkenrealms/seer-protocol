@@ -187,6 +187,15 @@ describe('util/schema query envelope behavior', () => {
     expect(valid.where.name.in).toEqual(['abc']);
   });
 
+  test('Query and getQueryInput reject empty where objects', () => {
+    expect(() => Query.parse({ where: {} })).toThrow(/where must include at least one filter or logical clause/);
+
+    const schema = getQueryInput(z.object({ name: z.string() }));
+
+    expect(() => schema.parse({ where: {} })).toThrow(/where must include at least one filter or logical clause/);
+    expect(schema.parse({ where: { name: { equals: 'abc' } } }).where.name.equals).toBe('abc');
+  });
+
   test('Query and getQueryInput reject empty where operator objects', () => {
     expect(() => Query.parse({ where: { name: {} } })).toThrow(/must include at least one operator/);
 

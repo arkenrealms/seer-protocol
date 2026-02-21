@@ -73,3 +73,7 @@ Additionally constrains `skip`/`take`/`limit` to non-negative integers, blocking
 ## 2026-02-21 04:xx PST — strict where-key enforcement
 - Hardened `QueryWhereSchema` and recursive `createPrismaWhereSchema` objects with `.strict()`.
 - Why: unknown filter keys were previously stripped silently, hiding client typos and producing ambiguous no-op filters.
+
+## 2026-02-21 06:1x PST — empty where-envelope rejection
+- Added shared `rejectEmptyWhereObject` guard and applied it to util `QueryWhereSchema` plus recursive `createPrismaWhereSchema` branches.
+- Why: payloads like `{ where: {} }` are no-op/ambiguous and can hide caller defects; rejecting them at parse time preserves deterministic filtering behavior.

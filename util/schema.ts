@@ -123,6 +123,21 @@ const rejectEmptyQueryFilterOperators = (
   return false;
 };
 
+const rejectEmptyWhereObject = (
+  where: Record<string, unknown>,
+  ctx: zod.RefinementCtx
+) => {
+  if (Object.keys(where).length === 0) {
+    ctx.addIssue({
+      code: zod.ZodIssueCode.custom,
+      message: 'where must include at least one filter or logical clause',
+    });
+    return true;
+  }
+
+  return false;
+};
+
 const QueryFilterOperators = z
   .object({
     equals: z.any().optional(),
@@ -264,6 +279,9 @@ const QueryWhereSchema = z.lazy(() =>
       status: QueryFilterOperators.optional(),
     })
     .strict()
+    .superRefine((where, ctx) => {
+      rejectEmptyWhereObject(where, ctx);
+    })
 );
 
 export const Query = z
@@ -422,7 +440,10 @@ export const createPrismaWhereSchema = <T extends zod.ZodRawShape>(
       .object({
         ...fieldFilters,
       })
-      .strict();
+      .strict()
+      .superRefine((where, ctx) => {
+        rejectEmptyWhereObject(where, ctx);
+      });
   }
 
   return zod
@@ -432,7 +453,10 @@ export const createPrismaWhereSchema = <T extends zod.ZodRawShape>(
       NOT: zod.array(zod.lazy(() => createPrismaWhereSchema(modelSchema, normalizedDepth - 1))).min(1, 'NOT must contain at least one condition').optional(),
       ...fieldFilters,
     })
-    .strict();
+    .strict()
+    .superRefine((where, ctx) => {
+      rejectEmptyWhereObject(where, ctx);
+    });
 };
 
 export const getQueryOutput = <T extends zod.ZodTypeAny>(data: T) => {

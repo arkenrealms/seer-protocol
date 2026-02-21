@@ -133,3 +133,7 @@ Provide a direct-repo regression gate for protocol router hardening work.
 - Expanded `schema.query-input.test.ts` to assert unknown and whitespace-padded where keys are rejected.
 - Updated `schema.depth-normalization.test.ts` expectations to validate strict-key behavior at normalized recursive depths.
 - Why: with strict where parsing enabled, depth normalization tests should lock explicit rejection of out-of-shape logical keys instead of expecting silent stripping.
+
+## 2026-02-21 06:1x PST — empty where-envelope regression lock
+- Expanded `schema.query-input.test.ts` and `schema.root-query-input.test.ts` with behavior assertions that `{ where: {} }` is rejected by both `Query` and `getQueryInput`.
+- Why: locks new non-empty where-envelope guard so protocol schemas cannot regress to silently accepting no-op filters.

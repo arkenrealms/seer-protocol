@@ -145,3 +145,8 @@
 ## 2026-02-21 04:xx PST — strict where-key enforcement parity
 - Applied strict unknown-key rejection to both root and util query-where schemas (`QueryWhereSchema` + `createPrismaWhereSchema`).
 - Rationale: protocol boundary should fail fast on mistyped where keys rather than silently dropping them.
+
+## 2026-02-21 06:1x PST — non-empty where-envelope enforcement
+- Hardened both root (`schema.ts`) and util (`util/schema.ts`) where schemas to reject empty where objects (`{ where: {} }`) in top-level `QueryWhereSchema` and recursive `createPrismaWhereSchema` paths.
+- Expanded root/util schema behavior tests to lock rejection and preserve valid non-empty where parsing.
+- Rationale: empty where envelopes are ambiguous no-op filters that can mask client bugs and accidentally broaden result sets; protocol-level rejection keeps filtering intent explicit.
