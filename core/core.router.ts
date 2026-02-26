@@ -48,6 +48,9 @@ import {
   Planet,
   Poll,
   Project,
+  Repository,
+  ProductFeature,
+  RepositoryCommit,
   Proposal,
   Quest,
   Rating,
@@ -1177,6 +1180,115 @@ export const createRouter = () =>
       .input(getQueryInput(Project))
       .output(Project.pick({ id: true }))
       .mutation(({ input, ctx }) => (ctx.app.service.Core.updateProject as any)(input, ctx)),
+
+
+    // Repository Procedures
+    getRepository: procedure
+      .use(hasRole('guest', t))
+      .use(customErrorFormatter(t))
+      .input(getQueryInput(Repository))
+      .output(Repository)
+      .query(({ input, ctx }) => (ctx.app.service.Core.getRepository as any)(input, ctx)),
+
+    getRepositories: procedure
+      .use(hasRole('guest', t))
+      .use(customErrorFormatter(t))
+      .input(getQueryInput(Repository))
+      .output(z.object({ items: z.array(Repository), total: z.number() }))
+      .query(({ input, ctx }) => (ctx.app.service.Core.getRepositories as any)(input, ctx)),
+
+    createRepository: procedure
+      .use(hasRole('admin', t))
+      .use(customErrorFormatter(t))
+      .input(getQueryInput(Repository))
+      .output(Repository.pick({ id: true }))
+      .mutation(({ input, ctx }) => (ctx.app.service.Core.createRepository as any)(input, ctx)),
+
+    updateRepository: procedure
+      .use(hasRole('admin', t))
+      .use(customErrorFormatter(t))
+      .input(getQueryInput(Repository))
+      .output(Repository.pick({ id: true }))
+      .mutation(({ input, ctx }) => (ctx.app.service.Core.updateRepository as any)(input, ctx)),
+
+    upsertRepository: procedure
+      .use(hasRole('admin', t))
+      .use(customErrorFormatter(t))
+      .input(getQueryInput(Repository))
+      .output(Repository)
+      .mutation(({ input, ctx }) => (ctx.app.service.Core.upsertRepository as any)(input, ctx)),
+
+    // ProductFeature Procedures
+    getProductFeature: procedure
+      .use(hasRole('guest', t))
+      .use(customErrorFormatter(t))
+      .input(getQueryInput(ProductFeature))
+      .output(ProductFeature)
+      .query(({ input, ctx }) => (ctx.app.service.Core.getProductFeature as any)(input, ctx)),
+
+    getProductFeatures: procedure
+      .use(hasRole('guest', t))
+      .use(customErrorFormatter(t))
+      .input(getQueryInput(ProductFeature))
+      .output(z.object({ items: z.array(ProductFeature), total: z.number() }))
+      .query(({ input, ctx }) => (ctx.app.service.Core.getProductFeatures as any)(input, ctx)),
+
+    createProductFeature: procedure
+      .use(hasRole('admin', t))
+      .use(customErrorFormatter(t))
+      .input(getQueryInput(ProductFeature))
+      .output(ProductFeature.pick({ id: true }))
+      .mutation(({ input, ctx }) => (ctx.app.service.Core.createProductFeature as any)(input, ctx)),
+
+    updateProductFeature: procedure
+      .use(hasRole('admin', t))
+      .use(customErrorFormatter(t))
+      .input(getQueryInput(ProductFeature))
+      .output(ProductFeature.pick({ id: true }))
+      .mutation(({ input, ctx }) => (ctx.app.service.Core.updateProductFeature as any)(input, ctx)),
+
+    upsertProductFeature: procedure
+      .use(hasRole('admin', t))
+      .use(customErrorFormatter(t))
+      .input(getQueryInput(ProductFeature))
+      .output(ProductFeature)
+      .mutation(({ input, ctx }) => (ctx.app.service.Core.upsertProductFeature as any)(input, ctx)),
+
+    // RepositoryCommit Procedures
+    getRepositoryCommit: procedure
+      .use(hasRole('guest', t))
+      .use(customErrorFormatter(t))
+      .input(getQueryInput(RepositoryCommit))
+      .output(RepositoryCommit)
+      .query(({ input, ctx }) => (ctx.app.service.Core.getRepositoryCommit as any)(input, ctx)),
+
+    getRepositoryCommits: procedure
+      .use(hasRole('guest', t))
+      .use(customErrorFormatter(t))
+      .input(getQueryInput(RepositoryCommit))
+      .output(z.object({ items: z.array(RepositoryCommit), total: z.number() }))
+      .query(({ input, ctx }) => (ctx.app.service.Core.getRepositoryCommits as any)(input, ctx)),
+
+    createRepositoryCommit: procedure
+      .use(hasRole('admin', t))
+      .use(customErrorFormatter(t))
+      .input(getQueryInput(RepositoryCommit))
+      .output(RepositoryCommit.pick({ id: true }))
+      .mutation(({ input, ctx }) => (ctx.app.service.Core.createRepositoryCommit as any)(input, ctx)),
+
+    updateRepositoryCommit: procedure
+      .use(hasRole('admin', t))
+      .use(customErrorFormatter(t))
+      .input(getQueryInput(RepositoryCommit))
+      .output(RepositoryCommit.pick({ id: true }))
+      .mutation(({ input, ctx }) => (ctx.app.service.Core.updateRepositoryCommit as any)(input, ctx)),
+
+    upsertRepositoryCommit: procedure
+      .use(hasRole('admin', t))
+      .use(customErrorFormatter(t))
+      .input(getQueryInput(RepositoryCommit))
+      .output(RepositoryCommit)
+      .mutation(({ input, ctx }) => (ctx.app.service.Core.upsertRepositoryCommit as any)(input, ctx)),
 
     // Proposal Procedures
     getProposal: procedure
