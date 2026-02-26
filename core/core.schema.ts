@@ -409,6 +409,146 @@ export const RepositoryCommit = Entity.merge(
   })
 );
 
+const EmbeddingModelId = z.string().min(1);
+const EmbeddingModelVersion = z.string().min(1);
+
+const ensureEmbeddingShapeConsistency = <T extends { modelId: string; modelVersion?: string; vectorDimensions: number; vector: number[] }>(
+  item: T,
+  ctx: z.RefinementCtx,
+  pathPrefix: (string | number)[] = []
+) => {
+  if (item.vector.length !== item.vectorDimensions) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: [...pathPrefix, 'vectorDimensions'],
+      message: `vectorDimensions ${item.vectorDimensions} does not match vector length ${item.vector.length}`,
+    });
+  }
+
+  if (item.vectorDimensions <= 0) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: [...pathPrefix, 'vectorDimensions'],
+      message: 'vectorDimensions must be greater than zero',
+    });
+  }
+};
+
+// IssueEmbedding Schema (Issue-first vector contract)
+export const IssueEmbedding = Entity.merge(
+  z.object({
+    entityType: z.literal('issue').default('issue').optional(),
+    issueRef: z.string().min(1),
+    modelId: EmbeddingModelId,
+    modelVersion: EmbeddingModelVersion.optional(),
+    vectorDimensions: z.number().int().positive(),
+    vectorHash: z.string().min(1),
+    sourceTextHash: z.string().min(1),
+    vector: z.array(z.number().finite()).min(1),
+    sourceUpdatedAt: z.coerce.date().optional(),
+    embeddedAt: z.coerce.date(),
+    staleAfter: z.coerce.date().optional(),
+  })
+).superRefine((item, ctx) => {
+  ensureEmbeddingShapeConsistency(item, ctx);
+});
+
+// IssueEmbedding single upsert contract
+export const IssueEmbeddingUpsertInput = z
+  .object({
+    record: IssueEmbedding,
+    expectedModelId: EmbeddingModelId.optional(),
+    expectedModelVersion: EmbeddingModelVersion.optional(),
+    expectedVectorDimensions: z.number().int().positive().optional(),
+  })
+  .superRefine((input, ctx) => {
+    const { record } = input;
+    if (input.expectedModelId && record.modelId !== input.expectedModelId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['record', 'modelId'],
+        message: `modelId mismatch: expected ${input.expectedModelId}, received ${record.modelId}`,
+      });
+    }
+
+    if (input.expectedModelVersion && record.modelVersion !== input.expectedModelVersion) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['record', 'modelVersion'],
+        message: `modelVersion mismatch: expected ${input.expectedModelVersion}, received ${record.modelVersion ?? 'undefined'}`,
+      });
+    }
+
+    if (input.expectedVectorDimensions && record.vectorDimensions !== input.expectedVectorDimensions) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['record', 'vectorDimensions'],
+        message: `vectorDimensions mismatch: expected ${input.expectedVectorDimensions}, received ${record.vectorDimensions}`,
+      });
+    }
+  });
+
+// IssueEmbedding batch upsert contract
+export const IssueEmbeddingBatchUpsertInput = z
+  .object({
+    records: z.array(IssueEmbedding).min(1),
+    expectedModelId: EmbeddingModelId.optional(),
+    expectedModelVersion: EmbeddingModelVersion.optional(),
+    expectedVectorDimensions: z.number().int().positive().optional(),
+  })
+  .superRefine((input, ctx) => {
+    const baseline = input.records[0];
+    input.records.forEach((record, index) => {
+      if (record.modelId !== baseline.modelId) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['records', index, 'modelId'],
+          message: `modelId mismatch in batch: expected ${baseline.modelId}, received ${record.modelId}`,
+        });
+      }
+
+      if ((record.modelVersion ?? null) !== (baseline.modelVersion ?? null)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['records', index, 'modelVersion'],
+          message: `modelVersion mismatch in batch: expected ${baseline.modelVersion ?? 'undefined'}, received ${record.modelVersion ?? 'undefined'}`,
+        });
+      }
+
+      if (record.vectorDimensions !== baseline.vectorDimensions) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['records', index, 'vectorDimensions'],
+          message: `vectorDimensions mismatch in batch: expected ${baseline.vectorDimensions}, received ${record.vectorDimensions}`,
+        });
+      }
+
+      if (input.expectedModelId && record.modelId !== input.expectedModelId) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['records', index, 'modelId'],
+          message: `modelId mismatch: expected ${input.expectedModelId}, received ${record.modelId}`,
+        });
+      }
+
+      if (input.expectedModelVersion && record.modelVersion !== input.expectedModelVersion) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['records', index, 'modelVersion'],
+          message: `modelVersion mismatch: expected ${input.expectedModelVersion}, received ${record.modelVersion ?? 'undefined'}`,
+        });
+      }
+
+      if (input.expectedVectorDimensions && record.vectorDimensions !== input.expectedVectorDimensions) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['records', index, 'vectorDimensions'],
+          message: `vectorDimensions mismatch: expected ${input.expectedVectorDimensions}, received ${record.vectorDimensions}`,
+        });
+      }
+    });
+  });
+
 // SessionContext Schema
 export const SessionContext = Entity.merge(
   z.object({
@@ -743,6 +883,7 @@ export const ModelNames = z.enum([
   'Repository',
   'ProductFeature',
   'RepositoryCommit',
+  'IssueEmbedding',
   'Proposal',
   'Quest',
   'Question',

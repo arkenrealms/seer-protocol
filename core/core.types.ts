@@ -160,6 +160,12 @@ export type ProductFeatureDocument = ProductFeature & Document;
 export type RepositoryCommit = z.infer<typeof schema.RepositoryCommit>;
 export type RepositoryCommitDocument = RepositoryCommit & Document;
 
+export type IssueEmbedding = z.infer<typeof schema.IssueEmbedding>;
+export type IssueEmbeddingDocument = IssueEmbedding & Document;
+
+export type IssueEmbeddingUpsertInput = z.infer<typeof schema.IssueEmbeddingUpsertInput>;
+export type IssueEmbeddingBatchUpsertInput = z.infer<typeof schema.IssueEmbeddingBatchUpsertInput>;
+
 export type SessionContext = z.infer<typeof schema.SessionContext>;
 export type SessionContextDocument = SessionContext & Document;
 
@@ -323,6 +329,7 @@ export type Mappings = {
   Repository: Model<RepositoryDocument>;
   ProductFeature: Model<ProductFeatureDocument>;
   RepositoryCommit: Model<RepositoryCommitDocument>;
+  IssueEmbedding: Model<IssueEmbeddingDocument>;
   SessionContext: Model<SessionContextDocument>;
   SessionContextEdge: Model<SessionContextEdgeDocument>;
   Proposal: Model<ProposalDocument>;

@@ -885,6 +885,34 @@ export const RepositoryCommit = createModel<Types.RepositoryCommitDocument>(
   }
 );
 
+// IssueEmbedding Model
+export const IssueEmbedding = createModel<Types.IssueEmbeddingDocument>(
+  'IssueEmbedding',
+  {
+    entityType: { type: String, enum: ['issue'], default: 'issue' },
+    issueRef: { type: String, required: true },
+    modelId: { type: String, required: true },
+    modelVersion: { type: String },
+    vectorDimensions: { type: Number, required: true },
+    vectorHash: { type: String, required: true },
+    sourceTextHash: { type: String, required: true },
+    vector: [{ type: Number, required: true }],
+    sourceUpdatedAt: { type: Date },
+    embeddedAt: { type: Date, required: true },
+    staleAfter: { type: Date },
+  },
+  {
+    indexes: [
+      { issueRef: 1, modelId: 1, modelVersion: 1, unique: true },
+      { modelId: 1, vectorDimensions: 1 },
+      { vectorHash: 1 },
+      { sourceTextHash: 1 },
+      { staleAfter: 1 },
+    ],
+    virtuals: [...addTagVirtuals('IssueEmbedding'), ...addApplicationVirtual()],
+  }
+);
+
 // SessionContext Model
 export const SessionContext = createModel<Types.SessionContextDocument>(
   'SessionContext',
