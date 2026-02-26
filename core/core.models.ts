@@ -825,6 +825,66 @@ export const Project = createModel<Types.ProjectDocument>(
   }
 );
 
+// Repository Model
+export const Repository = createModel<Types.RepositoryDocument>(
+  'Repository',
+  {
+    key: { type: String, required: true },
+    name: { type: String, required: true },
+    owner: { type: String },
+    defaultBranch: { type: String },
+    status: { type: String, default: 'active' },
+  },
+  {
+    indexes: [
+      { key: 1, unique: true },
+      { owner: 1, name: 1 },
+    ],
+    virtuals: [...addTagVirtuals('Repository'), ...addApplicationVirtual()],
+  }
+);
+
+// ProductFeature Model
+export const ProductFeature = createModel<Types.ProductFeatureDocument>(
+  'ProductFeature',
+  {
+    key: { type: String, required: true },
+    name: { type: String, required: true },
+    productId: { type: mongo.Schema.Types.ObjectId, ref: 'Product' },
+    repositoryId: { type: mongo.Schema.Types.ObjectId, ref: 'Repository', required: true },
+    status: { type: String },
+    externalLink: { type: String, required: true },
+    filePaths: [{ type: String }],
+  },
+  {
+    indexes: [
+      { repositoryId: 1, key: 1, unique: true },
+      { productId: 1 },
+    ],
+    virtuals: [...addTagVirtuals('ProductFeature'), ...addApplicationVirtual()],
+  }
+);
+
+// RepositoryCommit Model
+export const RepositoryCommit = createModel<Types.RepositoryCommitDocument>(
+  'RepositoryCommit',
+  {
+    repositoryId: { type: mongo.Schema.Types.ObjectId, ref: 'Repository', required: true },
+    profileId: { type: mongo.Schema.Types.ObjectId, ref: 'Profile', required: true },
+    sha: { type: String, required: true },
+    message: { type: String, required: true },
+    committedDate: { type: Date, required: true },
+    externalLink: { type: String, required: true },
+  },
+  {
+    indexes: [
+      { repositoryId: 1, sha: 1, unique: true },
+      { profileId: 1, committedDate: -1 },
+    ],
+    virtuals: [...addTagVirtuals('RepositoryCommit'), ...addApplicationVirtual()],
+  }
+);
+
 // Proposal Model
 export const Proposal = createModel<Types.ProposalDocument>(
   'Proposal',

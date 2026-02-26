@@ -373,6 +373,42 @@ export const Project = Entity.merge(
   })
 );
 
+// Repository Schema
+export const Repository = Entity.merge(
+  z.object({
+    key: z.string().min(1),
+    name: z.string().min(1),
+    owner: z.string().min(1).optional(),
+    defaultBranch: z.string().min(1).optional(),
+    status: z.enum(['active', 'archived']).default('active').optional(),
+  })
+);
+
+// ProductFeature Schema
+export const ProductFeature = Entity.merge(
+  z.object({
+    key: z.string().min(1),
+    name: z.string().min(1),
+    productId: ObjectId.optional(),
+    repositoryId: ObjectId,
+    status: z.string().min(1).optional(),
+    externalLink: z.string().url(),
+    filePaths: z.array(z.string().min(1)).optional(),
+  })
+);
+
+// RepositoryCommit Schema
+export const RepositoryCommit = Entity.merge(
+  z.object({
+    repositoryId: ObjectId,
+    profileId: ObjectId,
+    sha: z.string().min(7),
+    message: z.string().min(1),
+    committedDate: z.coerce.date(),
+    externalLink: z.string().url(),
+  })
+);
+
 // Proposal Schema
 export const Proposal = Entity.merge(
   z.object({
@@ -677,6 +713,9 @@ export const ModelNames = z.enum([
   'Planet',
   'Poll',
   'Project',
+  'Repository',
+  'ProductFeature',
+  'RepositoryCommit',
   'Proposal',
   'Quest',
   'Question',

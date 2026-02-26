@@ -151,6 +151,15 @@ export type PollDocument = Poll & Document;
 export type Project = z.infer<typeof schema.Project>;
 export type ProjectDocument = Project & Document;
 
+export type Repository = z.infer<typeof schema.Repository>;
+export type RepositoryDocument = Repository & Document;
+
+export type ProductFeature = z.infer<typeof schema.ProductFeature>;
+export type ProductFeatureDocument = ProductFeature & Document;
+
+export type RepositoryCommit = z.infer<typeof schema.RepositoryCommit>;
+export type RepositoryCommitDocument = RepositoryCommit & Document;
+
 export type Proposal = z.infer<typeof schema.Proposal>;
 export type ProposalDocument = Proposal & Document;
 
@@ -305,6 +314,9 @@ export type Mappings = {
   Poll: Model<PollDocument>;
   Prefab: Model<PrefabDocument>;
   Project: Model<ProjectDocument>;
+  Repository: Model<RepositoryDocument>;
+  ProductFeature: Model<ProductFeatureDocument>;
+  RepositoryCommit: Model<RepositoryCommitDocument>;
   Proposal: Model<ProposalDocument>;
   Quest: Model<QuestDocument>;
   Question: Model<QuestionDocument>;
