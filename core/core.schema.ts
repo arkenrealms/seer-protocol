@@ -409,6 +409,33 @@ export const RepositoryCommit = Entity.merge(
   })
 );
 
+// SessionContext Schema
+export const SessionContext = Entity.merge(
+  z.object({
+    sessionKey: z.string().min(1),
+    status: z.enum(['active', 'closed']).default('active').optional(),
+    startedAt: z.coerce.date(),
+    lastSeenAt: z.coerce.date(),
+    endedAt: z.coerce.date().optional(),
+    sourceMessageRefs: z.array(z.string().min(1)).default([]).optional(),
+    contextHash: z.string().min(1).optional(),
+  })
+);
+
+// SessionContextEdge Schema
+export const SessionContextEdge = Entity.merge(
+  z.object({
+    sessionContextId: ObjectId,
+    edgeType: z.enum(['repository', 'productFeature', 'issue', 'agent', 'profile']),
+    targetId: ObjectId.optional(),
+    targetRef: z.string().min(1).optional(),
+    confidence: z.number().min(0).max(1).optional(),
+    sourceMessageRefs: z.array(z.string().min(1)).default([]).optional(),
+    firstSeenAt: z.coerce.date(),
+    lastSeenAt: z.coerce.date(),
+  })
+);
+
 // Proposal Schema
 export const Proposal = Entity.merge(
   z.object({

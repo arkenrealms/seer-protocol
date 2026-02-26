@@ -160,6 +160,12 @@ export type ProductFeatureDocument = ProductFeature & Document;
 export type RepositoryCommit = z.infer<typeof schema.RepositoryCommit>;
 export type RepositoryCommitDocument = RepositoryCommit & Document;
 
+export type SessionContext = z.infer<typeof schema.SessionContext>;
+export type SessionContextDocument = SessionContext & Document;
+
+export type SessionContextEdge = z.infer<typeof schema.SessionContextEdge>;
+export type SessionContextEdgeDocument = SessionContextEdge & Document;
+
 export type Proposal = z.infer<typeof schema.Proposal>;
 export type ProposalDocument = Proposal & Document;
 
@@ -317,6 +323,8 @@ export type Mappings = {
   Repository: Model<RepositoryDocument>;
   ProductFeature: Model<ProductFeatureDocument>;
   RepositoryCommit: Model<RepositoryCommitDocument>;
+  SessionContext: Model<SessionContextDocument>;
+  SessionContextEdge: Model<SessionContextEdgeDocument>;
   Proposal: Model<ProposalDocument>;
   Quest: Model<QuestDocument>;
   Question: Model<QuestionDocument>;

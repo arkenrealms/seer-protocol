@@ -51,6 +51,8 @@ import {
   Repository,
   ProductFeature,
   RepositoryCommit,
+  SessionContext,
+  SessionContextEdge,
   Proposal,
   Quest,
   Rating,
@@ -1289,6 +1291,50 @@ export const createRouter = () =>
       .input(getQueryInput(RepositoryCommit))
       .output(RepositoryCommit)
       .mutation(({ input, ctx }) => (ctx.app.service.Core.upsertRepositoryCommit as any)(input, ctx)),
+
+    // SessionContext Procedures
+    getSessionContext: procedure
+      .use(hasRole('guest', t))
+      .use(customErrorFormatter(t))
+      .input(getQueryInput(SessionContext))
+      .output(SessionContext)
+      .query(({ input, ctx }) => (ctx.app.service.Core.getSessionContext as any)(input, ctx)),
+
+    getSessionContexts: procedure
+      .use(hasRole('guest', t))
+      .use(customErrorFormatter(t))
+      .input(getQueryInput(SessionContext))
+      .output(z.object({ items: z.array(SessionContext), total: z.number() }))
+      .query(({ input, ctx }) => (ctx.app.service.Core.getSessionContexts as any)(input, ctx)),
+
+    upsertSessionContext: procedure
+      .use(hasRole('admin', t))
+      .use(customErrorFormatter(t))
+      .input(getQueryInput(SessionContext))
+      .output(SessionContext)
+      .mutation(({ input, ctx }) => (ctx.app.service.Core.upsertSessionContext as any)(input, ctx)),
+
+    upsertSessionContextEdge: procedure
+      .use(hasRole('admin', t))
+      .use(customErrorFormatter(t))
+      .input(getQueryInput(SessionContextEdge))
+      .output(SessionContextEdge)
+      .mutation(({ input, ctx }) => (ctx.app.service.Core.upsertSessionContextEdge as any)(input, ctx)),
+
+    getActiveSessionContextsByRepoAndAgent: procedure
+      .use(hasRole('guest', t))
+      .use(customErrorFormatter(t))
+      .input(
+        z.object({
+          repositoryId: z.string().optional(),
+          repositoryRef: z.string().optional(),
+          agentId: z.string().optional(),
+          profileId: z.string().optional(),
+          limit: z.number().int().positive().max(200).default(50).optional(),
+        })
+      )
+      .output(z.object({ items: z.array(SessionContext), total: z.number() }))
+      .query(({ input, ctx }) => (ctx.app.service.Core.getActiveSessionContextsByRepoAndAgent as any)(input, ctx)),
 
     // Proposal Procedures
     getProposal: procedure

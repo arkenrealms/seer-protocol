@@ -885,6 +885,51 @@ export const RepositoryCommit = createModel<Types.RepositoryCommitDocument>(
   }
 );
 
+// SessionContext Model
+export const SessionContext = createModel<Types.SessionContextDocument>(
+  'SessionContext',
+  {
+    sessionKey: { type: String, required: true },
+    status: { type: String, enum: ['active', 'closed'], default: 'active' },
+    startedAt: { type: Date, required: true },
+    lastSeenAt: { type: Date, required: true },
+    endedAt: { type: Date },
+    sourceMessageRefs: [{ type: String }],
+    contextHash: { type: String },
+  },
+  {
+    indexes: [
+      { sessionKey: 1, status: 1, lastSeenAt: -1 },
+      { sessionKey: 1, contextHash: 1 },
+    ],
+    virtuals: [...addTagVirtuals('SessionContext'), ...addApplicationVirtual()],
+  }
+);
+
+// SessionContextEdge Model
+export const SessionContextEdge = createModel<Types.SessionContextEdgeDocument>(
+  'SessionContextEdge',
+  {
+    sessionContextId: { type: mongo.Schema.Types.ObjectId, ref: 'SessionContext', required: true },
+    edgeType: { type: String, enum: ['repository', 'productFeature', 'issue', 'agent', 'profile'], required: true },
+    targetId: { type: mongo.Schema.Types.ObjectId },
+    targetRef: { type: String },
+    confidence: { type: Number },
+    sourceMessageRefs: [{ type: String }],
+    firstSeenAt: { type: Date, required: true },
+    lastSeenAt: { type: Date, required: true },
+  },
+  {
+    indexes: [
+      { sessionContextId: 1, edgeType: 1 },
+      { edgeType: 1, targetId: 1 },
+      { edgeType: 1, targetRef: 1 },
+      { sessionContextId: 1, edgeType: 1, targetId: 1, targetRef: 1 },
+    ],
+    virtuals: [...addTagVirtuals('SessionContextEdge'), ...addApplicationVirtual()],
+  }
+);
+
 // Proposal Model
 export const Proposal = createModel<Types.ProposalDocument>(
   'Proposal',
