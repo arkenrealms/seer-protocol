@@ -51,6 +51,9 @@ import {
   Repository,
   ProductFeature,
   RepositoryCommit,
+  IssueEmbedding,
+  IssueEmbeddingUpsertInput,
+  IssueEmbeddingBatchUpsertInput,
   SessionContext,
   SessionContextEdge,
   Proposal,
@@ -1291,6 +1294,51 @@ export const createRouter = () =>
       .input(getQueryInput(RepositoryCommit))
       .output(RepositoryCommit)
       .mutation(({ input, ctx }) => (ctx.app.service.Core.upsertRepositoryCommit as any)(input, ctx)),
+
+    getIssueEmbedding: procedure
+      .use(hasRole('guest', t))
+      .use(customErrorFormatter(t))
+      .input(getQueryInput(IssueEmbedding))
+      .output(IssueEmbedding)
+      .query(({ input, ctx }) => (ctx.app.service.Core.getIssueEmbedding as any)(input, ctx)),
+
+    getIssueEmbeddings: procedure
+      .use(hasRole('guest', t))
+      .use(customErrorFormatter(t))
+      .input(getQueryInput(IssueEmbedding))
+      .output(z.object({ items: z.array(IssueEmbedding), total: z.number() }))
+      .query(({ input, ctx }) => (ctx.app.service.Core.getIssueEmbeddings as any)(input, ctx)),
+
+    upsertIssueEmbedding: procedure
+      .use(hasRole('admin', t))
+      .use(customErrorFormatter(t))
+      .input(IssueEmbeddingUpsertInput)
+      .output(IssueEmbedding)
+      .mutation(({ input, ctx }) => (ctx.app.service.Core.upsertIssueEmbedding as any)(input, ctx)),
+
+    upsertIssueEmbeddingsBatch: procedure
+      .use(hasRole('admin', t))
+      .use(customErrorFormatter(t))
+      .input(IssueEmbeddingBatchUpsertInput)
+      .output(z.object({ items: z.array(IssueEmbedding), total: z.number() }))
+      .mutation(({ input, ctx }) => (ctx.app.service.Core.upsertIssueEmbeddingsBatch as any)(input, ctx)),
+
+    searchIssueEmbeddings: procedure
+      .use(hasRole('guest', t))
+      .use(customErrorFormatter(t))
+      .input(
+        z.object({
+          modelId: z.string().min(1),
+          modelVersion: z.string().min(1).optional(),
+          vector: z.array(z.number().finite()).min(1),
+          vectorDimensions: z.number().int().positive().optional(),
+          topK: z.number().int().positive().max(100).optional(),
+          minScore: z.number().min(-1).max(1).optional(),
+          excludeIssueId: z.string().min(1).optional(),
+        })
+      )
+      .output(z.object({ items: z.array(z.object({ item: IssueEmbedding, score: z.number() })), total: z.number() }))
+      .query(({ input, ctx }) => (ctx.app.service.Core.searchIssueEmbeddings as any)(input, ctx)),
 
     // SessionContext Procedures
     getSessionContext: procedure
