@@ -808,15 +808,19 @@ export const Poll = createModel<Types.PollDocument>(
 export const Project = createModel<Types.ProjectDocument>(
   'Project',
   {
-    content: { type: String },
-    contractStatus: { type: String, default: 'Pending' },
-    parentId: { type: mongo.Schema.Types.ObjectId, ref: 'Project' },
-    realmId: { type: mongo.Schema.Types.ObjectId, ref: 'Realm' },
-    communityId: { type: mongo.Schema.Types.ObjectId, ref: 'Community' },
-    productId: { type: mongo.Schema.Types.ObjectId, ref: 'Product' },
-    ratingId: { type: mongo.Schema.Types.ObjectId, ref: 'Rating' },
+    key: { type: String },
+    repo: { type: String },
+    githubProjectNumber: { type: Number },
+    status: { type: String },
+    issueRefs: [{ type: String }],
+    parentIssueRef: { type: String },
   },
   {
+    indexes: [
+      { key: 1 },
+      { repo: 1, githubProjectNumber: 1 },
+      { parentIssueRef: 1 },
+    ],
     virtuals: [...addTagVirtuals('Project'), ...addApplicationVirtual()],
   }
 );

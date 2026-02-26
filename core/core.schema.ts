@@ -364,13 +364,12 @@ export const Poll = Entity.merge(z.object({}));
 // Project Schema
 export const Project = Entity.merge(
   z.object({
-    content: z.string().optional(),
-    contractStatus: z.string().default('Pending').optional(),
-    parentId: ObjectId.optional(),
-    realmId: ObjectId.optional(),
-    communityId: ObjectId.optional(),
-    productId: ObjectId.optional(),
-    ratingId: ObjectId.optional(),
+    key: z.string().min(1).optional(),
+    repo: z.string().min(1).optional(),
+    githubProjectNumber: z.number().int().positive().optional(),
+    status: z.string().min(1).optional(),
+    issueRefs: z.array(z.string().min(1)).optional(),
+    parentIssueRef: z.string().min(1).optional(),
   })
 );
 
