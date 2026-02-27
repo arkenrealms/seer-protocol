@@ -888,7 +888,7 @@ export const RepositoryCommit = createModel<Types.RepositoryCommitDocument>(
 // IssueEmbedding Model
 export const IssueEmbedding = createModel<Types.IssueEmbeddingDocument>(
   'IssueEmbedding',
-  'ProjectEmbedding',
+  'IssueEmbedding',
   {
     entityType: { type: String, enum: ['issue'], default: 'issue' },
     issueRef: { type: String, required: true },

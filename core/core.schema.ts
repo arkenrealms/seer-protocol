@@ -1234,6 +1234,7 @@ export const ModelNames = z.enum([
   'RepositoryCommit',
   'IssueEmbedding',
   'ProjectEmbedding',
+  'ProductEmbedding',
   'AgentEmbedding',
   'Proposal',
   'Quest',
