@@ -172,6 +172,12 @@ export type ProjectEmbeddingDocument = ProjectEmbedding & Document;
 export type ProjectEmbeddingUpsertInput = z.infer<typeof schema.ProjectEmbeddingUpsertInput>;
 export type ProjectEmbeddingBatchUpsertInput = z.infer<typeof schema.ProjectEmbeddingBatchUpsertInput>;
 
+export type ProductEmbedding = z.infer<typeof schema.ProductEmbedding>;
+export type ProductEmbeddingDocument = ProductEmbedding & Document;
+
+export type ProductEmbeddingUpsertInput = z.infer<typeof schema.ProductEmbeddingUpsertInput>;
+export type ProductEmbeddingBatchUpsertInput = z.infer<typeof schema.ProductEmbeddingBatchUpsertInput>;
+
 export type AgentEmbedding = z.infer<typeof schema.AgentEmbedding>;
 export type AgentEmbeddingDocument = AgentEmbedding & Document;
 
@@ -343,6 +349,7 @@ export type Mappings = {
   RepositoryCommit: Model<RepositoryCommitDocument>;
   IssueEmbedding: Model<IssueEmbeddingDocument>;
   ProjectEmbedding: Model<ProjectEmbeddingDocument>;
+  ProductEmbedding: Model<ProductEmbeddingDocument>;
   AgentEmbedding: Model<AgentEmbeddingDocument>;
   SessionContext: Model<SessionContextDocument>;
   SessionContextEdge: Model<SessionContextEdgeDocument>;

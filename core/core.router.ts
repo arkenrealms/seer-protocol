@@ -57,6 +57,9 @@ import {
   ProjectEmbedding,
   ProjectEmbeddingUpsertInput,
   ProjectEmbeddingBatchUpsertInput,
+  ProductEmbedding,
+  ProductEmbeddingUpsertInput,
+  ProductEmbeddingBatchUpsertInput,
   AgentEmbedding,
   AgentEmbeddingUpsertInput,
   AgentEmbeddingBatchUpsertInput,
@@ -1391,6 +1394,51 @@ export const createRouter = () =>
       )
       .output(z.object({ items: z.array(z.object({ item: ProjectEmbedding, score: z.number() })), total: z.number() }))
       .query(({ input, ctx }) => (ctx.app.service.Core.searchProjectEmbeddings as any)(input, ctx)),
+
+    getProductEmbedding: procedure
+      .use(hasRole('guest', t))
+      .use(customErrorFormatter(t))
+      .input(getQueryInput(ProductEmbedding))
+      .output(ProductEmbedding)
+      .query(({ input, ctx }) => (ctx.app.service.Core.getProductEmbedding as any)(input, ctx)),
+
+    getProductEmbeddings: procedure
+      .use(hasRole('guest', t))
+      .use(customErrorFormatter(t))
+      .input(getQueryInput(ProductEmbedding))
+      .output(z.object({ items: z.array(ProductEmbedding), total: z.number() }))
+      .query(({ input, ctx }) => (ctx.app.service.Core.getProductEmbeddings as any)(input, ctx)),
+
+    upsertProductEmbedding: procedure
+      .use(hasRole('admin', t))
+      .use(customErrorFormatter(t))
+      .input(ProductEmbeddingUpsertInput)
+      .output(ProductEmbedding)
+      .mutation(({ input, ctx }) => (ctx.app.service.Core.upsertProductEmbedding as any)(input, ctx)),
+
+    upsertProductEmbeddingsBatch: procedure
+      .use(hasRole('admin', t))
+      .use(customErrorFormatter(t))
+      .input(ProductEmbeddingBatchUpsertInput)
+      .output(z.object({ items: z.array(ProductEmbedding), total: z.number() }))
+      .mutation(({ input, ctx }) => (ctx.app.service.Core.upsertProductEmbeddingsBatch as any)(input, ctx)),
+
+    searchProductEmbeddings: procedure
+      .use(hasRole('guest', t))
+      .use(customErrorFormatter(t))
+      .input(
+        z.object({
+          modelId: z.string().min(1),
+          modelVersion: z.string().min(1).optional(),
+          vector: z.array(z.number().finite()).min(1),
+          vectorDimensions: z.number().int().positive().optional(),
+          topK: z.number().int().positive().max(100).optional(),
+          minScore: z.number().min(-1).max(1).optional(),
+          excludeProductId: z.string().min(1).optional(),
+        })
+      )
+      .output(z.object({ items: z.array(z.object({ item: ProductEmbedding, score: z.number() })), total: z.number() }))
+      .query(({ input, ctx }) => (ctx.app.service.Core.searchProductEmbeddings as any)(input, ctx)),
 
     getAgentEmbedding: procedure
       .use(hasRole('guest', t))

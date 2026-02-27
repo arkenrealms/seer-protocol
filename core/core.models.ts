@@ -945,6 +945,36 @@ export const ProjectEmbedding = createModel<Types.ProjectEmbeddingDocument>(
   }
 );
 
+// ProductEmbedding Model
+export const ProductEmbedding = createModel<Types.ProductEmbeddingDocument>(
+  'ProductEmbedding',
+  {
+    entityType: { type: String, enum: ['product'], default: 'product' },
+    productRef: { type: String, required: true },
+    productId: { type: mongo.Schema.Types.ObjectId, ref: 'Product' },
+    modelId: { type: String, required: true },
+    modelVersion: { type: String },
+    vectorDimensions: { type: Number, required: true },
+    vectorHash: { type: String, required: true },
+    sourceTextHash: { type: String, required: true },
+    vector: [{ type: Number, required: true }],
+    sourceUpdatedAt: { type: Date },
+    embeddedAt: { type: Date, required: true },
+    staleAfter: { type: Date },
+  },
+  {
+    indexes: [
+      { productRef: 1, modelId: 1, modelVersion: 1, unique: true },
+      { productId: 1, modelId: 1, vectorDimensions: 1 },
+      { modelId: 1, vectorDimensions: 1 },
+      { vectorHash: 1 },
+      { sourceTextHash: 1 },
+      { staleAfter: 1 },
+    ],
+    virtuals: [...addTagVirtuals('ProductEmbedding'), ...addApplicationVirtual()],
+  }
+);
+
 // AgentEmbedding Model
 export const AgentEmbedding = createModel<Types.AgentEmbeddingDocument>(
   'AgentEmbedding',
