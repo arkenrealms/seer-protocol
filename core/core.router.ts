@@ -54,6 +54,12 @@ import {
   IssueEmbedding,
   IssueEmbeddingUpsertInput,
   IssueEmbeddingBatchUpsertInput,
+  ProjectEmbedding,
+  ProjectEmbeddingUpsertInput,
+  ProjectEmbeddingBatchUpsertInput,
+  AgentEmbedding,
+  AgentEmbeddingUpsertInput,
+  AgentEmbeddingBatchUpsertInput,
   SessionContext,
   SessionContextEdge,
   Proposal,
@@ -1339,6 +1345,97 @@ export const createRouter = () =>
       )
       .output(z.object({ items: z.array(z.object({ item: IssueEmbedding, score: z.number() })), total: z.number() }))
       .query(({ input, ctx }) => (ctx.app.service.Core.searchIssueEmbeddings as any)(input, ctx)),
+
+
+    getProjectEmbedding: procedure
+      .use(hasRole('guest', t))
+      .use(customErrorFormatter(t))
+      .input(getQueryInput(ProjectEmbedding))
+      .output(ProjectEmbedding)
+      .query(({ input, ctx }) => (ctx.app.service.Core.getProjectEmbedding as any)(input, ctx)),
+
+    getProjectEmbeddings: procedure
+      .use(hasRole('guest', t))
+      .use(customErrorFormatter(t))
+      .input(getQueryInput(ProjectEmbedding))
+      .output(z.object({ items: z.array(ProjectEmbedding), total: z.number() }))
+      .query(({ input, ctx }) => (ctx.app.service.Core.getProjectEmbeddings as any)(input, ctx)),
+
+    upsertProjectEmbedding: procedure
+      .use(hasRole('admin', t))
+      .use(customErrorFormatter(t))
+      .input(ProjectEmbeddingUpsertInput)
+      .output(ProjectEmbedding)
+      .mutation(({ input, ctx }) => (ctx.app.service.Core.upsertProjectEmbedding as any)(input, ctx)),
+
+    upsertProjectEmbeddingsBatch: procedure
+      .use(hasRole('admin', t))
+      .use(customErrorFormatter(t))
+      .input(ProjectEmbeddingBatchUpsertInput)
+      .output(z.object({ items: z.array(ProjectEmbedding), total: z.number() }))
+      .mutation(({ input, ctx }) => (ctx.app.service.Core.upsertProjectEmbeddingsBatch as any)(input, ctx)),
+
+    searchProjectEmbeddings: procedure
+      .use(hasRole('guest', t))
+      .use(customErrorFormatter(t))
+      .input(
+        z.object({
+          modelId: z.string().min(1),
+          modelVersion: z.string().min(1).optional(),
+          vector: z.array(z.number().finite()).min(1),
+          vectorDimensions: z.number().int().positive().optional(),
+          topK: z.number().int().positive().max(100).optional(),
+          minScore: z.number().min(-1).max(1).optional(),
+          excludeProjectId: z.string().min(1).optional(),
+        })
+      )
+      .output(z.object({ items: z.array(z.object({ item: ProjectEmbedding, score: z.number() })), total: z.number() }))
+      .query(({ input, ctx }) => (ctx.app.service.Core.searchProjectEmbeddings as any)(input, ctx)),
+
+    getAgentEmbedding: procedure
+      .use(hasRole('guest', t))
+      .use(customErrorFormatter(t))
+      .input(getQueryInput(AgentEmbedding))
+      .output(AgentEmbedding)
+      .query(({ input, ctx }) => (ctx.app.service.Core.getAgentEmbedding as any)(input, ctx)),
+
+    getAgentEmbeddings: procedure
+      .use(hasRole('guest', t))
+      .use(customErrorFormatter(t))
+      .input(getQueryInput(AgentEmbedding))
+      .output(z.object({ items: z.array(AgentEmbedding), total: z.number() }))
+      .query(({ input, ctx }) => (ctx.app.service.Core.getAgentEmbeddings as any)(input, ctx)),
+
+    upsertAgentEmbedding: procedure
+      .use(hasRole('admin', t))
+      .use(customErrorFormatter(t))
+      .input(AgentEmbeddingUpsertInput)
+      .output(AgentEmbedding)
+      .mutation(({ input, ctx }) => (ctx.app.service.Core.upsertAgentEmbedding as any)(input, ctx)),
+
+    upsertAgentEmbeddingsBatch: procedure
+      .use(hasRole('admin', t))
+      .use(customErrorFormatter(t))
+      .input(AgentEmbeddingBatchUpsertInput)
+      .output(z.object({ items: z.array(AgentEmbedding), total: z.number() }))
+      .mutation(({ input, ctx }) => (ctx.app.service.Core.upsertAgentEmbeddingsBatch as any)(input, ctx)),
+
+    searchAgentEmbeddings: procedure
+      .use(hasRole('guest', t))
+      .use(customErrorFormatter(t))
+      .input(
+        z.object({
+          modelId: z.string().min(1),
+          modelVersion: z.string().min(1).optional(),
+          vector: z.array(z.number().finite()).min(1),
+          vectorDimensions: z.number().int().positive().optional(),
+          topK: z.number().int().positive().max(100).optional(),
+          minScore: z.number().min(-1).max(1).optional(),
+          excludeAgentId: z.string().min(1).optional(),
+        })
+      )
+      .output(z.object({ items: z.array(z.object({ item: AgentEmbedding, score: z.number() })), total: z.number() }))
+      .query(({ input, ctx }) => (ctx.app.service.Core.searchAgentEmbeddings as any)(input, ctx)),
 
     // SessionContext Procedures
     getSessionContext: procedure
