@@ -557,7 +557,11 @@ export async function upsertClusterForEntity(kind: string, schema: Schema, doc: 
   }));
 
   cluster.updatedDate = new Date();
-  await cluster.save();
+  try {
+    await cluster.save();
+  } catch (e) {
+    console.log('E403', e);
+  }
 
   // link back to entity if it supports clusterId
   if ('clusterId' in doc && !doc.clusterId) {

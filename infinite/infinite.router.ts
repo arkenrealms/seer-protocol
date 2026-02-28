@@ -88,3 +88,6 @@ export const createRouter = () =>
       }),
   });
 
+export type Router = ReturnType<typeof createRouter>;
+export type RouterInput = inferRouterInputs<Router>;
+export type RouterOutput = inferRouterOutputs<Router>;

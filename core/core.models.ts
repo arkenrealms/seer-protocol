@@ -890,6 +890,19 @@ export const Realm = createModel<Types.RealmDocument>(
   }
 );
 
+// RealmShard Model
+export const RealmShard = createModel<Types.RealmShardDocument>(
+  'RealmShard',
+  {
+    realmId: { type: mongo.Schema.Types.ObjectId, ref: 'Realm' },
+    endpoint: { type: String },
+    status: { type: String },
+    clientCount: { type: Number },
+  },
+  {
+    virtuals: [...addTagVirtuals('RealmShard'), ...addApplicationVirtual()],
+  }
+);
 // RealmEvent Model
 export const RealmEvent = createModel<Types.RealmEventDocument>(
   'RealmEvent',
@@ -959,19 +972,6 @@ export const Season = createModel<Types.SeasonDocument>(
   }
 );
 
-// RealmShard Model
-export const RealmShard = createModel<Types.RealmShardDocument>(
-  'RealmShard',
-  {
-    realmId: { type: mongo.Schema.Types.ObjectId, ref: 'Realm' },
-    endpoint: { type: String },
-    status: { type: String },
-    clientCount: { type: Number },
-  },
-  {
-    virtuals: [...addTagVirtuals('RealmShard'), ...addApplicationVirtual()],
-  }
-);
 
 // Session Model
 export const Session = createModel<Types.SessionDocument>(
