@@ -34,23 +34,33 @@ describe('schema where-depth normalization behavior', () => {
     const nanDepth = createPrismaWhereSchema(modelSchema, Number.NaN);
     const negativeDepth = createPrismaWhereSchema(modelSchema, -2);
 
-    const parsedNaN = nanDepth.parse({ AND: [{ name: 'x' }], name: 'alice' });
-    const parsedNegative = negativeDepth.parse({ OR: [{ name: 'x' }], name: 'alice' });
+    expect(() => nanDepth.parse({ AND: [{ name: 'x' }], name: 'alice' })).toThrow(
+      /Unrecognized key\(s\) in object: 'AND'/
+    );
+    expect(() => negativeDepth.parse({ OR: [{ name: 'x' }], name: 'alice' })).toThrow(
+      /Unrecognized key\(s\) in object: 'OR'/
+    );
 
-    expect(parsedNaN).toEqual({ name: { equals: 'alice' } });
-    expect(parsedNegative).toEqual({ name: { equals: 'alice' } });
+    expect(nanDepth.parse({ name: 'alice' })).toEqual({ name: { equals: 'alice' } });
+    expect(negativeDepth.parse({ name: 'alice' })).toEqual({ name: { equals: 'alice' } });
   });
 
   test('normalizes fractional depth before recursive where construction', () => {
     const depthOnePointNine = createPrismaWhereSchema(modelSchema, 1.9);
 
+    expect(() =>
+      depthOnePointNine.parse({
+        AND: [
+          {
+            name: 'alice',
+            AND: [{ name: 'nested-too-deep' }],
+          },
+        ],
+      })
+    ).toThrow(/Unrecognized key\(s\) in object: 'AND'/);
+
     const parsed = depthOnePointNine.parse({
-      AND: [
-        {
-          name: 'alice',
-          AND: [{ name: 'nested-too-deep' }],
-        },
-      ],
+      AND: [{ name: 'alice' }],
     });
 
     expect(parsed).toEqual({

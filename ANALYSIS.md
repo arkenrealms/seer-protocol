@@ -119,6 +119,17 @@
 - Expanded both schema regression suites to lock rejection behavior for these keys.
 - Rationale: these keys are common prototype-pollution vectors in dynamic object payloads; protocol-layer rejection prevents polluted envelopes from reaching router/service execution paths.
 
+## 2026-02-21 01:4x PST — pagination-default envelope determinism
+- Updated both root and util query envelope schemas so pagination defaults are expressed as `optional().default(...)` for `skip`, `take`, and legacy `limit`.
+- Removed `querySchema.partial()` from `getQueryInput` now that all fields are already intentionally optional.
+- Rationale: with `.partial()` in place, empty query objects bypassed default materialization; deterministic defaulted envelopes reduce router/service branching and avoid implicit pagination drift.
+
+## 2026-02-21 03:3x PST — empty where-operator object rejection
+- Hardened both root (`schema.ts`) and util (`util/schema.ts`) query filter operator schemas to reject empty operator objects such as `{ where: { name: {} } }`.
+- Applied the same non-empty-operator check inside recursive `createPrismaWhereSchema` field-filter builders to keep deep where-clause behavior in parity.
+- Added behavior tests in both root/util schema suites to assert rejection and preserve valid `equals` operator acceptance.
+- Rationale: empty operator maps are ambiguous no-op filters that can silently hide caller bugs and produce inconsistent filtering behavior downstream.
+
 ## 2026-02-20 21:1x PST — non-plain where shorthand normalization fix
 - Hardened `createPrismaWhereSchema` in both root `schema.ts` and `util/schema.ts` to treat only plain records as operator objects.
 - Non-plain objects (for example boxed primitives and class instances) are now normalized through shorthand equality (`{ equals: value }`) instead of being stripped into empty operator payloads.
@@ -130,3 +141,28 @@
 - Applied the same `.min(1)` enforcement in recursive `createPrismaWhereSchema` operator builders so deep/nested where clauses follow identical rules.
 - Expanded root/util behavior suites to verify rejection for empty arrays and acceptance for non-empty arrays.
 - Rationale: empty membership arrays are ambiguous no-op filters; rejecting them at protocol ingress prevents silent caller mistakes and keeps filter semantics deterministic.
+
+## 2026-02-21 04:xx PST — strict where-key enforcement parity
+- Applied strict unknown-key rejection to both root and util query-where schemas (`QueryWhereSchema` + `createPrismaWhereSchema`).
+- Rationale: protocol boundary should fail fast on mistyped where keys rather than silently dropping them.
+
+## 2026-02-21 06:1x PST — non-empty where-envelope enforcement
+- Hardened both root (`schema.ts`) and util (`util/schema.ts`) where schemas to reject empty where objects (`{ where: {} }`) in top-level `QueryWhereSchema` and recursive `createPrismaWhereSchema` paths.
+- Expanded root/util schema behavior tests to lock rejection and preserve valid non-empty where parsing.
+- Rationale: empty where envelopes are ambiguous no-op filters that can mask client bugs and accidentally broaden result sets; protocol-level rejection keeps filtering intent explicit.
+
+## 2026-02-21 12:0x PST — non-blank string pattern operator enforcement
+- Hardened both root (`schema.ts`) and util (`util/schema.ts`) filter operator schemas so `contains`, `startsWith`, and `endsWith` require trimmed non-empty string values.
+- Applied the same contract in recursive `createPrismaWhereSchema` operator builders to keep nested where behavior aligned with top-level `Query` parsing.
+- Expanded root/util schema behavior tests to reject blank/whitespace-only values while preserving acceptance for valid non-empty values.
+- Rationale: blank pattern operators are effectively ambiguous no-op filters; failing fast at protocol ingress prevents silent caller mistakes and improves query determinism.
+
+## 2026-02-21 14:0x PST — finite pagination-number guard
+- Hardened both root and util query envelopes so `skip`, `take`, and legacy `limit` require finite numbers in addition to existing integer/non-negative checks.
+- Why: `z.number().int()` can still permit `Infinity` values; allowing non-finite pagination inputs can leak invalid page bounds into router/data-layer logic.
+- Added matching behavior tests in both root/util schema suites to lock rejection of `±Infinity` pagination inputs.
+
+## 2026-02-21 14:3x PST — strict where-operator key enforcement
+- Hardened both root (`schema.ts`) and util (`util/schema.ts`) where-operator objects with `.strict()` so unknown operator keys fail fast instead of being silently stripped.
+- Applied this to shared `QueryFilterOperators` and recursive `createPrismaWhereSchema` operator builders.
+- Rationale: typos like `typoOp` previously disappeared when a valid operator was also present, masking caller defects and causing ambiguous filter behavior.

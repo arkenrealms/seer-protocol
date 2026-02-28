@@ -273,7 +273,6 @@ export const hasRole = (role: string | string[], t: any) =>
     // if (!ctx.client?.profile) throw new ARXError('INTERNAL_SERVER_ERROR', `Not authorized. Missing profile.`);
 
     const roles: string[] = ctx.client?.roles ?? [];
-    console.log('hasRole', role, roles);
 
     const has = Array.isArray(role) ? role.some((r) => roles.includes(r)) : roles.includes(role);
 

@@ -40,6 +40,8 @@ describe('root schema query envelope parity', () => {
   test('schema.ts Query rejects invalid pagination values', () => {
     expect(() => Query.parse({ skip: -1 })).toThrow();
     expect(() => Query.parse({ take: 2.5 })).toThrow();
+    expect(() => Query.parse({ skip: Number.POSITIVE_INFINITY })).toThrow();
+    expect(() => Query.parse({ take: Number.NEGATIVE_INFINITY })).toThrow();
     expect(() => Query.parse({ limit: '10' })).toThrow();
   });
 
@@ -74,12 +76,14 @@ describe('root schema query envelope parity', () => {
   });
 
   test('schema.ts Query and getQueryInput reject blank/whitespace orderBy keys', () => {
+    expect(() => Query.parse({ orderBy: {} })).toThrow(/orderBy must include at least one key/);
     expect(() => Query.parse({ orderBy: { '': 'asc' } })).toThrow(/orderBy keys must be non-empty/);
     expect(() => Query.parse({ orderBy: { '   ': 'desc' } })).toThrow(/orderBy keys must be non-empty/);
     expect(() => Query.parse({ orderBy: { ' name ': 'asc' } })).toThrow(/must not contain leading or trailing whitespace/);
 
     const schema = getQueryInput(z.object({ name: z.string() }));
 
+    expect(() => schema.parse({ orderBy: {} })).toThrow(/orderBy must include at least one key/);
     expect(() => schema.parse({ orderBy: { '': 'asc' } })).toThrow(/orderBy keys must be non-empty/);
     expect(() => schema.parse({ orderBy: { '   ': 'desc' } })).toThrow(/orderBy keys must be non-empty/);
     expect(() => schema.parse({ orderBy: { ' name ': 'desc' } })).toThrow(/must not contain leading or trailing whitespace/);
@@ -87,12 +91,16 @@ describe('root schema query envelope parity', () => {
   });
 
   test('schema.ts Query and getQueryInput reject blank/whitespace include/select keys', () => {
+    expect(() => Query.parse({ include: {} })).toThrow(/selection map must include at least one key/);
+    expect(() => Query.parse({ select: {} })).toThrow(/selection map must include at least one key/);
     expect(() => Query.parse({ include: { '': true } })).toThrow(/selection keys must be non-empty/);
     expect(() => Query.parse({ select: { '   ': false } })).toThrow(/selection keys must be non-empty/);
     expect(() => Query.parse({ include: { ' profile ': true } })).toThrow(/must not contain leading or trailing whitespace/);
 
     const schema = getQueryInput(z.object({ name: z.string() }));
 
+    expect(() => schema.parse({ include: {} })).toThrow(/selection map must include at least one key/);
+    expect(() => schema.parse({ select: {} })).toThrow(/selection map must include at least one key/);
     expect(() => schema.parse({ include: { '': true } })).toThrow(/selection keys must be non-empty/);
     expect(() => schema.parse({ select: { '   ': false } })).toThrow(/selection keys must be non-empty/);
     expect(() => schema.parse({ select: { ' name ': true } })).toThrow(/must not contain leading or trailing whitespace/);
@@ -101,12 +109,14 @@ describe('root schema query envelope parity', () => {
   });
 
   test('schema.ts Query and getQueryInput reject blank/whitespace cursor keys', () => {
+    expect(() => Query.parse({ cursor: {} })).toThrow(/cursor must include at least one key/);
     expect(() => Query.parse({ cursor: { '': 'abc' } })).toThrow(/cursor keys must be non-empty/);
     expect(() => Query.parse({ cursor: { '   ': 1 } })).toThrow(/cursor keys must be non-empty/);
     expect(() => Query.parse({ cursor: { ' id ': 'abc' } })).toThrow(/must not contain leading or trailing whitespace/);
 
     const schema = getQueryInput(z.object({ name: z.string() }));
 
+    expect(() => schema.parse({ cursor: {} })).toThrow(/cursor must include at least one key/);
     expect(() => schema.parse({ cursor: { '': 'abc' } })).toThrow(/cursor keys must be non-empty/);
     expect(() => schema.parse({ cursor: { '   ': 1 } })).toThrow(/cursor keys must be non-empty/);
     expect(() => schema.parse({ cursor: { ' id ': 'abc' } })).toThrow(/must not contain leading or trailing whitespace/);
@@ -150,6 +160,36 @@ describe('root schema query envelope parity', () => {
 
     const valid = schema.parse({ where: { name: { notIn: ['xyz'] } } });
     expect(valid.where.name.notIn).toEqual(['xyz']);
+  });
+
+  test('schema.ts Query and getQueryInput reject blank string pattern operators', () => {
+    expect(() => Query.parse({ where: { name: { contains: '' } } })).toThrow(/string operators must contain at least one non-whitespace character/);
+    expect(() => Query.parse({ where: { name: { startsWith: '   ' } } })).toThrow(/string operators must contain at least one non-whitespace character/);
+
+    const schema = getQueryInput(z.object({ name: z.string() }));
+
+    expect(() => schema.parse({ where: { name: { endsWith: '' } } })).toThrow(/string operators must contain at least one non-whitespace character/);
+
+    const valid = schema.parse({ where: { name: { contains: 'abc' } } });
+    expect(valid.where.name.contains).toBe('abc');
+  });
+
+  test('schema.ts Query and getQueryInput reject empty where operator objects', () => {
+    expect(() => Query.parse({ where: { name: {} } })).toThrow(/must include at least one operator/);
+
+    const schema = getQueryInput(z.object({ name: z.string() }));
+
+    expect(() => schema.parse({ where: { name: {} } })).toThrow(/must include at least one operator/);
+    expect(schema.parse({ where: { name: { equals: 'abc' } } }).where.name.equals).toBe('abc');
+  });
+
+  test('schema.ts Query and getQueryInput reject unknown where operators instead of silently stripping', () => {
+    expect(() => Query.parse({ where: { name: { equals: 'abc', typoOp: 'x' } } })).toThrow(/Unrecognized key\(s\) in object: 'typoOp'/);
+
+    const schema = getQueryInput(z.object({ name: z.string() }));
+
+    expect(() => schema.parse({ where: { name: { equals: 'abc', typoOp: 'x' } } })).toThrow(/Unrecognized key\(s\) in object: 'typoOp'/);
+    expect(schema.parse({ where: { name: { equals: 'abc', mode: 'insensitive' } } }).where.name.mode).toBe('insensitive');
   });
 
   test('schema.ts getQueryInput enforces mode enum and legacy limit alias', () => {

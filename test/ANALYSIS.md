@@ -118,3 +118,49 @@ Provide a direct-repo regression gate for protocol router hardening work.
 - Expanded both `schema.query-input.test.ts` and `schema.root-query-input.test.ts` with behavior assertions that empty `where.<field>.in` and `where.<field>.notIn` arrays are rejected by both `Query` and `getQueryInput`.
 - Added positive parse assertions for non-empty membership arrays to lock valid-path behavior.
 - Why: ensures util/root schema layers enforce explicit membership filters instead of silently accepting no-op arrays.
+
+## 2026-02-21 11:0x PST — empty order/selection map regression lock
+- Expanded `schema.query-input.test.ts` and `schema.root-query-input.test.ts` with behavior assertions that empty `orderBy`, `include`, and `select` maps are rejected by both `Query` and `getQueryInput`.
+- Why: locks deterministic rejection for no-op sort/projection envelopes and prevents silent acceptance of ambiguous client payloads.
+
+## 2026-02-21 12:0x PST — blank string pattern-operator regression lock
+- Expanded `schema.query-input.test.ts` and `schema.root-query-input.test.ts` with behavior assertions that `contains`, `startsWith`, and `endsWith` reject blank/whitespace-only values in both `Query` and `getQueryInput` paths.
+- Added positive parse assertions that non-empty operator values are still accepted.
+- Why: prevents silent acceptance of ambiguous no-op string filters and keeps root/util schema behavior in parity.
+
+## 2026-02-21 01:4x PST — default pagination envelope regression lock
+- Added behavior assertions in both root/util schema suites that `{}` parses to default pagination values (`skip:0`, `take:10`, `limit:10`).
+- Added assertions that `getQueryInput(...).parse(undefined)` still returns `undefined` to preserve optional query payload compatibility.
+- Why: guards the new default-materialization behavior while keeping existing undefined-query call paths stable.
+
+## 2026-02-21 03:3x PST — empty where-operator regression lock
+- Expanded both util/root schema suites to reject empty where-operator objects (for example `{ where: { name: {} } }`).
+- Added positive assertions that valid operators still parse.
+- Why: ensures new non-empty operator guard cannot silently regress and keeps query-filter semantics deterministic.
+
+## 2026-02-21 04:xx PST — strict where-key regression lock
+- Expanded `schema.query-input.test.ts` to assert unknown and whitespace-padded where keys are rejected.
+- Updated `schema.depth-normalization.test.ts` expectations to validate strict-key behavior at normalized recursive depths.
+- Why: with strict where parsing enabled, depth normalization tests should lock explicit rejection of out-of-shape logical keys instead of expecting silent stripping.
+
+## 2026-02-21 06:1x PST — empty where-envelope regression lock
+- Expanded `schema.query-input.test.ts` and `schema.root-query-input.test.ts` with behavior assertions that `{ where: {} }` is rejected by both `Query` and `getQueryInput`.
+- Why: locks new non-empty where-envelope guard so protocol schemas cannot regress to silently accepting no-op filters.
+
+## 2026-02-21 07:1x PST — hasRole middleware side-effect regression lock
+- Added `test/rpc.hasRole.test.ts` to validate `hasRole` authorization behavior for allowed and forbidden role sets.
+- Added assertion that successful `hasRole` middleware execution does not emit `console.log` side effects.
+- Why: middleware-level auth checks run frequently; this locks intended behavior while preventing regression to noisy debug logging.
+
+## 2026-02-21 09:0x PST — empty cursor-envelope regression lock
+- Expanded both `schema.query-input.test.ts` and `schema.root-query-input.test.ts` with behavior assertions that `cursor: {}` is rejected for `Query` and `getQueryInput`.
+- Why: locks new protocol-boundary guard against empty cursor envelopes so util/root schema layers cannot drift.
+
+## 2026-02-21 14:0x PST — finite-pagination regression lock
+- Expanded both `schema.query-input.test.ts` and `schema.root-query-input.test.ts` to assert `Query` rejects `skip/take` values of `±Infinity`.
+- Why: locks protocol parse behavior so non-finite pagination cannot regress into accepted input when schema helpers evolve.
+
+## 2026-02-21 14:3x PST — unknown where-operator regression lock
+- Expanded both util/root schema behavior suites to reject unknown where operators (example: `typoOp`) instead of silently stripping them.
+- Added positive assertions that valid operators continue to parse (`equals`, `mode`).
+- Why: locks new strict where-operator contracts and prevents typo-driven filter drift from regressing.

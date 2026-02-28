@@ -29,6 +29,21 @@ function loadSchemaRuntime() {
 describe('util/schema query envelope behavior', () => {
   const { z, Query, getQueryInput } = loadSchemaRuntime();
 
+  test('Query and getQueryInput apply default pagination envelope values when omitted', () => {
+    const queryDefaults = Query.parse({});
+    expect(queryDefaults.skip).toBe(0);
+    expect(queryDefaults.take).toBe(10);
+    expect(queryDefaults.limit).toBe(10);
+
+    const schema = getQueryInput(z.object({ name: z.string() }));
+    const inputDefaults = schema.parse({});
+    expect(inputDefaults.skip).toBe(0);
+    expect(inputDefaults.take).toBe(10);
+    expect(inputDefaults.limit).toBe(10);
+
+    expect(schema.parse(undefined)).toBeUndefined();
+  });
+
   test('Query accepts strict pagination fields including legacy limit alias', () => {
     const parsed = Query.parse({ skip: 0, take: 10, limit: 10 });
 
@@ -40,6 +55,8 @@ describe('util/schema query envelope behavior', () => {
   test('Query rejects invalid pagination values', () => {
     expect(() => Query.parse({ skip: -1 })).toThrow();
     expect(() => Query.parse({ take: 1.5 })).toThrow();
+    expect(() => Query.parse({ skip: Number.POSITIVE_INFINITY })).toThrow();
+    expect(() => Query.parse({ take: Number.NEGATIVE_INFINITY })).toThrow();
     expect(() => Query.parse({ limit: '10' })).toThrow();
   });
 
@@ -94,12 +111,14 @@ describe('util/schema query envelope behavior', () => {
 
 
   test('Query and getQueryInput reject blank/whitespace orderBy keys', () => {
+    expect(() => Query.parse({ orderBy: {} })).toThrow(/orderBy must include at least one key/);
     expect(() => Query.parse({ orderBy: { '': 'asc' } })).toThrow(/orderBy keys must be non-empty/);
     expect(() => Query.parse({ orderBy: { '   ': 'desc' } })).toThrow(/orderBy keys must be non-empty/);
     expect(() => Query.parse({ orderBy: { ' name ': 'asc' } })).toThrow(/must not contain leading or trailing whitespace/);
 
     const schema = getQueryInput(z.object({ name: z.string() }));
 
+    expect(() => schema.parse({ orderBy: {} })).toThrow(/orderBy must include at least one key/);
     expect(() => schema.parse({ orderBy: { '': 'asc' } })).toThrow(/orderBy keys must be non-empty/);
     expect(() => schema.parse({ orderBy: { '   ': 'desc' } })).toThrow(/orderBy keys must be non-empty/);
     expect(() => schema.parse({ orderBy: { ' name ': 'asc' } })).toThrow(/must not contain leading or trailing whitespace/);
@@ -107,12 +126,16 @@ describe('util/schema query envelope behavior', () => {
   });
 
   test('Query and getQueryInput reject blank/whitespace include/select keys', () => {
+    expect(() => Query.parse({ include: {} })).toThrow(/selection map must include at least one key/);
+    expect(() => Query.parse({ select: {} })).toThrow(/selection map must include at least one key/);
     expect(() => Query.parse({ include: { '': true } })).toThrow(/selection keys must be non-empty/);
     expect(() => Query.parse({ select: { '   ': false } })).toThrow(/selection keys must be non-empty/);
     expect(() => Query.parse({ include: { ' profile ': true } })).toThrow(/must not contain leading or trailing whitespace/);
 
     const schema = getQueryInput(z.object({ name: z.string() }));
 
+    expect(() => schema.parse({ include: {} })).toThrow(/selection map must include at least one key/);
+    expect(() => schema.parse({ select: {} })).toThrow(/selection map must include at least one key/);
     expect(() => schema.parse({ include: { '': true } })).toThrow(/selection keys must be non-empty/);
     expect(() => schema.parse({ select: { '   ': false } })).toThrow(/selection keys must be non-empty/);
     expect(() => schema.parse({ select: { ' name ': true } })).toThrow(/must not contain leading or trailing whitespace/);
@@ -121,12 +144,14 @@ describe('util/schema query envelope behavior', () => {
   });
 
   test('Query and getQueryInput reject blank/whitespace cursor keys', () => {
+    expect(() => Query.parse({ cursor: {} })).toThrow(/cursor must include at least one key/);
     expect(() => Query.parse({ cursor: { '': 'abc' } })).toThrow(/cursor keys must be non-empty/);
     expect(() => Query.parse({ cursor: { '   ': 1 } })).toThrow(/cursor keys must be non-empty/);
     expect(() => Query.parse({ cursor: { ' id ': 'abc' } })).toThrow(/must not contain leading or trailing whitespace/);
 
     const schema = getQueryInput(z.object({ name: z.string() }));
 
+    expect(() => schema.parse({ cursor: {} })).toThrow(/cursor must include at least one key/);
     expect(() => schema.parse({ cursor: { '': 'abc' } })).toThrow(/cursor keys must be non-empty/);
     expect(() => schema.parse({ cursor: { '   ': 1 } })).toThrow(/cursor keys must be non-empty/);
     expect(() => schema.parse({ cursor: { ' id ': 'abc' } })).toThrow(/must not contain leading or trailing whitespace/);
@@ -172,6 +197,45 @@ describe('util/schema query envelope behavior', () => {
     expect(valid.where.name.in).toEqual(['abc']);
   });
 
+  test('Query and getQueryInput reject blank string pattern operators', () => {
+    expect(() => Query.parse({ where: { name: { contains: '' } } })).toThrow(/string operators must contain at least one non-whitespace character/);
+    expect(() => Query.parse({ where: { name: { startsWith: '   ' } } })).toThrow(/string operators must contain at least one non-whitespace character/);
+
+    const schema = getQueryInput(z.object({ name: z.string() }));
+
+    expect(() => schema.parse({ where: { name: { endsWith: '' } } })).toThrow(/string operators must contain at least one non-whitespace character/);
+
+    const valid = schema.parse({ where: { name: { contains: 'abc' } } });
+    expect(valid.where.name.contains).toBe('abc');
+  });
+
+  test('Query and getQueryInput reject empty where objects', () => {
+    expect(() => Query.parse({ where: {} })).toThrow(/where must include at least one filter or logical clause/);
+
+    const schema = getQueryInput(z.object({ name: z.string() }));
+
+    expect(() => schema.parse({ where: {} })).toThrow(/where must include at least one filter or logical clause/);
+    expect(schema.parse({ where: { name: { equals: 'abc' } } }).where.name.equals).toBe('abc');
+  });
+
+  test('Query and getQueryInput reject empty where operator objects', () => {
+    expect(() => Query.parse({ where: { name: {} } })).toThrow(/must include at least one operator/);
+
+    const schema = getQueryInput(z.object({ name: z.string() }));
+
+    expect(() => schema.parse({ where: { name: {} } })).toThrow(/must include at least one operator/);
+    expect(schema.parse({ where: { name: { equals: 'abc' } } }).where.name.equals).toBe('abc');
+  });
+
+  test('Query and getQueryInput reject unknown where operators instead of silently stripping', () => {
+    expect(() => Query.parse({ where: { name: { equals: 'abc', typoOp: 'x' } } })).toThrow(/Unrecognized key\(s\) in object: 'typoOp'/);
+
+    const schema = getQueryInput(z.object({ name: z.string() }));
+
+    expect(() => schema.parse({ where: { name: { equals: 'abc', typoOp: 'x' } } })).toThrow(/Unrecognized key\(s\) in object: 'typoOp'/);
+    expect(schema.parse({ where: { name: { equals: 'abc', mode: 'insensitive' } } }).where.name.mode).toBe('insensitive');
+  });
+
   test('getQueryInput disallows where for non-object schemas', () => {
     const schema = getQueryInput(z.array(z.string()));
 
@@ -183,5 +247,14 @@ describe('util/schema query envelope behavior', () => {
     const schema = getQueryInput(z.object({ name: z.string() }));
 
     expect(() => schema.parse({ where: { name: new String('abc') } })).toThrow(/Expected string/);
+  });
+
+  test('Query and getQueryInput reject unknown where keys instead of silently stripping', () => {
+    expect(() => Query.parse({ where: { unknownField: { equals: 'abc' } } })).toThrow(/Unrecognized key\(s\) in object: 'unknownField'/);
+
+    const schema = getQueryInput(z.object({ name: z.string() }));
+
+    expect(() => schema.parse({ where: { unknownField: { equals: 'abc' } } })).toThrow(/Unrecognized key\(s\) in object: 'unknownField'/);
+    expect(() => schema.parse({ where: { ' name ': { equals: 'abc' } } })).toThrow(/Unrecognized key\(s\) in object: ' name '/);
   });
 });
