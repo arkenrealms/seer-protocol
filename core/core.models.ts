@@ -808,16 +808,153 @@ export const Poll = createModel<Types.PollDocument>(
 export const Project = createModel<Types.ProjectDocument>(
   'Project',
   {
-    content: { type: String },
-    contractStatus: { type: String, default: 'Pending' },
-    parentId: { type: mongo.Schema.Types.ObjectId, ref: 'Project' },
-    realmId: { type: mongo.Schema.Types.ObjectId, ref: 'Realm' },
-    communityId: { type: mongo.Schema.Types.ObjectId, ref: 'Community' },
-    productId: { type: mongo.Schema.Types.ObjectId, ref: 'Product' },
-    ratingId: { type: mongo.Schema.Types.ObjectId, ref: 'Rating' },
+    key: { type: String },
+    repo: { type: String },
+    githubProjectNumber: { type: Number },
+    status: { type: String },
+    issueRefs: [{ type: String }],
+    parentIssueRef: { type: String },
   },
   {
+    indexes: [
+      { key: 1 },
+      { repo: 1, githubProjectNumber: 1 },
+      { parentIssueRef: 1 },
+    ],
     virtuals: [...addTagVirtuals('Project'), ...addApplicationVirtual()],
+  }
+);
+
+// Repository Model
+export const Repository = createModel<Types.RepositoryDocument>(
+  'Repository',
+  {
+    key: { type: String, required: true },
+    name: { type: String, required: true },
+    owner: { type: String },
+    defaultBranch: { type: String },
+    status: { type: String, default: 'active' },
+  },
+  {
+    indexes: [
+      { key: 1, unique: true },
+      { owner: 1, name: 1 },
+    ],
+    virtuals: [...addTagVirtuals('Repository'), ...addApplicationVirtual()],
+  }
+);
+
+// ProductFeature Model
+export const ProductFeature = createModel<Types.ProductFeatureDocument>(
+  'ProductFeature',
+  {
+    key: { type: String, required: true },
+    name: { type: String, required: true },
+    productId: { type: mongo.Schema.Types.ObjectId, ref: 'Product' },
+    repositoryId: { type: mongo.Schema.Types.ObjectId, ref: 'Repository', required: true },
+    status: { type: String },
+    externalLink: { type: String, required: true },
+    filePaths: [{ type: String }],
+  },
+  {
+    indexes: [
+      { repositoryId: 1, key: 1, unique: true },
+      { productId: 1 },
+    ],
+    virtuals: [...addTagVirtuals('ProductFeature'), ...addApplicationVirtual()],
+  }
+);
+
+// RepositoryCommit Model
+export const RepositoryCommit = createModel<Types.RepositoryCommitDocument>(
+  'RepositoryCommit',
+  {
+    repositoryId: { type: mongo.Schema.Types.ObjectId, ref: 'Repository', required: true },
+    profileId: { type: mongo.Schema.Types.ObjectId, ref: 'Profile', required: true },
+    sha: { type: String, required: true },
+    message: { type: String, required: true },
+    committedDate: { type: Date, required: true },
+    externalLink: { type: String, required: true },
+  },
+  {
+    indexes: [
+      { repositoryId: 1, sha: 1, unique: true },
+      { profileId: 1, committedDate: -1 },
+    ],
+    virtuals: [...addTagVirtuals('RepositoryCommit'), ...addApplicationVirtual()],
+  }
+);
+
+// IssueEmbedding Model
+export const IssueEmbedding = createModel<Types.IssueEmbeddingDocument>(
+  'IssueEmbedding',
+  {
+    entityType: { type: String, enum: ['issue'], default: 'issue' },
+    issueRef: { type: String, required: true },
+    modelId: { type: String, required: true },
+    modelVersion: { type: String },
+    vectorDimensions: { type: Number, required: true },
+    vectorHash: { type: String, required: true },
+    sourceTextHash: { type: String, required: true },
+    vector: [{ type: Number, required: true }],
+    sourceUpdatedAt: { type: Date },
+    embeddedAt: { type: Date, required: true },
+    staleAfter: { type: Date },
+  },
+  {
+    indexes: [
+      { issueRef: 1, modelId: 1, modelVersion: 1, unique: true },
+      { modelId: 1, vectorDimensions: 1 },
+      { vectorHash: 1 },
+      { sourceTextHash: 1 },
+      { staleAfter: 1 },
+    ],
+    virtuals: [...addTagVirtuals('IssueEmbedding'), ...addApplicationVirtual()],
+  }
+);
+
+// SessionContext Model
+export const SessionContext = createModel<Types.SessionContextDocument>(
+  'SessionContext',
+  {
+    sessionKey: { type: String, required: true },
+    status: { type: String, enum: ['active', 'closed'], default: 'active' },
+    startedAt: { type: Date, required: true },
+    lastSeenAt: { type: Date, required: true },
+    endedAt: { type: Date },
+    sourceMessageRefs: [{ type: String }],
+    contextHash: { type: String },
+  },
+  {
+    indexes: [
+      { sessionKey: 1, status: 1, lastSeenAt: -1 },
+      { sessionKey: 1, contextHash: 1 },
+    ],
+    virtuals: [...addTagVirtuals('SessionContext'), ...addApplicationVirtual()],
+  }
+);
+
+// SessionContextEdge Model
+export const SessionContextEdge = createModel<Types.SessionContextEdgeDocument>(
+  'SessionContextEdge',
+  {
+    sessionContextId: { type: mongo.Schema.Types.ObjectId, ref: 'SessionContext', required: true },
+    edgeType: { type: String, enum: ['repository', 'productFeature', 'issue', 'agent', 'profile'], required: true },
+    targetId: { type: mongo.Schema.Types.ObjectId },
+    targetRef: { type: String },
+    confidence: { type: Number },
+    sourceMessageRefs: [{ type: String }],
+    firstSeenAt: { type: Date, required: true },
+    lastSeenAt: { type: Date, required: true },
+  },
+  {
+    indexes: [
+      { sessionContextId: 1, edgeType: 1 },
+      { edgeType: 1, targetId: 1 },
+      { edgeType: 1, targetRef: 1 },
+      { sessionContextId: 1, edgeType: 1, targetId: 1, targetRef: 1 },
+    ],
+    virtuals: [...addTagVirtuals('SessionContextEdge'), ...addApplicationVirtual()],
   }
 );
 

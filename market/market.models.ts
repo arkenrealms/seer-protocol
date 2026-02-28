@@ -111,3 +111,14 @@ export const MarketStockSentiment = mongo.createModel<Types.MarketStockSentiment
   },
   confidence: { type: Number, required: true },
 });
+
+export const MarketListing = mongo.createModel<Types.MarketListingDocument>('MarketListing', {
+  sellerId: { type: mongo.Schema.Types.ObjectId, required: true, ref: 'Profile' },
+  quantity: { type: Number, required: true, default: 1 },
+  currency: { type: String, required: true },
+  exchangeId: { type: mongo.Schema.Types.ObjectId, required: true, ref: 'MarketExchange' },
+  marketId: { type: mongo.Schema.Types.ObjectId, required: true, ref: 'MarketStock' },
+  category: { type: String, required: true },
+  status: { type: String, required: true },
+  expiryDate: { type: Date, required: false },
+});

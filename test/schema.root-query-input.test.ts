@@ -1,12 +1,12 @@
-// arken/packages/seer/packages/protocol/test/schema.query-input.test.ts
+// arken/seer/protocol/test/schema.root-query-input.test.ts
 const fs = require('node:fs');
 const path = require('node:path');
 const Module = require('node:module');
 const ts = require('typescript');
 
-function loadSchemaRuntime() {
+function loadRootSchemaRuntime() {
   const root = process.cwd();
-  const schemaPath = path.resolve(root, 'util', 'schema.ts');
+  const schemaPath = path.resolve(root, 'schema.ts');
   const source = fs.readFileSync(schemaPath, 'utf8');
 
   const { outputText } = ts.transpileModule(source, {
@@ -26,25 +26,10 @@ function loadSchemaRuntime() {
   return m.exports;
 }
 
-describe('util/schema query envelope behavior', () => {
-  const { z, Query, getQueryInput } = loadSchemaRuntime();
+describe('root schema query envelope parity', () => {
+  const { z, Query, getQueryInput } = loadRootSchemaRuntime();
 
-  test('Query and getQueryInput apply default pagination envelope values when omitted', () => {
-    const queryDefaults = Query.parse({});
-    expect(queryDefaults.skip).toBe(0);
-    expect(queryDefaults.take).toBe(10);
-    expect(queryDefaults.limit).toBe(10);
-
-    const schema = getQueryInput(z.object({ name: z.string() }));
-    const inputDefaults = schema.parse({});
-    expect(inputDefaults.skip).toBe(0);
-    expect(inputDefaults.take).toBe(10);
-    expect(inputDefaults.limit).toBe(10);
-
-    expect(schema.parse(undefined)).toBeUndefined();
-  });
-
-  test('Query accepts strict pagination fields including legacy limit alias', () => {
+  test('schema.ts Query accepts strict pagination fields including legacy limit alias', () => {
     const parsed = Query.parse({ skip: 0, take: 10, limit: 10 });
 
     expect(parsed.skip).toBe(0);
@@ -52,15 +37,15 @@ describe('util/schema query envelope behavior', () => {
     expect(parsed.limit).toBe(10);
   });
 
-  test('Query rejects invalid pagination values', () => {
+  test('schema.ts Query rejects invalid pagination values', () => {
     expect(() => Query.parse({ skip: -1 })).toThrow();
-    expect(() => Query.parse({ take: 1.5 })).toThrow();
+    expect(() => Query.parse({ take: 2.5 })).toThrow();
     expect(() => Query.parse({ skip: Number.POSITIVE_INFINITY })).toThrow();
     expect(() => Query.parse({ take: Number.NEGATIVE_INFINITY })).toThrow();
     expect(() => Query.parse({ limit: '10' })).toThrow();
   });
 
-  test('Query and getQueryInput reject mismatched take/limit values', () => {
+  test('schema.ts Query and getQueryInput reject mismatched take/limit values', () => {
     expect(() => Query.parse({ take: 10, limit: 5 })).toThrow(/take and limit must match/);
 
     const schema = getQueryInput(z.object({ name: z.string() }));
@@ -68,6 +53,7 @@ describe('util/schema query envelope behavior', () => {
     expect(() => schema.parse({ take: 10, limit: 5 })).toThrow(/take and limit must match/);
     expect(schema.parse({ take: 10, limit: 10 }).take).toBe(10);
   });
+
 
   test('Query and getQueryInput normalize single pagination alias', () => {
     const queryFromLimit = Query.parse({ limit: 7 });
@@ -89,28 +75,7 @@ describe('util/schema query envelope behavior', () => {
     expect(inputFromTake.limit).toBe(6);
   });
 
-  test('getQueryInput supports object where mode enum and legacy limit alias', () => {
-    const schema = getQueryInput(z.object({ name: z.string() }));
-
-    const valid = schema.parse({
-      where: { name: { contains: 'abc', mode: 'insensitive' } },
-      skip: 0,
-      take: 10,
-      limit: 10,
-    });
-
-    expect(valid.where.name.mode).toBe('insensitive');
-    expect(valid.limit).toBe(10);
-
-    expect(() =>
-      schema.parse({
-        where: { name: { contains: 'abc', mode: 'invalid' } },
-      })
-    ).toThrow();
-  });
-
-
-  test('Query and getQueryInput reject blank/whitespace orderBy keys', () => {
+  test('schema.ts Query and getQueryInput reject blank/whitespace orderBy keys', () => {
     expect(() => Query.parse({ orderBy: {} })).toThrow(/orderBy must include at least one key/);
     expect(() => Query.parse({ orderBy: { '': 'asc' } })).toThrow(/orderBy keys must be non-empty/);
     expect(() => Query.parse({ orderBy: { '   ': 'desc' } })).toThrow(/orderBy keys must be non-empty/);
@@ -121,11 +86,11 @@ describe('util/schema query envelope behavior', () => {
     expect(() => schema.parse({ orderBy: {} })).toThrow(/orderBy must include at least one key/);
     expect(() => schema.parse({ orderBy: { '': 'asc' } })).toThrow(/orderBy keys must be non-empty/);
     expect(() => schema.parse({ orderBy: { '   ': 'desc' } })).toThrow(/orderBy keys must be non-empty/);
-    expect(() => schema.parse({ orderBy: { ' name ': 'asc' } })).toThrow(/must not contain leading or trailing whitespace/);
-    expect(schema.parse({ orderBy: { name: 'asc' } }).orderBy.name).toBe('asc');
+    expect(() => schema.parse({ orderBy: { ' name ': 'desc' } })).toThrow(/must not contain leading or trailing whitespace/);
+    expect(schema.parse({ orderBy: { name: 'desc' } }).orderBy.name).toBe('desc');
   });
 
-  test('Query and getQueryInput reject blank/whitespace include/select keys', () => {
+  test('schema.ts Query and getQueryInput reject blank/whitespace include/select keys', () => {
     expect(() => Query.parse({ include: {} })).toThrow(/selection map must include at least one key/);
     expect(() => Query.parse({ select: {} })).toThrow(/selection map must include at least one key/);
     expect(() => Query.parse({ include: { '': true } })).toThrow(/selection keys must be non-empty/);
@@ -143,7 +108,7 @@ describe('util/schema query envelope behavior', () => {
     expect(schema.parse({ select: { name: true } }).select.name).toBe(true);
   });
 
-  test('Query and getQueryInput reject blank/whitespace cursor keys', () => {
+  test('schema.ts Query and getQueryInput reject blank/whitespace cursor keys', () => {
     expect(() => Query.parse({ cursor: {} })).toThrow(/cursor must include at least one key/);
     expect(() => Query.parse({ cursor: { '': 'abc' } })).toThrow(/cursor keys must be non-empty/);
     expect(() => Query.parse({ cursor: { '   ': 1 } })).toThrow(/cursor keys must be non-empty/);
@@ -158,7 +123,7 @@ describe('util/schema query envelope behavior', () => {
     expect(schema.parse({ cursor: { id: 'abc' } }).cursor.id).toBe('abc');
   });
 
-  test('Query and getQueryInput reject reserved prototype-pollution keys', () => {
+  test('schema.ts Query and getQueryInput reject reserved prototype-pollution keys', () => {
     const schema = getQueryInput(z.object({ name: z.string() }));
 
     expect(() => Query.parse({ include: { constructor: true } })).toThrow(/reserved key/);
@@ -169,7 +134,7 @@ describe('util/schema query envelope behavior', () => {
     expect(() => schema.parse({ include: { constructor: true } })).toThrow(/reserved key/);
   });
 
-  test('Query and getQueryInput reject empty logical where arrays', () => {
+  test('schema.ts Query and getQueryInput reject empty logical where arrays', () => {
     expect(() => Query.parse({ where: { AND: [] } })).toThrow(/AND must contain at least one condition/);
     expect(() => Query.parse({ where: { OR: [] } })).toThrow(/OR must contain at least one condition/);
     expect(() => Query.parse({ where: { NOT: [] } })).toThrow(/NOT must contain at least one condition/);
@@ -180,11 +145,11 @@ describe('util/schema query envelope behavior', () => {
     expect(() => schema.parse({ where: { OR: [] } })).toThrow(/OR must contain at least one condition/);
     expect(() => schema.parse({ where: { NOT: [] } })).toThrow(/NOT must contain at least one condition/);
 
-    const valid = schema.parse({ where: { AND: [{ name: { equals: 'abc' } }] } });
-    expect(valid.where.AND).toHaveLength(1);
+    const valid = schema.parse({ where: { OR: [{ name: { equals: 'abc' } }] } });
+    expect(valid.where.OR).toHaveLength(1);
   });
 
-  test('Query and getQueryInput reject empty in/notIn arrays in where filters', () => {
+  test('schema.ts Query and getQueryInput reject empty in/notIn arrays in where filters', () => {
     expect(() => Query.parse({ where: { name: { in: [] } } })).toThrow(/in must contain at least one value/);
     expect(() => Query.parse({ where: { name: { notIn: [] } } })).toThrow(/notIn must contain at least one value/);
 
@@ -193,11 +158,11 @@ describe('util/schema query envelope behavior', () => {
     expect(() => schema.parse({ where: { name: { in: [] } } })).toThrow(/in must contain at least one value/);
     expect(() => schema.parse({ where: { name: { notIn: [] } } })).toThrow(/notIn must contain at least one value/);
 
-    const valid = schema.parse({ where: { name: { in: ['abc'] } } });
-    expect(valid.where.name.in).toEqual(['abc']);
+    const valid = schema.parse({ where: { name: { notIn: ['xyz'] } } });
+    expect(valid.where.name.notIn).toEqual(['xyz']);
   });
 
-  test('Query and getQueryInput reject blank string pattern operators', () => {
+  test('schema.ts Query and getQueryInput reject blank string pattern operators', () => {
     expect(() => Query.parse({ where: { name: { contains: '' } } })).toThrow(/string operators must contain at least one non-whitespace character/);
     expect(() => Query.parse({ where: { name: { startsWith: '   ' } } })).toThrow(/string operators must contain at least one non-whitespace character/);
 
@@ -209,16 +174,7 @@ describe('util/schema query envelope behavior', () => {
     expect(valid.where.name.contains).toBe('abc');
   });
 
-  test('Query and getQueryInput reject empty where objects', () => {
-    expect(() => Query.parse({ where: {} })).toThrow(/where must include at least one filter or logical clause/);
-
-    const schema = getQueryInput(z.object({ name: z.string() }));
-
-    expect(() => schema.parse({ where: {} })).toThrow(/where must include at least one filter or logical clause/);
-    expect(schema.parse({ where: { name: { equals: 'abc' } } }).where.name.equals).toBe('abc');
-  });
-
-  test('Query and getQueryInput reject empty where operator objects', () => {
+  test('schema.ts Query and getQueryInput reject empty where operator objects', () => {
     expect(() => Query.parse({ where: { name: {} } })).toThrow(/must include at least one operator/);
 
     const schema = getQueryInput(z.object({ name: z.string() }));
@@ -227,7 +183,7 @@ describe('util/schema query envelope behavior', () => {
     expect(schema.parse({ where: { name: { equals: 'abc' } } }).where.name.equals).toBe('abc');
   });
 
-  test('Query and getQueryInput reject unknown where operators instead of silently stripping', () => {
+  test('schema.ts Query and getQueryInput reject unknown where operators instead of silently stripping', () => {
     expect(() => Query.parse({ where: { name: { equals: 'abc', typoOp: 'x' } } })).toThrow(/Unrecognized key\(s\) in object: 'typoOp'/);
 
     const schema = getQueryInput(z.object({ name: z.string() }));
@@ -236,25 +192,27 @@ describe('util/schema query envelope behavior', () => {
     expect(schema.parse({ where: { name: { equals: 'abc', mode: 'insensitive' } } }).where.name.mode).toBe('insensitive');
   });
 
-  test('getQueryInput disallows where for non-object schemas', () => {
-    const schema = getQueryInput(z.array(z.string()));
+  test('schema.ts getQueryInput enforces mode enum and legacy limit alias', () => {
+    const schema = getQueryInput(z.object({ name: z.string() }));
 
-    expect(() => schema.parse({ where: { anything: { equals: 'x' } } })).toThrow();
-    expect(schema.parse({ data: ['a', 'b'], limit: 10 }).limit).toBe(10);
+    const valid = schema.parse({
+      where: { name: { contains: 'abc', mode: 'insensitive' } },
+      limit: 10,
+    });
+
+    expect(valid.where.name.mode).toBe('insensitive');
+    expect(valid.limit).toBe(10);
+
+    expect(() =>
+      schema.parse({
+        where: { name: { contains: 'abc', mode: 'invalid' } },
+      })
+    ).toThrow();
   });
 
-  test('getQueryInput rejects non-plain shorthand objects instead of silently stripping them', () => {
+  test('schema.ts getQueryInput rejects non-plain shorthand objects instead of silently stripping them', () => {
     const schema = getQueryInput(z.object({ name: z.string() }));
 
     expect(() => schema.parse({ where: { name: new String('abc') } })).toThrow(/Expected string/);
-  });
-
-  test('Query and getQueryInput reject unknown where keys instead of silently stripping', () => {
-    expect(() => Query.parse({ where: { unknownField: { equals: 'abc' } } })).toThrow(/Unrecognized key\(s\) in object: 'unknownField'/);
-
-    const schema = getQueryInput(z.object({ name: z.string() }));
-
-    expect(() => schema.parse({ where: { unknownField: { equals: 'abc' } } })).toThrow(/Unrecognized key\(s\) in object: 'unknownField'/);
-    expect(() => schema.parse({ where: { ' name ': { equals: 'abc' } } })).toThrow(/Unrecognized key\(s\) in object: ' name '/);
   });
 });

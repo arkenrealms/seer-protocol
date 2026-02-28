@@ -364,13 +364,215 @@ export const Poll = Entity.merge(z.object({}));
 // Project Schema
 export const Project = Entity.merge(
   z.object({
-    content: z.string().optional(),
-    contractStatus: z.string().default('Pending').optional(),
-    parentId: ObjectId.optional(),
-    realmId: ObjectId.optional(),
-    communityId: ObjectId.optional(),
+    key: z.string().min(1).optional(),
+    repo: z.string().min(1).optional(),
+    githubProjectNumber: z.number().int().positive().optional(),
+    status: z.string().min(1).optional(),
+    issueRefs: z.array(z.string().min(1)).optional(),
+    parentIssueRef: z.string().min(1).optional(),
+  })
+);
+
+// Repository Schema
+export const Repository = Entity.merge(
+  z.object({
+    key: z.string().min(1),
+    name: z.string().min(1),
+    owner: z.string().min(1).optional(),
+    defaultBranch: z.string().min(1).optional(),
+    status: z.enum(['active', 'archived']).default('active').optional(),
+  })
+);
+
+// ProductFeature Schema
+export const ProductFeature = Entity.merge(
+  z.object({
+    key: z.string().min(1),
+    name: z.string().min(1),
     productId: ObjectId.optional(),
-    ratingId: ObjectId.optional(),
+    repositoryId: ObjectId,
+    status: z.string().min(1).optional(),
+    externalLink: z.string().url(),
+    filePaths: z.array(z.string().min(1)).optional(),
+  })
+);
+
+// RepositoryCommit Schema
+export const RepositoryCommit = Entity.merge(
+  z.object({
+    repositoryId: ObjectId,
+    profileId: ObjectId,
+    sha: z.string().min(7),
+    message: z.string().min(1),
+    committedDate: z.coerce.date(),
+    externalLink: z.string().url(),
+  })
+);
+
+const EmbeddingModelId = z.string().min(1);
+const EmbeddingModelVersion = z.string().min(1);
+
+const ensureEmbeddingShapeConsistency = <T extends { modelId: string; modelVersion?: string; vectorDimensions: number; vector: number[] }>(
+  item: T,
+  ctx: z.RefinementCtx,
+  pathPrefix: (string | number)[] = []
+) => {
+  if (item.vector.length !== item.vectorDimensions) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: [...pathPrefix, 'vectorDimensions'],
+      message: `vectorDimensions ${item.vectorDimensions} does not match vector length ${item.vector.length}`,
+    });
+  }
+
+  if (item.vectorDimensions <= 0) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: [...pathPrefix, 'vectorDimensions'],
+      message: 'vectorDimensions must be greater than zero',
+    });
+  }
+};
+
+// IssueEmbedding Schema (Issue-first vector contract)
+export const IssueEmbedding = Entity.merge(
+  z.object({
+    entityType: z.literal('issue').default('issue').optional(),
+    issueRef: z.string().min(1),
+    modelId: EmbeddingModelId,
+    modelVersion: EmbeddingModelVersion.optional(),
+    vectorDimensions: z.number().int().positive(),
+    vectorHash: z.string().min(1),
+    sourceTextHash: z.string().min(1),
+    vector: z.array(z.number().finite()).min(1),
+    sourceUpdatedAt: z.coerce.date().optional(),
+    embeddedAt: z.coerce.date(),
+    staleAfter: z.coerce.date().optional(),
+  })
+).superRefine((item, ctx) => {
+  ensureEmbeddingShapeConsistency(item, ctx);
+});
+
+// IssueEmbedding single upsert contract
+export const IssueEmbeddingUpsertInput = z
+  .object({
+    record: IssueEmbedding,
+    expectedModelId: EmbeddingModelId.optional(),
+    expectedModelVersion: EmbeddingModelVersion.optional(),
+    expectedVectorDimensions: z.number().int().positive().optional(),
+  })
+  .superRefine((input, ctx) => {
+    const { record } = input;
+    if (input.expectedModelId && record.modelId !== input.expectedModelId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['record', 'modelId'],
+        message: `modelId mismatch: expected ${input.expectedModelId}, received ${record.modelId}`,
+      });
+    }
+
+    if (input.expectedModelVersion && record.modelVersion !== input.expectedModelVersion) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['record', 'modelVersion'],
+        message: `modelVersion mismatch: expected ${input.expectedModelVersion}, received ${record.modelVersion ?? 'undefined'}`,
+      });
+    }
+
+    if (input.expectedVectorDimensions && record.vectorDimensions !== input.expectedVectorDimensions) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['record', 'vectorDimensions'],
+        message: `vectorDimensions mismatch: expected ${input.expectedVectorDimensions}, received ${record.vectorDimensions}`,
+      });
+    }
+  });
+
+// IssueEmbedding batch upsert contract
+export const IssueEmbeddingBatchUpsertInput = z
+  .object({
+    records: z.array(IssueEmbedding).min(1),
+    expectedModelId: EmbeddingModelId.optional(),
+    expectedModelVersion: EmbeddingModelVersion.optional(),
+    expectedVectorDimensions: z.number().int().positive().optional(),
+  })
+  .superRefine((input, ctx) => {
+    const baseline = input.records[0];
+    input.records.forEach((record, index) => {
+      if (record.modelId !== baseline.modelId) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['records', index, 'modelId'],
+          message: `modelId mismatch in batch: expected ${baseline.modelId}, received ${record.modelId}`,
+        });
+      }
+
+      if ((record.modelVersion ?? null) !== (baseline.modelVersion ?? null)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['records', index, 'modelVersion'],
+          message: `modelVersion mismatch in batch: expected ${baseline.modelVersion ?? 'undefined'}, received ${record.modelVersion ?? 'undefined'}`,
+        });
+      }
+
+      if (record.vectorDimensions !== baseline.vectorDimensions) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['records', index, 'vectorDimensions'],
+          message: `vectorDimensions mismatch in batch: expected ${baseline.vectorDimensions}, received ${record.vectorDimensions}`,
+        });
+      }
+
+      if (input.expectedModelId && record.modelId !== input.expectedModelId) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['records', index, 'modelId'],
+          message: `modelId mismatch: expected ${input.expectedModelId}, received ${record.modelId}`,
+        });
+      }
+
+      if (input.expectedModelVersion && record.modelVersion !== input.expectedModelVersion) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['records', index, 'modelVersion'],
+          message: `modelVersion mismatch: expected ${input.expectedModelVersion}, received ${record.modelVersion ?? 'undefined'}`,
+        });
+      }
+
+      if (input.expectedVectorDimensions && record.vectorDimensions !== input.expectedVectorDimensions) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['records', index, 'vectorDimensions'],
+          message: `vectorDimensions mismatch: expected ${input.expectedVectorDimensions}, received ${record.vectorDimensions}`,
+        });
+      }
+    });
+  });
+
+// SessionContext Schema
+export const SessionContext = Entity.merge(
+  z.object({
+    sessionKey: z.string().min(1),
+    status: z.enum(['active', 'closed']).default('active').optional(),
+    startedAt: z.coerce.date(),
+    lastSeenAt: z.coerce.date(),
+    endedAt: z.coerce.date().optional(),
+    sourceMessageRefs: z.array(z.string().min(1)).default([]).optional(),
+    contextHash: z.string().min(1).optional(),
+  })
+);
+
+// SessionContextEdge Schema
+export const SessionContextEdge = Entity.merge(
+  z.object({
+    sessionContextId: ObjectId,
+    edgeType: z.enum(['repository', 'productFeature', 'issue', 'agent', 'profile']),
+    targetId: ObjectId.optional(),
+    targetRef: z.string().min(1).optional(),
+    confidence: z.number().min(0).max(1).optional(),
+    sourceMessageRefs: z.array(z.string().min(1)).default([]).optional(),
+    firstSeenAt: z.coerce.date(),
+    lastSeenAt: z.coerce.date(),
   })
 );
 
@@ -678,6 +880,10 @@ export const ModelNames = z.enum([
   'Planet',
   'Poll',
   'Project',
+  'Repository',
+  'ProductFeature',
+  'RepositoryCommit',
+  'IssueEmbedding',
   'Proposal',
   'Quest',
   'Question',

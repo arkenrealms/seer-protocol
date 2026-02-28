@@ -1,33 +1,79 @@
 // arken/packages/seer/packages/protocol/test/oasis.router.test.ts
-const fs = require('node:fs/promises');
+const fs = require('node:fs');
 const path = require('node:path');
+const Module = require('node:module');
+const ts = require('typescript');
 
-describe('oasis router dispatch shape', () => {
+function loadTsModule(relativePath) {
   const root = process.cwd();
+  const filePath = path.resolve(root, relativePath);
+  const source = fs.readFileSync(filePath, 'utf8');
 
-  test('getPatrons uses direct service dispatch', async () => {
-    const source = await fs.readFile(path.resolve(root, 'oasis', 'oasis.router.ts'), 'utf8');
-    const getPatronsBlock = source.match(/getPatrons:[\s\S]*?(?=\n\s*interact:)/)?.[0] ?? '';
-
-    expect(source).toMatch(/import\s+\{\s*initTRPC\s*\}\s+from\s+'@trpc\/server';/);
-
-    expect(getPatronsBlock.length).toBeGreaterThan(0);
-    expect(getPatronsBlock).toMatch(
-      /\.query\(\(\{ input, ctx \}\) => \(ctx\.app\.service\.Oasis\.getPatrons as any\)\(input, ctx\)\)/
-    );
-    expect(getPatronsBlock).not.toMatch(/Object\.prototype\.hasOwnProperty\.call\(oasisService/);
-    expect(getPatronsBlock).not.toMatch(/Object\.getOwnPropertyDescriptor\(oasisService/);
-    expect(source).not.toMatch(/TRPCError/);
+  let { outputText } = ts.transpileModule(source, {
+    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, esModuleInterop: true },
+    fileName: filePath,
   });
 
-  test('getScene guards non-object data before reading applicationId', async () => {
-    const source = await fs.readFile(path.resolve(root, 'oasis', 'oasis.router.ts'), 'utf8');
-    const getSceneBlock = source.match(/getScene:[\s\S]*?\n\s*}\),/)?.[0] ?? '';
+  outputText = outputText.replace(/require\(["'](\.\.?\/[^"']+)["']\)/g, (full, spec) => {
+    const tsPath = path.resolve(path.dirname(filePath), `${spec}.ts`);
+    return fs.existsSync(tsPath) ? `require("${spec}.ts")` : full;
+  });
 
-    expect(getSceneBlock.length).toBeGreaterThan(0);
-    expect(getSceneBlock).toMatch(/const sceneInput = input\?\.data;/);
-    expect(getSceneBlock).toMatch(/typeof sceneInput === 'object'/);
-    expect(getSceneBlock).toMatch(/const applicationId =/);
-    expect(getSceneBlock).not.toMatch(/input\.data\.applicationId/);
+  const prior = Module._extensions['.ts'];
+  Module._extensions['.ts'] = (mod, filename) => {
+    const src = fs.readFileSync(filename, 'utf8');
+    let { outputText: js } = ts.transpileModule(src, {
+      compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, esModuleInterop: true },
+      fileName: filename,
+    });
+    js = js.replace(/require\(["'](\.\.?\/[^"']+)["']\)/g, (f, s) => {
+      const maybe = path.resolve(path.dirname(filename), `${s}.ts`);
+      return fs.existsSync(maybe) ? `require("${s}.ts")` : f;
+    });
+    mod._compile(js, filename);
+  };
+
+  try {
+    const m = new Module.Module(filePath, module);
+    m.filename = filePath;
+    m.paths = Module.Module._nodeModulePaths(path.dirname(filePath));
+    m._compile(outputText, filePath);
+    return m.exports;
+  } finally {
+    Module._extensions['.ts'] = prior;
+  }
+}
+
+describe('oasis router dispatch behavior', () => {
+  const { createRouter } = loadTsModule('oasis/oasis.router.ts');
+
+  test('getPatrons routes to Oasis service and keeps query semantics', async () => {
+    const calls = [];
+    const ctx = {
+      app: { service: { Oasis: { getPatrons: (input, innerCtx) => (calls.push([input, innerCtx]), []) } } },
+      client: { roles: ['guest'] },
+    };
+
+    const r = createRouter();
+    expect(r._def.procedures.getPatrons._def.type).toBe('query');
+
+    const caller = r.createCaller(ctx);
+    await expect(caller.getPatrons(undefined)).resolves.toEqual([]);
+    expect(calls).toHaveLength(1);
+    expect(calls[0][1]).toBe(ctx);
+  });
+
+  test('getScene safely handles non-object data and object data with applicationId', async () => {
+    const caller = createRouter().createCaller({ app: { service: { Oasis: {} } }, client: { roles: ['guest'] } });
+
+    await expect(caller.getScene({ data: null, signature: { hash: 'h', address: 'a' } })).resolves.toEqual({});
+
+    const scene = await caller.getScene({
+      data: { applicationId: '668e4e805f9a03927caf883b' },
+      signature: { hash: 'h', address: 'a' },
+    });
+
+    expect(Array.isArray(scene.objects)).toBe(true);
+    expect(scene.objects.length).toBeGreaterThan(0);
   });
 });
