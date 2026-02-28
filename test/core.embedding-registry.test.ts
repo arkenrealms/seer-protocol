@@ -12,11 +12,12 @@ describe('core embedding registry integrity', () => {
     expect(source).toContain("'AgentEmbedding'");
   });
 
-  it('binds IssueEmbedding model to IssueEmbedding collection', () => {
+  it('defines IssueEmbedding model with schema object as second argument', () => {
     const modelsPath = path.resolve(__dirname, '..', 'core', 'core.models.ts');
     const source = fs.readFileSync(modelsPath, 'utf8');
 
     expect(source).toContain('export const IssueEmbedding = createModel<Types.IssueEmbeddingDocument>(');
-    expect(source).toContain("'IssueEmbedding',\n  'IssueEmbedding',");
+    expect(source).toContain("'IssueEmbedding',\n  {");
+    expect(source).not.toContain("'IssueEmbedding',\n  'IssueEmbedding',");
   });
 });
