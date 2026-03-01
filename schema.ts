@@ -293,6 +293,21 @@ const isPlainRecord = (value: unknown): value is Record<string, unknown> => {
   return Object.prototype.toString.call(value) === '[object Object]';
 };
 
+const normalizeEmptyWhereInQueryInput = (input: unknown): unknown => {
+  if (!isPlainRecord(input)) {
+    return input;
+  }
+
+  const where = input.where;
+  if (!isPlainRecord(where) || Object.keys(where).length > 0) {
+    return input;
+  }
+
+  const normalized = { ...input };
+  delete normalized.where;
+  return normalized;
+};
+
 const QueryWhereSchema = z.lazy(() =>
   z
     .object({
@@ -312,17 +327,20 @@ const QueryWhereSchema = z.lazy(() =>
 );
 
 export const Query = z
-  .object({
-    skip: z.number().finite().int().min(0).optional().default(0),
-    take: z.number().finite().int().min(0).optional(),
-    // legacy alias kept for backward compatibility across callers
-    limit: z.number().finite().int().min(0).optional(),
-    cursor: NonBlankCursorRecord.optional(),
-    where: QueryWhereSchema.optional(),
-    orderBy: NonBlankOrderByRecord.optional(),
-    include: NonBlankBooleanRecord.optional(),
-    select: NonBlankBooleanRecord.optional(),
-  })
+  .preprocess(
+    normalizeEmptyWhereInQueryInput,
+    z.object({
+      skip: z.number().finite().int().min(0).optional().default(0),
+      take: z.number().finite().int().min(0).optional(),
+      // legacy alias kept for backward compatibility across callers
+      limit: z.number().finite().int().min(0).optional(),
+      cursor: NonBlankCursorRecord.optional(),
+      where: QueryWhereSchema.optional(),
+      orderBy: NonBlankOrderByRecord.optional(),
+      include: NonBlankBooleanRecord.optional(),
+      select: NonBlankBooleanRecord.optional(),
+    })
+  )
   .superRefine((query, ctx) => {
     assertTakeLimitParity(query, ctx, ['limit']);
   })
@@ -508,23 +526,26 @@ export const getQueryInput = <S extends zod.ZodTypeAny>(schema: S, options: { pa
     : schema.optional(); // arrays: allow full array
 
   const querySchema = zod
-    .object({
-      data: dataSchema,
+    .preprocess(
+      normalizeEmptyWhereInQueryInput,
+      zod.object({
+        data: dataSchema,
 
-      // keep your query envelope fields
-      skip: zod.number().finite().int().min(0).optional().default(0),
-      take: zod.number().finite().int().min(0).optional(),
-      // legacy alias kept for backward compatibility across callers
-      limit: zod.number().finite().int().min(0).optional(),
-      cursor: NonBlankCursorRecord.optional(),
+        // keep your query envelope fields
+        skip: zod.number().finite().int().min(0).optional().default(0),
+        take: zod.number().finite().int().min(0).optional(),
+        // legacy alias kept for backward compatibility across callers
+        limit: zod.number().finite().int().min(0).optional(),
+        cursor: NonBlankCursorRecord.optional(),
 
-      // only valid for object schemas
-      where: isObjectSchema ? whereSchema.optional() : zod.undefined().optional(),
+        // only valid for object schemas
+        where: isObjectSchema ? whereSchema.optional() : zod.undefined().optional(),
 
-      orderBy: NonBlankOrderByRecord.optional(),
-      include: NonBlankBooleanRecord.optional(),
-      select: NonBlankBooleanRecord.optional(),
-    })
+        orderBy: NonBlankOrderByRecord.optional(),
+        include: NonBlankBooleanRecord.optional(),
+        select: NonBlankBooleanRecord.optional(),
+      })
+    )
     .superRefine((query, ctx) => {
       assertTakeLimitParity(query, ctx, ['limit']);
     })

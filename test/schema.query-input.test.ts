@@ -209,12 +209,12 @@ describe('util/schema query envelope behavior', () => {
     expect(valid.where.name.contains).toBe('abc');
   });
 
-  test('Query and getQueryInput reject empty where objects', () => {
-    expect(() => Query.parse({ where: {} })).toThrow(/where must include at least one filter or logical clause/);
+  test('Query and getQueryInput normalize empty where objects to omitted where', () => {
+    expect(Query.parse({ where: {} }).where).toBeUndefined();
 
     const schema = getQueryInput(z.object({ name: z.string() }));
 
-    expect(() => schema.parse({ where: {} })).toThrow(/where must include at least one filter or logical clause/);
+    expect(schema.parse({ where: {} }).where).toBeUndefined();
     expect(schema.parse({ where: { name: { equals: 'abc' } } }).where.name.equals).toBe('abc');
   });
 
