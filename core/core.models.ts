@@ -1574,8 +1574,8 @@ export const SeerEvent = mongo.createModel<Types.SeerEventDocument>(
     // ✅ this is the important fix: schema *object* with `type: Mixed`
     payload: { type: mongo.Schema.Types.Mixed, required: true },
 
-    seq: { type: Number, required: true, index: true },
-    timestamp: { type: Date, default: Date.now, index: true },
+    seq: { type: Number, required: true },
+    timestamp: { type: Date, default: Date.now },
   },
   {
     // extend: 'CommonFields', // or 'EntityFields' if you want applicationId/ownerId, but you already have applicationId above
