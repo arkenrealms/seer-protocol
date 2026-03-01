@@ -2,9 +2,7 @@
 //
 import Mongoose, { Types } from 'mongoose';
 import { z as zod, ZodTypeAny, ZodLazy, ZodObject, ZodArray } from 'zod';
-import { AnyProcedure, inferProcedureOutput, AnyRouter, AnyTRPCClientTypes, TRPCRouterRecord } from '@trpc/server';
-
-export type { inferRouterInputs } from '@trpc/server';
+import { AnyProcedure, inferProcedureInput, inferProcedureOutput, AnyRouter, AnyTRPCClientTypes, TRPCRouterRecord } from '@trpc/server';
 
 export const z = zod;
 
@@ -556,22 +554,38 @@ export const getQueryInput = <S extends zod.ZodTypeAny>(schema: S, options: { pa
 
 export type inferQuery<T extends zod.ZodRawShape> = zod.infer<ReturnType<typeof createPrismaWhereSchema<T>>>;
 
-export type GetInferenceHelpers<
-  TType extends 'input' | 'output',
+export type GetInputInferenceHelpers<
   TRoot extends AnyTRPCClientTypes,
   TRecord extends TRPCRouterRecord,
 > = {
   [TKey in keyof TRecord]: TRecord[TKey] extends infer $Value
     ? $Value extends TRPCRouterRecord
-      ? GetInferenceHelpers<TType, TRoot, $Value>
+      ? GetInputInferenceHelpers<TRoot, $Value>
       : $Value extends AnyProcedure
-        ? inferProcedureOutput<$Value> // inferTransformedProcedureOutput<TRoot, $Value>
+        ? inferProcedureInput<$Value>
         : never
     : never;
 };
 
-export type inferRouterOutputs<TRouter extends AnyRouter> = GetInferenceHelpers<
-  'output',
+export type GetOutputInferenceHelpers<
+  TRoot extends AnyTRPCClientTypes,
+  TRecord extends TRPCRouterRecord,
+> = {
+  [TKey in keyof TRecord]: TRecord[TKey] extends infer $Value
+    ? $Value extends TRPCRouterRecord
+      ? GetOutputInferenceHelpers<TRoot, $Value>
+      : $Value extends AnyProcedure
+        ? inferProcedureOutput<$Value>
+        : never
+    : never;
+};
+
+export type inferRouterInputs<TRouter extends AnyRouter> = GetInputInferenceHelpers<
+  TRouter['_def']['_config']['$types'],
+  TRouter['_def']['record']
+>;
+
+export type inferRouterOutputs<TRouter extends AnyRouter> = GetOutputInferenceHelpers<
   TRouter['_def']['_config']['$types'],
   TRouter['_def']['record']
 >;

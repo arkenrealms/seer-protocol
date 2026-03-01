@@ -2,7 +2,7 @@ import { z } from 'zod';
 import * as schema from './raffle.schema';
 import { Document, Model } from '../util/mongo';
 import type { RouterContext } from '../types';
-import type { inferRouterInputs, inferRouterOutputs } from '@trpc/server';
+import type { inferRouterInputs, inferRouterOutputs } from '../schema';
 import type { Router } from './raffle.router';
 
 export type * from './raffle.router';

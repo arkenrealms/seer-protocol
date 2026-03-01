@@ -1,10 +1,10 @@
 // node/module/core/core.router.ts
 
 import { z as zod } from 'zod';
-import { initTRPC, inferRouterInputs } from '@trpc/server';
+import { initTRPC } from '@trpc/server';
 import { customErrorFormatter, hasRole } from '../util/rpc';
 import type { RouterContext } from '../types';
-import { Query, getQueryInput, getQueryOutput, inferRouterOutputs } from '../schema';
+import { Query, getQueryInput, getQueryOutput, inferRouterInputs, inferRouterOutputs } from '../schema';
 import {
   Account,
   Achievement,
