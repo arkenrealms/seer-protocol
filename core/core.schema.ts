@@ -1,6 +1,7 @@
 // node/modules/core/core.schema.ts
 
 import { z, ObjectId, Entity } from '../schema';
+import type { RefinementCtx } from 'zod';
 import { Profile } from '../profile/profile.schema';
 import { ProfileDocument } from '../profile/profile.types';
 
@@ -412,11 +413,37 @@ export const RepositoryCommit = Entity.merge(
 const EmbeddingModelId = z.string().min(1);
 const EmbeddingModelVersion = z.string().min(1);
 
-const ensureEmbeddingShapeConsistency = <T extends { modelId: string; modelVersion?: string; vectorDimensions: number; vector: number[] }>(
+const ensureEmbeddingShapeConsistency = <T extends { modelId?: string; modelVersion?: string; vectorDimensions?: number; vector?: number[] }>(
   item: T,
-  ctx: z.RefinementCtx,
+  ctx: RefinementCtx,
   pathPrefix: (string | number)[] = []
 ) => {
+  if (!item.modelId) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: [...pathPrefix, 'modelId'],
+      message: 'modelId is required',
+    });
+  }
+
+  if (typeof item.vectorDimensions !== 'number') {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: [...pathPrefix, 'vectorDimensions'],
+      message: 'vectorDimensions is required',
+    });
+    return;
+  }
+
+  if (!Array.isArray(item.vector)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: [...pathPrefix, 'vector'],
+      message: 'vector is required',
+    });
+    return;
+  }
+
   if (item.vector.length !== item.vectorDimensions) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,

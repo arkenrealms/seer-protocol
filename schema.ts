@@ -413,7 +413,7 @@ export const Query = z
 export const createPrismaWhereSchema = <T extends zod.ZodRawShape>(
   modelSchema: zod.ZodObject<T>,
   depth: number = 3
-): zod.ZodObject<any> => {
+): zod.ZodTypeAny => {
   const fields = modelSchema.shape;
   const normalizedDepth = Number.isFinite(depth) ? Math.max(0, Math.floor(depth)) : 0;
 
