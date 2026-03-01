@@ -913,6 +913,97 @@ export const IssueEmbedding = createModel<Types.IssueEmbeddingDocument>(
   }
 );
 
+
+// ProjectEmbedding Model
+export const ProjectEmbedding = createModel<Types.ProjectEmbeddingDocument>(
+  'ProjectEmbedding',
+  {
+    entityType: { type: String, enum: ['project'], default: 'project' },
+    projectRef: { type: String, required: true },
+    projectId: { type: mongo.Schema.Types.ObjectId, ref: 'Project' },
+    modelId: { type: String, required: true },
+    modelVersion: { type: String },
+    vectorDimensions: { type: Number, required: true },
+    vectorHash: { type: String, required: true },
+    sourceTextHash: { type: String, required: true },
+    vector: [{ type: Number, required: true }],
+    sourceUpdatedAt: { type: Date },
+    embeddedAt: { type: Date, required: true },
+    staleAfter: { type: Date },
+  },
+  {
+    indexes: [
+      { projectRef: 1, modelId: 1, modelVersion: 1, unique: true },
+      { projectId: 1, modelId: 1, vectorDimensions: 1 },
+      { modelId: 1, vectorDimensions: 1 },
+      { vectorHash: 1 },
+      { sourceTextHash: 1 },
+      { staleAfter: 1 },
+    ],
+    virtuals: [...addTagVirtuals('ProjectEmbedding'), ...addApplicationVirtual()],
+  }
+);
+
+// ProductEmbedding Model
+export const ProductEmbedding = createModel<Types.ProductEmbeddingDocument>(
+  'ProductEmbedding',
+  {
+    entityType: { type: String, enum: ['product'], default: 'product' },
+    productRef: { type: String, required: true },
+    productId: { type: mongo.Schema.Types.ObjectId, ref: 'Product' },
+    modelId: { type: String, required: true },
+    modelVersion: { type: String },
+    vectorDimensions: { type: Number, required: true },
+    vectorHash: { type: String, required: true },
+    sourceTextHash: { type: String, required: true },
+    vector: [{ type: Number, required: true }],
+    sourceUpdatedAt: { type: Date },
+    embeddedAt: { type: Date, required: true },
+    staleAfter: { type: Date },
+  },
+  {
+    indexes: [
+      { productRef: 1, modelId: 1, modelVersion: 1, unique: true },
+      { productId: 1, modelId: 1, vectorDimensions: 1 },
+      { modelId: 1, vectorDimensions: 1 },
+      { vectorHash: 1 },
+      { sourceTextHash: 1 },
+      { staleAfter: 1 },
+    ],
+    virtuals: [...addTagVirtuals('ProductEmbedding'), ...addApplicationVirtual()],
+  }
+);
+
+// AgentEmbedding Model
+export const AgentEmbedding = createModel<Types.AgentEmbeddingDocument>(
+  'AgentEmbedding',
+  {
+    entityType: { type: String, enum: ['agent'], default: 'agent' },
+    agentRef: { type: String, required: true },
+    agentId: { type: mongo.Schema.Types.ObjectId, ref: 'Agent' },
+    modelId: { type: String, required: true },
+    modelVersion: { type: String },
+    vectorDimensions: { type: Number, required: true },
+    vectorHash: { type: String, required: true },
+    sourceTextHash: { type: String, required: true },
+    vector: [{ type: Number, required: true }],
+    sourceUpdatedAt: { type: Date },
+    embeddedAt: { type: Date, required: true },
+    staleAfter: { type: Date },
+  },
+  {
+    indexes: [
+      { agentRef: 1, modelId: 1, modelVersion: 1, unique: true },
+      { agentId: 1, modelId: 1, vectorDimensions: 1 },
+      { modelId: 1, vectorDimensions: 1 },
+      { vectorHash: 1 },
+      { sourceTextHash: 1 },
+      { staleAfter: 1 },
+    ],
+    virtuals: [...addTagVirtuals('AgentEmbedding'), ...addApplicationVirtual()],
+  }
+);
+
 // SessionContext Model
 export const SessionContext = createModel<Types.SessionContextDocument>(
   'SessionContext',
