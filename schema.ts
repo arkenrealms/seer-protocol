@@ -291,7 +291,7 @@ const isPlainRecord = (value: unknown): value is Record<string, unknown> => {
   return Object.prototype.toString.call(value) === '[object Object]';
 };
 
-const normalizeEmptyWhereInQueryInput = (input: unknown): unknown => {
+const normalizeEmptyWhereInQueryInput = <T>(input: T): T => {
   if (!isPlainRecord(input)) {
     return input;
   }
@@ -524,31 +524,28 @@ export const getQueryInput = <S extends zod.ZodTypeAny>(schema: S, options: { pa
     : schema.optional(); // arrays: allow full array
 
   const querySchema = zod
-    .preprocess(
-      normalizeEmptyWhereInQueryInput,
-      zod.object({
-        data: dataSchema,
+    .object({
+      data: dataSchema,
 
-        // keep your query envelope fields
-        skip: zod.number().finite().int().min(0).optional().default(0),
-        take: zod.number().finite().int().min(0).optional(),
-        // legacy alias kept for backward compatibility across callers
-        limit: zod.number().finite().int().min(0).optional(),
-        cursor: NonBlankCursorRecord.optional(),
+      // keep your query envelope fields
+      skip: zod.number().finite().int().min(0).optional().default(0),
+      take: zod.number().finite().int().min(0).optional(),
+      // legacy alias kept for backward compatibility across callers
+      limit: zod.number().finite().int().min(0).optional(),
+      cursor: NonBlankCursorRecord.optional(),
 
-        // only valid for object schemas
-        where: isObjectSchema ? whereSchema.optional() : zod.undefined().optional(),
+      // only valid for object schemas
+      where: isObjectSchema ? whereSchema.optional() : zod.undefined().optional(),
 
-        orderBy: NonBlankOrderByRecord.optional(),
-        include: NonBlankBooleanRecord.optional(),
-        select: NonBlankBooleanRecord.optional(),
-      })
-    )
+      orderBy: NonBlankOrderByRecord.optional(),
+      include: NonBlankBooleanRecord.optional(),
+      select: NonBlankBooleanRecord.optional(),
+    })
+    .transform((query) => normalizeEmptyWhereInQueryInput(query))
     .superRefine((query, ctx) => {
       assertTakeLimitParity(query, ctx, ['limit']);
     })
     .transform((query) => applyTakeLimitDefaults(normalizeTakeLimitAliases(query)));
-
   return zod.union([querySchema, zod.undefined()]);
 };
 
