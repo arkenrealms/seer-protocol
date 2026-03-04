@@ -295,6 +295,19 @@ export type SeerEventDocument = SeerEvent & Document;
 export type SeerPayload = z.infer<typeof schema.SeerPayload>;
 export type SeerPayloadDocument = SeerPayload & Document;
 
+export type WarpFlowIssueState = z.infer<typeof schema.WarpFlowIssueState>;
+export type WarpFlowPosition = z.infer<typeof schema.WarpFlowPosition>;
+export type WarpFlowProduct = z.infer<typeof schema.WarpFlowProduct>;
+export type WarpFlowIssueLink = z.infer<typeof schema.WarpFlowIssueLink>;
+export type WarpFlowActivitySource = z.infer<typeof schema.WarpFlowActivitySource>;
+export type WarpFlowActivityInference = z.infer<typeof schema.WarpFlowActivityInference>;
+export type WarpFlowRenderHint = z.infer<typeof schema.WarpFlowRenderHint>;
+export type WarpFlowAgent = z.infer<typeof schema.WarpFlowAgent>;
+export type WarpFlowSnapshot = z.infer<typeof schema.WarpFlowSnapshot>;
+export type WarpFlowActivityIngestInput = z.infer<typeof schema.WarpFlowActivityIngestInput>;
+export type WarpFlowActivityQueryInput = z.infer<typeof schema.WarpFlowActivityQueryInput>;
+export type WarpFlowActivityQueryOutput = z.infer<typeof schema.WarpFlowActivityQueryOutput>;
+
 // Define model mappings
 export type Mappings = {
   Account: Model<AccountDocument>;

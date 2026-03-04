@@ -92,6 +92,9 @@ import {
   WorldEvent,
   WorldRecord,
   Stat,
+  WarpFlowActivityIngestInput,
+  WarpFlowActivityQueryInput,
+  WarpFlowActivityQueryOutput,
 } from './core.schema';
 
 export const z = zod;
@@ -272,6 +275,20 @@ export const createRouter = () =>
         })
       )
       .query(({ input, ctx }) => (ctx.app.service.Core.syncGetPayloadsSince as any)(input, ctx)),
+
+    ingestWarpFlowActivity: procedure
+      .use(hasRole('guest', t))
+      .use(customErrorFormatter(t))
+      .input(WarpFlowActivityIngestInput)
+      .output(WarpFlowActivityQueryOutput)
+      .mutation(({ input, ctx }) => (ctx.app.service.Core.ingestWarpFlowActivity as any)(input, ctx)),
+
+    getWarpFlowActivity: procedure
+      .use(hasRole('guest', t))
+      .use(customErrorFormatter(t))
+      .input(WarpFlowActivityQueryInput.optional())
+      .output(WarpFlowActivityQueryOutput)
+      .query(({ input, ctx }) => (ctx.app.service.Core.getWarpFlowActivity as any)(input, ctx)),
 
     updateSettings: procedure
       .use(hasRole('user', t))

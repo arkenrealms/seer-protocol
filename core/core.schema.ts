@@ -1431,3 +1431,74 @@ export const SeerPayload = Entity.merge(
     publicSignals: z.unknown(),
   })
 );
+
+export const WarpFlowIssueState = z.enum(['idle', 'addingIssue', 'issueCreated']);
+
+export const WarpFlowPosition = z.object({
+  x: z.number().finite(),
+  y: z.number().finite(),
+});
+
+export const WarpFlowProduct = z.object({
+  productRef: z.string().min(1),
+  label: z.string().min(1),
+  position: WarpFlowPosition.optional(),
+});
+
+export const WarpFlowIssueLink = z.object({
+  issueRef: z.string().min(1),
+  issueNumber: z.number().int().positive().optional(),
+  title: z.string().min(1).optional(),
+  url: z.string().url().optional(),
+  state: WarpFlowIssueState.default('idle'),
+});
+
+export const WarpFlowActivitySource = z.enum(['simulated', 'llm']);
+
+export const WarpFlowActivityInference = z.object({
+  inferred: z.boolean().default(false),
+  signal: z.enum(['origin-agent', 'origin-non-agent', 'unknown']).default('unknown'),
+  confidence: z.number().min(0).max(1).default(0.5),
+  reason: z.string().min(1).optional(),
+});
+
+export const WarpFlowRenderHint = z.object({
+  style: z.enum(['floating', 'anchored']).default('floating'),
+  tone: z.enum(['neutral', 'active', 'success']).optional(),
+});
+
+export const WarpFlowAgent = z.object({
+  agentRef: z.string().min(1),
+  label: z.string().min(1),
+  status: z.enum(['idle', 'moving']).default('idle'),
+  position: WarpFlowPosition,
+  targetPosition: WarpFlowPosition.optional(),
+  targetProductRef: z.string().min(1).optional(),
+  activitySource: WarpFlowActivitySource.default('simulated'),
+  activitySourceDetail: z.string().min(1).optional(),
+  activityInference: WarpFlowActivityInference.optional(),
+  renderHint: WarpFlowRenderHint.optional(),
+  issue: WarpFlowIssueLink.optional(),
+  updatedAt: z.coerce.date(),
+});
+
+export const WarpFlowSnapshot = z.object({
+  products: z.array(WarpFlowProduct).default([]),
+  agents: z.array(WarpFlowAgent).default([]),
+  asOf: z.coerce.date(),
+});
+
+export const WarpFlowActivityIngestInput = z.object({
+  source: z.string().min(1),
+  snapshot: WarpFlowSnapshot,
+});
+
+export const WarpFlowActivityQueryInput = z.object({
+  since: z.coerce.date().optional(),
+  limit: z.number().int().min(1).max(500).default(100),
+});
+
+export const WarpFlowActivityQueryOutput = z.object({
+  snapshot: WarpFlowSnapshot,
+  status: z.number().default(200),
+});
