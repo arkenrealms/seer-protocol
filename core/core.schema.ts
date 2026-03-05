@@ -264,6 +264,113 @@ export const Market = Entity.merge(z.object({}));
 // Memory Schema
 export const Memory = Entity.merge(z.object({}));
 
+export const MemoryLedgerRecordType = z.enum(['retrieval', 'writeback']);
+
+export const MemoryLedgerSource = z.enum([
+  'request',
+  'agent',
+  'issue',
+  'db',
+  'project',
+  'local-lexical',
+  'local-vector',
+  'provider-memory-search',
+  'provider-vector',
+  'manual',
+]);
+
+export const MemoryLedgerFallbackReason = z.enum([
+  'timeout',
+  'low-confidence',
+  'no-results',
+  'provider-error',
+  'budget-cap',
+  'route-unavailable',
+  'unknown',
+]);
+
+export const MemoryLedgerWritebackCategory = z.enum(['fact', 'preference', 'episode', 'resolution-artifact']);
+
+export const MemoryLedgerFallbackTelemetry = z.object({
+  used: z.boolean().default(false),
+  fromSource: MemoryLedgerSource.optional(),
+  toSource: MemoryLedgerSource.optional(),
+  reason: MemoryLedgerFallbackReason.optional(),
+  detail: z.string().min(1).max(500).optional(),
+});
+
+export const MemoryLedgerRetrievalSnippet = z.object({
+  source: MemoryLedgerSource,
+  memoryId: ObjectId.optional(),
+  externalRef: z.string().min(1).max(300).optional(),
+  score: z.number().min(-1).max(1).optional(),
+  tokenEstimate: z.number().int().nonnegative().optional(),
+  truncated: z.boolean().default(false).optional(),
+  rank: z.number().int().positive().optional(),
+});
+
+export const MemoryLedgerRetrievalRequest = z.object({
+  applicationId: ObjectId.optional(),
+  sessionKey: z.string().min(1).max(200).optional(),
+  requestId: z.string().min(1).max(200),
+  queryText: z.string().min(1),
+  sourcesAttempted: z.array(MemoryLedgerSource).default([]),
+  budgetTokens: z.number().int().positive().optional(),
+  timeoutMs: z.number().int().positive().optional(),
+  startedAt: z.coerce.date(),
+});
+
+export const MemoryLedgerRetrievalResult = z.object({
+  requestId: z.string().min(1).max(200),
+  completedAt: z.coerce.date(),
+  latencyMs: z.number().int().nonnegative(),
+  snippets: z.array(MemoryLedgerRetrievalSnippet).default([]),
+  selectedCount: z.number().int().nonnegative(),
+  tokenEstimate: z.number().int().nonnegative().optional(),
+  fallback: MemoryLedgerFallbackTelemetry.default({ used: false }),
+  errorClass: z.string().min(1).max(200).optional(),
+});
+
+export const MemoryLedgerWritebackEvent = z.object({
+  requestId: z.string().min(1).max(200).optional(),
+  sessionKey: z.string().min(1).max(200).optional(),
+  category: MemoryLedgerWritebackCategory,
+  confidence: z.number().min(0).max(1),
+  dedupeKey: z.string().min(1).max(300).optional(),
+  sourceRef: z.string().min(1).max(500).optional(),
+  metadata: z.record(z.unknown()).default({}),
+  occurredAt: z.coerce.date(),
+});
+
+export const MemoryLedger = Entity.merge(
+  z.object({
+    recordType: MemoryLedgerRecordType,
+    applicationId: ObjectId.optional(),
+    requestId: z.string().min(1).max(200).optional(),
+    sessionKey: z.string().min(1).max(200).optional(),
+    retrievalRequest: MemoryLedgerRetrievalRequest.optional(),
+    retrievalResult: MemoryLedgerRetrievalResult.optional(),
+    writebackEvent: MemoryLedgerWritebackEvent.optional(),
+    tags: z.array(z.string().min(1).max(80)).default([]),
+  })
+).superRefine((value, ctx) => {
+  if (value.recordType === 'retrieval' && (!value.retrievalRequest || !value.retrievalResult)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'retrievalRequest and retrievalResult are required for retrieval recordType',
+      path: ['recordType'],
+    });
+  }
+
+  if (value.recordType === 'writeback' && !value.writebackEvent) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'writebackEvent is required for writeback recordType',
+      path: ['recordType'],
+    });
+  }
+});
+
 // Message Schema
 export const Message = Entity.merge(
   z.object({
@@ -1241,6 +1348,7 @@ export const ModelNames = z.enum([
   'Lore',
   'Market',
   'Memory',
+  'MemoryLedger',
   'Message',
   'Metaverse',
   'NewsArticle',

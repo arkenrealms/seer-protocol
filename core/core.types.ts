@@ -109,6 +109,19 @@ export type MarketDocument = Market & Document;
 export type Memory = z.infer<typeof schema.Memory>;
 export type MemoryDocument = Memory & Document;
 
+export type MemoryLedger = z.infer<typeof schema.MemoryLedger>;
+export type MemoryLedgerDocument = MemoryLedger & Document;
+
+export type MemoryLedgerRecordType = z.infer<typeof schema.MemoryLedgerRecordType>;
+export type MemoryLedgerSource = z.infer<typeof schema.MemoryLedgerSource>;
+export type MemoryLedgerFallbackReason = z.infer<typeof schema.MemoryLedgerFallbackReason>;
+export type MemoryLedgerWritebackCategory = z.infer<typeof schema.MemoryLedgerWritebackCategory>;
+export type MemoryLedgerFallbackTelemetry = z.infer<typeof schema.MemoryLedgerFallbackTelemetry>;
+export type MemoryLedgerRetrievalSnippet = z.infer<typeof schema.MemoryLedgerRetrievalSnippet>;
+export type MemoryLedgerRetrievalRequest = z.infer<typeof schema.MemoryLedgerRetrievalRequest>;
+export type MemoryLedgerRetrievalResult = z.infer<typeof schema.MemoryLedgerRetrievalResult>;
+export type MemoryLedgerWritebackEvent = z.infer<typeof schema.MemoryLedgerWritebackEvent>;
+
 export type Message = z.infer<typeof schema.Message>;
 export type MessageDocument = Message & Document;
 
@@ -340,6 +353,7 @@ export type Mappings = {
   Lore: Model<LoreDocument>;
   Market: Model<MarketDocument>;
   Memory: Model<MemoryDocument>;
+  MemoryLedger: Model<MemoryLedgerDocument>;
   Message: Model<MessageDocument>;
   Metaverse: Model<MetaverseDocument>;
   NewsArticle: Model<NewsArticleDocument>;

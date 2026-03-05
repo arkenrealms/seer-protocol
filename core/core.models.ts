@@ -677,6 +677,32 @@ export const Memory = createModel<Types.MemoryDocument>(
   }
 );
 
+// MemoryLedger Model
+export const MemoryLedger = createModel<Types.MemoryLedgerDocument>(
+  'MemoryLedger',
+  {
+    recordType: { type: String, enum: ['retrieval', 'writeback'], required: true },
+    applicationId: { type: mongo.Schema.Types.ObjectId, ref: 'Application' },
+    requestId: { type: String },
+    sessionKey: { type: String },
+    retrievalRequest: { type: mongo.Schema.Types.Mixed },
+    retrievalResult: { type: mongo.Schema.Types.Mixed },
+    writebackEvent: { type: mongo.Schema.Types.Mixed },
+    tags: [{ type: String }],
+  },
+  {
+    indexes: [
+      { requestId: 1, recordType: 1 },
+      { sessionKey: 1, createdDate: -1 },
+      { applicationId: 1, recordType: 1, createdDate: -1 },
+      { recordType: 1, createdDate: -1 },
+      { 'writebackEvent.category': 1, createdDate: -1 },
+      { 'retrievalRequest.startedAt': -1 },
+    ],
+    virtuals: [...addApplicationVirtual()],
+  }
+);
+
 // Message Model
 export const Message = createModel<Types.MessageDocument>(
   'Message',
@@ -905,6 +931,7 @@ export const IssueEmbedding = createModel<Types.IssueEmbeddingDocument>(
     indexes: [
       { issueRef: 1, modelId: 1, modelVersion: 1, unique: true },
       { modelId: 1, vectorDimensions: 1 },
+      { applicationId: 1, modelId: 1, vectorDimensions: 1, entityType: 1, updatedDate: -1, createdDate: -1 },
       { vectorHash: 1 },
       { sourceTextHash: 1 },
       { staleAfter: 1 },
@@ -936,6 +963,7 @@ export const ProjectEmbedding = createModel<Types.ProjectEmbeddingDocument>(
       { projectRef: 1, modelId: 1, modelVersion: 1, unique: true },
       { projectId: 1, modelId: 1, vectorDimensions: 1 },
       { modelId: 1, vectorDimensions: 1 },
+      { applicationId: 1, modelId: 1, vectorDimensions: 1, entityType: 1, updatedDate: -1, createdDate: -1 },
       { vectorHash: 1 },
       { sourceTextHash: 1 },
       { staleAfter: 1 },
@@ -966,6 +994,7 @@ export const ProductEmbedding = createModel<Types.ProductEmbeddingDocument>(
       { productRef: 1, modelId: 1, modelVersion: 1, unique: true },
       { productId: 1, modelId: 1, vectorDimensions: 1 },
       { modelId: 1, vectorDimensions: 1 },
+      { applicationId: 1, modelId: 1, vectorDimensions: 1, entityType: 1, updatedDate: -1, createdDate: -1 },
       { vectorHash: 1 },
       { sourceTextHash: 1 },
       { staleAfter: 1 },
@@ -996,6 +1025,7 @@ export const AgentEmbedding = createModel<Types.AgentEmbeddingDocument>(
       { agentRef: 1, modelId: 1, modelVersion: 1, unique: true },
       { agentId: 1, modelId: 1, vectorDimensions: 1 },
       { modelId: 1, vectorDimensions: 1 },
+      { applicationId: 1, modelId: 1, vectorDimensions: 1, entityType: 1, updatedDate: -1, createdDate: -1 },
       { vectorHash: 1 },
       { sourceTextHash: 1 },
       { staleAfter: 1 },

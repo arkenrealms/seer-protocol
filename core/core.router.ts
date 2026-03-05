@@ -35,6 +35,7 @@ import {
   Lore,
   Market,
   Memory,
+  MemoryLedger,
   Message,
   Metaverse,
   NewsArticle,
@@ -926,6 +927,20 @@ export const createRouter = () =>
       .output(Memory.pick({ id: true }))
       .mutation(({ input, ctx }) => (ctx.app.service.Core.updateMemory as any)(input, ctx)),
 
+    ingestMemoryLedgerRecord: procedure
+      .use(hasRole('admin', t))
+      .use(customErrorFormatter(t))
+      .input(getQueryInput(MemoryLedger))
+      .output(MemoryLedger)
+      .mutation(({ input, ctx }) => (ctx.app.service.Core.ingestMemoryLedgerRecord as any)(input, ctx)),
+
+    getMemoryLedgerRecords: procedure
+      .use(hasRole('guest', t))
+      .use(customErrorFormatter(t))
+      .input(getQueryInput(MemoryLedger))
+      .output(z.object({ items: z.array(MemoryLedger), total: z.number() }))
+      .query(({ input, ctx }) => (ctx.app.service.Core.getMemoryLedgerRecords as any)(input, ctx)),
+
     // Message Procedures
     getMessage: procedure
       .use(hasRole('guest', t))
@@ -1360,10 +1375,23 @@ export const createRouter = () =>
           vectorDimensions: z.number().int().positive().optional(),
           topK: z.number().int().positive().max(100).optional(),
           minScore: z.number().min(-1).max(1).optional(),
+          timeoutMs: z.number().int().positive().max(2000).optional(),
           excludeIssueId: z.string().min(1).optional(),
+          preferredIssueId: z.string().min(1).optional(),
+          preferredIssueRef: z.string().min(1).optional(),
+          lexicalQuery: z.string().min(1).max(512).optional(),
         })
       )
-      .output(z.object({ items: z.array(z.object({ item: IssueEmbedding, score: z.number() })), total: z.number() }))
+      .output(
+        z.object({
+          items: z.array(z.object({ item: IssueEmbedding, score: z.number() })),
+          total: z.number(),
+          duration: z.number().int().nonnegative(),
+          indexUsed: z.string().min(1),
+          candidatesExamined: z.number().int().nonnegative(),
+          selectedCount: z.number().int().nonnegative(),
+        })
+      )
       .query(({ input, ctx }) => (ctx.app.service.Core.searchIssueEmbeddings as any)(input, ctx)),
 
 
@@ -1406,10 +1434,23 @@ export const createRouter = () =>
           vectorDimensions: z.number().int().positive().optional(),
           topK: z.number().int().positive().max(100).optional(),
           minScore: z.number().min(-1).max(1).optional(),
+          timeoutMs: z.number().int().positive().max(2000).optional(),
           excludeProjectId: z.string().min(1).optional(),
+          preferredProjectId: z.string().min(1).optional(),
+          preferredProjectRef: z.string().min(1).optional(),
+          lexicalQuery: z.string().min(1).max(512).optional(),
         })
       )
-      .output(z.object({ items: z.array(z.object({ item: ProjectEmbedding, score: z.number() })), total: z.number() }))
+      .output(
+        z.object({
+          items: z.array(z.object({ item: ProjectEmbedding, score: z.number() })),
+          total: z.number(),
+          duration: z.number().int().nonnegative(),
+          indexUsed: z.string().min(1),
+          candidatesExamined: z.number().int().nonnegative(),
+          selectedCount: z.number().int().nonnegative(),
+        })
+      )
       .query(({ input, ctx }) => (ctx.app.service.Core.searchProjectEmbeddings as any)(input, ctx)),
 
     getProductEmbedding: procedure
@@ -1451,10 +1492,23 @@ export const createRouter = () =>
           vectorDimensions: z.number().int().positive().optional(),
           topK: z.number().int().positive().max(100).optional(),
           minScore: z.number().min(-1).max(1).optional(),
+          timeoutMs: z.number().int().positive().max(2000).optional(),
           excludeProductId: z.string().min(1).optional(),
+          preferredProductId: z.string().min(1).optional(),
+          preferredProductRef: z.string().min(1).optional(),
+          lexicalQuery: z.string().min(1).max(512).optional(),
         })
       )
-      .output(z.object({ items: z.array(z.object({ item: ProductEmbedding, score: z.number() })), total: z.number() }))
+      .output(
+        z.object({
+          items: z.array(z.object({ item: ProductEmbedding, score: z.number() })),
+          total: z.number(),
+          duration: z.number().int().nonnegative(),
+          indexUsed: z.string().min(1),
+          candidatesExamined: z.number().int().nonnegative(),
+          selectedCount: z.number().int().nonnegative(),
+        })
+      )
       .query(({ input, ctx }) => (ctx.app.service.Core.searchProductEmbeddings as any)(input, ctx)),
 
     getAgentEmbedding: procedure
@@ -1496,10 +1550,23 @@ export const createRouter = () =>
           vectorDimensions: z.number().int().positive().optional(),
           topK: z.number().int().positive().max(100).optional(),
           minScore: z.number().min(-1).max(1).optional(),
+          timeoutMs: z.number().int().positive().max(2000).optional(),
           excludeAgentId: z.string().min(1).optional(),
+          preferredAgentId: z.string().min(1).optional(),
+          preferredAgentRef: z.string().min(1).optional(),
+          lexicalQuery: z.string().min(1).max(512).optional(),
         })
       )
-      .output(z.object({ items: z.array(z.object({ item: AgentEmbedding, score: z.number() })), total: z.number() }))
+      .output(
+        z.object({
+          items: z.array(z.object({ item: AgentEmbedding, score: z.number() })),
+          total: z.number(),
+          duration: z.number().int().nonnegative(),
+          indexUsed: z.string().min(1),
+          candidatesExamined: z.number().int().nonnegative(),
+          selectedCount: z.number().int().nonnegative(),
+        })
+      )
       .query(({ input, ctx }) => (ctx.app.service.Core.searchAgentEmbeddings as any)(input, ctx)),
 
     // SessionContext Procedures
