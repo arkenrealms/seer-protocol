@@ -371,6 +371,63 @@ export const MemoryLedger = Entity.merge(
   }
 });
 
+export const MemoryTelemetrySourceLatency = z.object({
+  source: MemoryLedgerSource,
+  retrievalCount: z.number().int().nonnegative(),
+  avgLatencyMs: z.number().nonnegative(),
+});
+
+export const MemoryTelemetryFallbackReasonCount = z.object({
+  reason: MemoryLedgerFallbackReason,
+  count: z.number().int().nonnegative(),
+});
+
+export const MemoryTelemetryWritebackCategoryCount = z.object({
+  category: MemoryLedgerWritebackCategory,
+  count: z.number().int().nonnegative(),
+});
+
+export const MemoryTelemetrySessionSummary = z.object({
+  sessionKey: z.string().min(1),
+  retrievalCount: z.number().int().nonnegative(),
+  hitRate: z.number().min(0).max(1),
+  fallbackRate: z.number().min(0).max(1),
+  avgLatencyMs: z.number().nonnegative(),
+});
+
+
+export const MemoryTelemetryAlertKind = z.enum(['high_fallback_rate', 'high_latency', 'writeback_flood']);
+
+export const MemoryTelemetryAlert = z.object({
+  kind: MemoryTelemetryAlertKind,
+  threshold: z.number().nonnegative(),
+  observed: z.number().nonnegative(),
+  windowHours: z.number().positive(),
+  message: z.string().min(1),
+});
+
+export const MemoryTelemetrySummary = z.object({
+  windowStart: z.coerce.date(),
+  windowEnd: z.coerce.date(),
+  sampledRecords: z.number().int().nonnegative(),
+  retrieval: z.object({
+    total: z.number().int().nonnegative(),
+    hitCount: z.number().int().nonnegative(),
+    hitRate: z.number().min(0).max(1),
+    fallbackCount: z.number().int().nonnegative(),
+    fallbackRate: z.number().min(0).max(1),
+    avgLatencyMs: z.number().nonnegative(),
+    latencyBySource: z.array(MemoryTelemetrySourceLatency),
+    fallbackReasons: z.array(MemoryTelemetryFallbackReasonCount),
+  }),
+  writeback: z.object({
+    total: z.number().int().nonnegative(),
+    categories: z.array(MemoryTelemetryWritebackCategoryCount),
+  }),
+  topSessions: z.array(MemoryTelemetrySessionSummary),
+  alerts: z.array(MemoryTelemetryAlert),
+});
+
 // Message Schema
 export const Message = Entity.merge(
   z.object({

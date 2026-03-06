@@ -36,6 +36,7 @@ import {
   Market,
   Memory,
   MemoryLedger,
+  MemoryTelemetrySummary,
   Message,
   Metaverse,
   NewsArticle,
@@ -940,6 +941,30 @@ export const createRouter = () =>
       .input(getQueryInput(MemoryLedger))
       .output(z.object({ items: z.array(MemoryLedger), total: z.number() }))
       .query(({ input, ctx }) => (ctx.app.service.Core.getMemoryLedgerRecords as any)(input, ctx)),
+
+    getMemoryTelemetrySummary: procedure
+      .use(hasRole('guest', t))
+      .use(customErrorFormatter(t))
+      .input(
+        z.object({
+          where: z.record(z.unknown()).optional(),
+          query: z
+            .object({
+              lookbackHours: z.number().int().positive().max(24 * 30).optional(),
+              maxRecords: z.number().int().positive().max(5000).optional(),
+              alertThresholds: z
+                .object({
+                  fallbackRate: z.number().min(0).max(1).optional(),
+                  avgLatencyMs: z.number().nonnegative().optional(),
+                  writebackPerHour: z.number().nonnegative().optional(),
+                })
+                .optional(),
+            })
+            .optional(),
+        })
+      )
+      .output(MemoryTelemetrySummary)
+      .query(({ input, ctx }) => (ctx.app.service.Core.getMemoryTelemetrySummary as any)(input, ctx)),
 
     // Message Procedures
     getMessage: procedure

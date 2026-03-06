@@ -121,6 +121,11 @@ export type MemoryLedgerRetrievalSnippet = z.infer<typeof schema.MemoryLedgerRet
 export type MemoryLedgerRetrievalRequest = z.infer<typeof schema.MemoryLedgerRetrievalRequest>;
 export type MemoryLedgerRetrievalResult = z.infer<typeof schema.MemoryLedgerRetrievalResult>;
 export type MemoryLedgerWritebackEvent = z.infer<typeof schema.MemoryLedgerWritebackEvent>;
+export type MemoryTelemetrySourceLatency = z.infer<typeof schema.MemoryTelemetrySourceLatency>;
+export type MemoryTelemetryFallbackReasonCount = z.infer<typeof schema.MemoryTelemetryFallbackReasonCount>;
+export type MemoryTelemetryWritebackCategoryCount = z.infer<typeof schema.MemoryTelemetryWritebackCategoryCount>;
+export type MemoryTelemetrySessionSummary = z.infer<typeof schema.MemoryTelemetrySessionSummary>;
+export type MemoryTelemetrySummary = z.infer<typeof schema.MemoryTelemetrySummary>;
 
 export type Message = z.infer<typeof schema.Message>;
 export type MessageDocument = Message & Document;
