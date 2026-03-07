@@ -1,5 +1,5 @@
 {
-  "../../seer/protocol": "../../seer/protocol:yFEVZ60k+svosGyGBFfbIc9RgBSLnRZAx1BoWK6TXbE=:",
+  "../../seer/protocol": "../../seer/protocol:k60Hn2P3rcWDcnx0Kuj/ybW6q3q+bFovw4GeNlZ8EfA=:",
   "/@babel/code-frame/7.29.0": "sha512-9NhCeYjq9+3uxgdtp20LSiJXJvN0FeCtNGpJxuMFZ1Kv3cWUNb6DOhJwUvcVCzKGR66cw4njwM6hrJLqgOwbcw==",
   "/@babel/compat-data/7.29.0": "sha512-T1NCJqT/j9+cn8fvkt7jtwbLBfLC/1y1c7NtCeXFRgzGTsafi68MRv8yzkYSapBnFA6L3U2VSc02ciDzoAJhJg==",
   "/@babel/core/7.29.0": "sha512-CGOfOJqWjg2qW/Mb6zNsDm+u5vFQ8DxXfbM09z69p5Z6+mE1ikP2jUXw+j42Pf1XTYED2Rni5f95npYeuwMDQA==",
@@ -63,7 +63,7 @@
   "/@sinclair/typebox/0.27.10": "sha512-MTBk/3jGLNB2tVxv6uLlFh1iu64iYOQ2PbdOSK3NW8JZsmlaOh2q6sdtKowBhfw8QFLmYNzTW4/oK4uATIi6ZA==",
   "/@sinonjs/commons/3.0.1": "sha512-K3mCHKQ9sVh8o1C9cxkwxaOmXoAMlDxC1mYyHrjqOWEcBjYr76t96zL2zlj5dUGZ3HSw240X1qgH3Mjf1yJWpQ==",
   "/@sinonjs/fake-timers/10.3.0": "sha512-V4BG07kuYSUkTCSBHG8G8TNhM+F19jXFWnQtzj+we8DrkpSBCee9Z3Ms8yiGer/dlmhe35/Xdgyo3/0rQKg7YA==",
-  "/@trpc/client/11.0.0-rc.660_fc456f22168b5969b3d2c8e713b52c21": "sha512-bNpkZEfyMGKHynYFxdLpY8nJ1n7E3JHKcd4Pe2cagmpkzOEF9tFT3kzNf+eLI8XMG8196lTRR0J0W2/1Q8/cug==",
+  "/@trpc/client/11.0.0-rc.660_f72f7849cd1bfde89f84f1c499fd5357": "sha512-bNpkZEfyMGKHynYFxdLpY8nJ1n7E3JHKcd4Pe2cagmpkzOEF9tFT3kzNf+eLI8XMG8196lTRR0J0W2/1Q8/cug==",
   "/@trpc/server/11.0.0-rc.660_typescript@5.9.3": "sha512-QUapcZCNOpHT7ng9LceGc9ImkboWd0Go9ryrduZpL+p4jdfaC6409AQ3x4XEW6Wu3yBmZAn4CywCsDrDhjDy/w==",
   "/@types/babel__core/7.20.5": "sha512-qoQprZvz5wQFJwMDqeseRXWv3rqMvhgpbXFfVyWhbx9X47POIA6i/+dXefEmZKoAgOaTdaIgNSMqMIU61yRyzA==",
   "/@types/babel__generator/7.27.0": "sha512-ufFd2Xi92OAVPYsy+P4n7/U7e68fex0+Ee8gSG9KX7eo084CWiQ4sdxktvdl0bOPupXtVJPY19zk6EwWqUQ8lg==",
