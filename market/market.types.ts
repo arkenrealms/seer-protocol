@@ -4,7 +4,7 @@ import { z } from 'zod';
 import * as schema from './market.schema';
 import { Document, Model } from '../util/mongo';
 import type { RouterContext } from '../types';
-import type { inferRouterInputs, inferRouterOutputs } from '@trpc/server';
+import type { inferRouterInputs, inferRouterOutputs } from '../schema';
 import type { Router } from './market.router';
 
 export type * from './market.router';

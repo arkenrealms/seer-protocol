@@ -51,6 +51,7 @@ describe('core issue embedding contracts', () => {
   } = loadTsModule('core/core.schema.ts');
 
   const baseRecord = {
+    entityType: 'issue',
     issueRef: 'arkenrealms/evolution#13',
     modelId: 'text-embedding-3-small',
     modelVersion: '2026-01-01',

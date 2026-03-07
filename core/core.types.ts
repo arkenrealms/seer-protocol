@@ -109,6 +109,24 @@ export type MarketDocument = Market & Document;
 export type Memory = z.infer<typeof schema.Memory>;
 export type MemoryDocument = Memory & Document;
 
+export type MemoryLedger = z.infer<typeof schema.MemoryLedger>;
+export type MemoryLedgerDocument = MemoryLedger & Document;
+
+export type MemoryLedgerRecordType = z.infer<typeof schema.MemoryLedgerRecordType>;
+export type MemoryLedgerSource = z.infer<typeof schema.MemoryLedgerSource>;
+export type MemoryLedgerFallbackReason = z.infer<typeof schema.MemoryLedgerFallbackReason>;
+export type MemoryLedgerWritebackCategory = z.infer<typeof schema.MemoryLedgerWritebackCategory>;
+export type MemoryLedgerFallbackTelemetry = z.infer<typeof schema.MemoryLedgerFallbackTelemetry>;
+export type MemoryLedgerRetrievalSnippet = z.infer<typeof schema.MemoryLedgerRetrievalSnippet>;
+export type MemoryLedgerRetrievalRequest = z.infer<typeof schema.MemoryLedgerRetrievalRequest>;
+export type MemoryLedgerRetrievalResult = z.infer<typeof schema.MemoryLedgerRetrievalResult>;
+export type MemoryLedgerWritebackEvent = z.infer<typeof schema.MemoryLedgerWritebackEvent>;
+export type MemoryTelemetrySourceLatency = z.infer<typeof schema.MemoryTelemetrySourceLatency>;
+export type MemoryTelemetryFallbackReasonCount = z.infer<typeof schema.MemoryTelemetryFallbackReasonCount>;
+export type MemoryTelemetryWritebackCategoryCount = z.infer<typeof schema.MemoryTelemetryWritebackCategoryCount>;
+export type MemoryTelemetrySessionSummary = z.infer<typeof schema.MemoryTelemetrySessionSummary>;
+export type MemoryTelemetrySummary = z.infer<typeof schema.MemoryTelemetrySummary>;
+
 export type Message = z.infer<typeof schema.Message>;
 export type MessageDocument = Message & Document;
 
@@ -295,6 +313,19 @@ export type SeerEventDocument = SeerEvent & Document;
 export type SeerPayload = z.infer<typeof schema.SeerPayload>;
 export type SeerPayloadDocument = SeerPayload & Document;
 
+export type WarpFlowIssueState = z.infer<typeof schema.WarpFlowIssueState>;
+export type WarpFlowPosition = z.infer<typeof schema.WarpFlowPosition>;
+export type WarpFlowProduct = z.infer<typeof schema.WarpFlowProduct>;
+export type WarpFlowIssueLink = z.infer<typeof schema.WarpFlowIssueLink>;
+export type WarpFlowActivitySource = z.infer<typeof schema.WarpFlowActivitySource>;
+export type WarpFlowActivityInference = z.infer<typeof schema.WarpFlowActivityInference>;
+export type WarpFlowRenderHint = z.infer<typeof schema.WarpFlowRenderHint>;
+export type WarpFlowAgent = z.infer<typeof schema.WarpFlowAgent>;
+export type WarpFlowSnapshot = z.infer<typeof schema.WarpFlowSnapshot>;
+export type WarpFlowActivityIngestInput = z.infer<typeof schema.WarpFlowActivityIngestInput>;
+export type WarpFlowActivityQueryInput = z.infer<typeof schema.WarpFlowActivityQueryInput>;
+export type WarpFlowActivityQueryOutput = z.infer<typeof schema.WarpFlowActivityQueryOutput>;
+
 // Define model mappings
 export type Mappings = {
   Account: Model<AccountDocument>;
@@ -327,6 +358,7 @@ export type Mappings = {
   Lore: Model<LoreDocument>;
   Market: Model<MarketDocument>;
   Memory: Model<MemoryDocument>;
+  MemoryLedger: Model<MemoryLedgerDocument>;
   Message: Model<MessageDocument>;
   Metaverse: Model<MetaverseDocument>;
   NewsArticle: Model<NewsArticleDocument>;

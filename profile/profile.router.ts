@@ -1,9 +1,9 @@
 import { z as zod } from 'zod';
-import { initTRPC, inferRouterInputs } from '@trpc/server';
+import { initTRPC } from '@trpc/server';
 import { customErrorFormatter, hasRole } from '../util/rpc';
 import type { RouterContext } from '../types';
 import { Profile } from './profile.schema';
-import { Query, getQueryInput, getQueryOutput, inferRouterOutputs } from '../schema';
+import { Query, getQueryInput, getQueryOutput, inferRouterInputs, inferRouterOutputs } from '../schema';
 
 export const z = zod;
 export const t = initTRPC.context<RouterContext>().create();
