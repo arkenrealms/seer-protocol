@@ -81,6 +81,29 @@ export const CharacterInventoryReceipt = Entity.merge(
   })
 );
 
+export const CharacterInventoryPublication = Entity.merge(
+  z.object({
+    characterId: ObjectId,
+    version: z.literal(1),
+    verificationMode: z.literal('audited'),
+    tableName: z.literal('characterInventoryItems'),
+    rowCount: z.number().int().nonnegative(),
+    merkleRoot: z.string().min(1),
+    updatedDate: z.string().min(1),
+    publisherId: z.string().min(1),
+    publishedAt: z.string().min(1),
+    publicationHash: z.string().min(1),
+    exportHash: z.string().min(1),
+    receiptHash: z.string().min(1),
+    signatureMaterial: z.object({
+      algorithm: z.literal('sha256-envelope-v1'),
+      signerId: z.string().min(1),
+      payload: z.string().min(1),
+      payloadHash: z.string().min(1),
+    }),
+  })
+);
+
 const CharacterFields = z.object({
   profileId: ObjectId.optional(),
   ratingId: ObjectId.optional(),

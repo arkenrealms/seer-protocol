@@ -163,6 +163,36 @@ export const createRouter = () =>
             publicationHash: z.string().min(1),
             exportHash: z.string().min(1),
             receiptHash: z.string().min(1),
+            signatureMaterial: z.object({
+              algorithm: z.literal('sha256-envelope-v1'),
+              signerId: z.string().min(1),
+              payload: z.string().min(1),
+              payloadHash: z.string().min(1),
+            }),
+          }),
+          proofBundle: z.object({
+            algorithm: z.literal('sha256-merkle-v1'),
+            tableName: z.literal('characterInventoryItems'),
+            characterId: z.string(),
+            receiptHash: z.string().min(1),
+            exportHash: z.string().min(1),
+            publicationHash: z.string().min(1),
+            rowCount: z.number().int().nonnegative(),
+            merkleRoot: z.string().min(1),
+            rows: z.array(
+              z.object({
+                recordPk: z.number().int().positive(),
+                recordId: z.string().min(1),
+                rowHash: z.string().min(1),
+                leafHash: z.string().min(1),
+                proof: z.array(
+                  z.object({
+                    hash: z.string().min(1),
+                    position: z.enum(['left', 'right']),
+                  })
+                ),
+              })
+            ),
           }),
           inventory: z.any(),
           rows: z.array(

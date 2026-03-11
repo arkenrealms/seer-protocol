@@ -418,6 +418,7 @@ const decorateTableBinding = (tableConfig: WarpSpeedTableConfig, binding: Record
 const buildCharacterInventoryItemsTableAccessor = (ctx: RouterContext, tableConfig: WarpSpeedTableConfig) => {
   const characterInventoryItemModel = (ctx.app.model as Record<string, any>).CharacterInventoryItem;
   const characterInventoryReceiptModel = (ctx.app.model as Record<string, any>).CharacterInventoryReceipt;
+  const characterInventoryPublicationModel = (ctx.app.model as Record<string, any>).CharacterInventoryPublication;
   const characterInventoryItemAccessor =
     characterInventoryItemModel &&
     (typeof characterInventoryItemModel.find === 'function' ||
@@ -463,6 +464,7 @@ const buildCharacterInventoryItemsTableAccessor = (ctx: RouterContext, tableConf
           {
             itemModel: characterInventoryItemModel,
             receiptModel: characterInventoryReceiptModel,
+            publicationModel: characterInventoryPublicationModel,
           },
           character,
           table
@@ -486,6 +488,7 @@ const buildCharacterInventoryItemsTableAccessor = (ctx: RouterContext, tableConf
         {
           itemModel: characterInventoryItemModel,
           receiptModel: characterInventoryReceiptModel,
+          publicationModel: characterInventoryPublicationModel,
         },
         character,
         table
@@ -602,6 +605,7 @@ const buildCharacterInventoryItemsTableAccessor = (ctx: RouterContext, tableConf
         {
           itemModel: characterInventoryItemModel,
           receiptModel: characterInventoryReceiptModel,
+          publicationModel: characterInventoryPublicationModel,
         },
         character,
         table
@@ -729,6 +733,7 @@ const buildReducerCtx = (ctx: RouterContext, runtime: WarpSpeedReducerRuntime) =
         const inventoryTableAccessor = db.characterInventoryItems;
         const characterInventoryItemModel = (ctx.app.model as Record<string, any>).CharacterInventoryItem;
         const characterInventoryReceiptModel = (ctx.app.model as Record<string, any>).CharacterInventoryReceipt;
+        const characterInventoryPublicationModel = (ctx.app.model as Record<string, any>).CharacterInventoryPublication;
         if (!inventoryTableAccessor || typeof inventoryTableAccessor.findManyByFilter !== 'function') {
           return character ? materializeWarpCharacterInventoryTableFromCharacter(character) : null;
         }
@@ -759,6 +764,7 @@ const buildReducerCtx = (ctx: RouterContext, runtime: WarpSpeedReducerRuntime) =
               {
                 itemModel: characterInventoryItemModel,
                 receiptModel: characterInventoryReceiptModel,
+                publicationModel: characterInventoryPublicationModel,
               },
               character,
               table
@@ -780,14 +786,15 @@ const buildReducerCtx = (ctx: RouterContext, runtime: WarpSpeedReducerRuntime) =
           (characterInventoryItemModel || characterInventoryReceiptModel) &&
           table.rows.length > 0
         ) {
-          await syncWarpCharacterInventoryAuthority(
-            {
-              itemModel: characterInventoryItemModel,
-              receiptModel: characterInventoryReceiptModel,
-            },
-            character,
-            table
-          );
+            await syncWarpCharacterInventoryAuthority(
+              {
+                itemModel: characterInventoryItemModel,
+                receiptModel: characterInventoryReceiptModel,
+                publicationModel: characterInventoryPublicationModel,
+              },
+              character,
+              table
+            );
         }
 
         return table;

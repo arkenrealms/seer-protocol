@@ -399,6 +399,31 @@ describe('character warp router wiring', () => {
         publicationHash: 'publication-1',
         exportHash: 'export-1',
         receiptHash: 'receipt-1',
+        signatureMaterial: {
+          algorithm: 'sha256-envelope-v1',
+          signerId: 'seer-node-1',
+          payload: '{"tableName":"characterInventoryItems"}',
+          payloadHash: 'payload-hash-1',
+        },
+      },
+      proofBundle: {
+        algorithm: 'sha256-merkle-v1',
+        tableName: 'characterInventoryItems',
+        characterId: 'character-1',
+        receiptHash: 'receipt-1',
+        exportHash: 'export-1',
+        publicationHash: 'publication-1',
+        rowCount: 1,
+        merkleRoot: 'merkle-root-1',
+        rows: [
+          {
+            recordPk: 1,
+            recordId: 'character-1:1',
+            rowHash: 'row-hash-1',
+            leafHash: 'leaf-hash-1',
+            proof: [],
+          },
+        ],
       },
       inventory: [{ items: [{ itemId: 'item-sword' }] }],
       rows: [
@@ -468,6 +493,31 @@ describe('character warp router wiring', () => {
         publicationHash: 'publication-1',
         exportHash: 'export-1',
         receiptHash: 'receipt-1',
+        signatureMaterial: {
+          algorithm: 'sha256-envelope-v1',
+          signerId: 'seer-node-1',
+          payload: '{"tableName":"characterInventoryItems"}',
+          payloadHash: 'payload-hash-1',
+        },
+      },
+      proofBundle: {
+        algorithm: 'sha256-merkle-v1',
+        tableName: 'characterInventoryItems',
+        characterId: 'character-1',
+        receiptHash: 'receipt-1',
+        exportHash: 'export-1',
+        publicationHash: 'publication-1',
+        rowCount: 1,
+        merkleRoot: 'merkle-root-1',
+        rows: [
+          {
+            recordPk: 1,
+            recordId: 'character-1:1',
+            rowHash: 'row-hash-1',
+            leafHash: 'leaf-hash-1',
+            proof: [],
+          },
+        ],
       },
       inventory: [{ items: [{ itemId: 'item-sword' }] }],
       rows: [
@@ -1039,16 +1089,44 @@ describe('character warp router wiring', () => {
     expect(findByIdExec).toHaveBeenCalled();
     expect(inventoryFindExec).toHaveBeenCalledTimes(1);
     expect(receiptFindOneExec).toHaveBeenCalledTimes(1);
-    expect(result).toEqual({
-      exportHash: expect.any(String),
-      publication: expect.objectContaining({
+    expect(result.exportHash).toEqual(expect.any(String));
+    expect(result.publication).toEqual(
+      expect.objectContaining({
         publisherId: expect.any(String),
         publishedAt: expect.any(String),
         publicationHash: expect.any(String),
         exportHash: expect.any(String),
         receiptHash: expect.any(String),
-      }),
-      receipt: expect.objectContaining({
+        signatureMaterial: expect.objectContaining({
+          algorithm: 'sha256-envelope-v1',
+          signerId: expect.any(String),
+          payload: expect.any(String),
+          payloadHash: expect.any(String),
+        }),
+      })
+    );
+    expect(result.proofBundle).toEqual(
+      expect.objectContaining({
+        algorithm: 'sha256-merkle-v1',
+        tableName: 'characterInventoryItems',
+        characterId: 'character-1',
+        receiptHash: expect.any(String),
+        exportHash: expect.any(String),
+        publicationHash: expect.any(String),
+        rowCount: 1,
+        merkleRoot: expect.any(String),
+      })
+    );
+    expect(result.proofBundle.rows).toHaveLength(1);
+    expect(result.proofBundle.rows[0].recordPk).toBe(1);
+    expect(result.proofBundle.rows[0].recordId).toBe('character-1:1');
+    expect(typeof result.proofBundle.rows[0].rowHash).toBe('string');
+    expect(result.proofBundle.rows[0].rowHash.length).toBeGreaterThan(0);
+    expect(typeof result.proofBundle.rows[0].leafHash).toBe('string');
+    expect(result.proofBundle.rows[0].leafHash.length).toBeGreaterThan(0);
+    expect(Array.isArray(result.proofBundle.rows[0].proof)).toBe(true);
+    expect(result.receipt).toEqual(
+      expect.objectContaining({
         version: 1,
         verificationMode: 'audited',
         tableName: 'characterInventoryItems',
@@ -1057,19 +1135,19 @@ describe('character warp router wiring', () => {
         nextRecordPk: 2,
         receiptHash: expect.any(String),
         updatedDate: expect.any(String),
+      })
+    );
+    expect(result.inventory).toEqual([{ items: [{ itemId: 'item-sword' }] }]);
+    expect(result.rows).toEqual([
+      expect.objectContaining({
+        recordPk: 1,
+        recordId: 'character-1:1',
+        characterId: 'character-1',
+        itemId: 'item-sword',
+        quantity: 1,
+        rowHash: expect.any(String),
       }),
-      inventory: [{ items: [{ itemId: 'item-sword' }] }],
-      rows: [
-        expect.objectContaining({
-          recordPk: 1,
-          recordId: 'character-1:1',
-          characterId: 'character-1',
-          itemId: 'item-sword',
-          quantity: 1,
-          rowHash: expect.any(String),
-        }),
-      ],
-    });
+    ]);
   });
 
   test('protocol WarpSpeed helper can execute character inventory sync through the artifact runtime', async () => {

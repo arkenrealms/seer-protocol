@@ -1100,6 +1100,68 @@ export function buildWarpCharacterInventoryAuditRows(
   });
 }
 
+function hashWarpInventoryAuditValue(value: unknown): string {
+  return createHash('sha256').update(JSON.stringify(value)).digest('hex');
+}
+
+function hashWarpInventoryMerkleNode(left: string, right?: string): string {
+  return hashWarpInventoryAuditValue({
+    kind: 'characterInventoryItems.merkleNode.v1',
+    left,
+    right: right ?? left,
+  });
+}
+
+function buildWarpInventoryMerkleLeafHash(row: Pick<WarpCharacterInventoryAuditRow, 'recordPk' | 'recordId' | 'rowHash'>): string {
+  return hashWarpInventoryAuditValue({
+    kind: 'characterInventoryItems.leaf.v1',
+    recordPk: row.recordPk,
+    recordId: row.recordId,
+    rowHash: row.rowHash,
+  });
+}
+
+function buildWarpInventoryMerkleLayers(
+  leaves: ReadonlyArray<string>
+): string[][] {
+  if (!leaves.length) {
+    return [[hashWarpInventoryAuditValue({ kind: 'characterInventoryItems.emptyMerkleRoot.v1' })]];
+  }
+
+  const layers: string[][] = [Array.from(leaves)];
+  while (layers[layers.length - 1].length > 1) {
+    const current = layers[layers.length - 1];
+    const next: string[] = [];
+    for (let index = 0; index < current.length; index += 2) {
+      const left = current[index];
+      const right = current[index + 1] ?? left;
+      next.push(hashWarpInventoryMerkleNode(left, right));
+    }
+    layers.push(next);
+  }
+  return layers;
+}
+
+function buildWarpInventoryMerkleProof(
+  layers: ReadonlyArray<ReadonlyArray<string>>,
+  leafIndex: number
+): WarpCharacterInventoryAuditProofStep[] {
+  const proof: WarpCharacterInventoryAuditProofStep[] = [];
+  let index = leafIndex;
+  for (let layerIndex = 0; layerIndex < layers.length - 1; layerIndex += 1) {
+    const layer = layers[layerIndex];
+    const isRight = index % 2 === 1;
+    const siblingIndex = isRight ? index - 1 : index + 1;
+    const siblingHash = layer[siblingIndex] ?? layer[index];
+    proof.push({
+      hash: siblingHash,
+      position: isRight ? 'left' : 'right',
+    });
+    index = Math.floor(index / 2);
+  }
+  return proof;
+}
+
 function buildWarpCharacterInventoryAuditExportHashFromRows(args: {
   characterId: string;
   receiptHash: string;
@@ -1128,26 +1190,37 @@ function resolveWarpCharacterInventoryAuditPublisherId(): string {
 }
 
 export function buildWarpCharacterInventoryAuditPublication(args: {
-  receipt: Pick<WarpCharacterInventoryAuditReceipt, 'characterId' | 'receiptHash' | 'exportHash'>;
+  receipt: Pick<WarpCharacterInventoryAuditReceipt, 'characterId' | 'receiptHash' | 'exportHash' | 'updatedDate'>;
+  rowCount: number;
+  merkleRoot: string;
   publishedAt?: string;
   publisherId?: string;
 }): WarpCharacterInventoryAuditPublication {
   const publisherId = String(args.publisherId ?? resolveWarpCharacterInventoryAuditPublisherId());
-  const publishedAt = String(args.publishedAt ?? new Date().toISOString());
+  const publishedAt = String(args.publishedAt ?? args.receipt.updatedDate ?? new Date().toISOString());
   const exportHash = String(args.receipt.exportHash);
   const receiptHash = String(args.receipt.receiptHash);
-  const publicationHash = createHash('sha256')
-    .update(
-      JSON.stringify({
-        tableName: WARP_INVENTORY_TABLE_CONFIG.tableName,
-        characterId: String(args.receipt.characterId),
-        publisherId,
-        publishedAt,
-        exportHash,
-        receiptHash,
-      })
-    )
-    .digest('hex');
+  const signaturePayload = JSON.stringify({
+    tableName: WARP_INVENTORY_TABLE_CONFIG.tableName,
+    characterId: String(args.receipt.characterId),
+    rowCount: Number(args.rowCount),
+    merkleRoot: String(args.merkleRoot),
+    publisherId,
+    publishedAt,
+    exportHash,
+    receiptHash,
+  });
+  const signatureMaterial: WarpCharacterInventoryAuditSignatureMaterial = {
+    algorithm: 'sha256-envelope-v1',
+    signerId: publisherId,
+    payload: signaturePayload,
+    payloadHash: createHash('sha256').update(signaturePayload).digest('hex'),
+  };
+  const publicationHash = hashWarpInventoryAuditValue({
+    algorithm: signatureMaterial.algorithm,
+    signerId: signatureMaterial.signerId,
+    payloadHash: signatureMaterial.payloadHash,
+  });
 
   return {
     publisherId,
@@ -1155,6 +1228,7 @@ export function buildWarpCharacterInventoryAuditPublication(args: {
     publicationHash,
     exportHash,
     receiptHash,
+    signatureMaterial,
   };
 }
 
@@ -1193,13 +1267,54 @@ export function buildWarpCharacterInventoryAuditExport(
         updatedDate: String((receipt as WarpCharacterInventoryAuditReceipt).updatedDate),
       }
     : buildWarpCharacterInventoryAuditReceipt(table);
+  const proofBundle = buildWarpCharacterInventoryAuditProofBundle(table, currentReceipt);
+  const publication = buildWarpCharacterInventoryAuditPublication({
+    receipt: currentReceipt,
+    rowCount: proofBundle.rowCount,
+    merkleRoot: proofBundle.merkleRoot,
+  });
 
   return {
     receipt: currentReceipt,
     exportHash: currentReceipt.exportHash,
-    publication: buildWarpCharacterInventoryAuditPublication({ receipt: currentReceipt }),
+    publication,
+    proofBundle: {
+      ...proofBundle,
+      publicationHash: publication.publicationHash,
+    },
     inventory: serializeWarpCharacterInventoryTable(table, { publicView: true }),
     rows,
+  };
+}
+
+export function buildWarpCharacterInventoryAuditProofBundle(
+  table: WarpMaterializedInventoryTable,
+  receipt?: Pick<WarpCharacterInventoryAuditReceipt, 'receiptHash' | 'exportHash'> | null
+): WarpCharacterInventoryAuditProofBundle {
+  const rows = buildWarpCharacterInventoryAuditRows(table);
+  const currentReceipt = receipt ?? buildWarpCharacterInventoryAuditReceipt(table);
+  const leafHashes = rows.map((row) => buildWarpInventoryMerkleLeafHash(row));
+  const layers = buildWarpInventoryMerkleLayers(leafHashes);
+  const merkleRoot = layers[layers.length - 1]?.[0] ?? hashWarpInventoryAuditValue({
+    kind: 'characterInventoryItems.emptyMerkleRoot.v1',
+  });
+
+  return {
+    algorithm: 'sha256-merkle-v1',
+    tableName: WARP_INVENTORY_TABLE_CONFIG.tableName,
+    characterId: table.characterId,
+    receiptHash: currentReceipt.receiptHash,
+    exportHash: currentReceipt.exportHash,
+    publicationHash: '',
+    rowCount: rows.length,
+    merkleRoot,
+    rows: rows.map((row, index) => ({
+      recordPk: row.recordPk,
+      recordId: row.recordId,
+      rowHash: row.rowHash,
+      leafHash: leafHashes[index],
+      proof: buildWarpInventoryMerkleProof(layers, index),
+    })),
   };
 }
 
@@ -1261,6 +1376,32 @@ export function buildWarpCharacterInventoryReceiptDocument(
   return compactWarpInventoryDocument({
     ...audit,
     exportHash,
+    applicationId: character?.applicationId,
+    ownerId: character?.ownerId,
+  });
+}
+
+export function buildWarpCharacterInventoryPublicationDocument(
+  character: any,
+  table: WarpMaterializedInventoryTable
+): WarpCharacterInventoryPublicationDocument {
+  const audit = buildWarpCharacterInventoryAuditReceipt(table);
+  const proofBundle = buildWarpCharacterInventoryAuditProofBundle(table, audit);
+  const publication = buildWarpCharacterInventoryAuditPublication({
+    receipt: audit,
+    rowCount: proofBundle.rowCount,
+    merkleRoot: proofBundle.merkleRoot,
+  });
+
+  return compactWarpInventoryDocument({
+    version: 1,
+    verificationMode: 'audited',
+    tableName: WARP_INVENTORY_TABLE_CONFIG.tableName,
+    characterId: table.characterId,
+    rowCount: proofBundle.rowCount,
+    merkleRoot: proofBundle.merkleRoot,
+    updatedDate: audit.updatedDate,
+    ...publication,
     applicationId: character?.applicationId,
     ownerId: character?.ownerId,
   });
@@ -1353,10 +1494,63 @@ export async function syncWarpCharacterInventoryReceiptModel(
   }
 }
 
+export async function syncWarpCharacterInventoryPublicationModel(
+  model:
+    | {
+        replaceOne?: (
+          filter: Record<string, unknown>,
+          replacement: Record<string, unknown>,
+          options?: Record<string, unknown>
+        ) => Promise<any>;
+        bulkWrite?: (operations: any[], options?: any) => Promise<any>;
+      }
+    | null
+    | undefined,
+  character: any,
+  table: WarpMaterializedInventoryTable
+) {
+  if (!model) {
+    return;
+  }
+
+  const publication = buildWarpCharacterInventoryPublicationDocument(character, table);
+  const filter = { characterId: table.characterId };
+
+  if (typeof model.replaceOne === 'function') {
+    await model.replaceOne(filter, publication, { upsert: true });
+    return;
+  }
+
+  if (typeof model.bulkWrite === 'function') {
+    await model.bulkWrite(
+      [
+        {
+          replaceOne: {
+            filter,
+            replacement: publication,
+            upsert: true,
+          },
+        },
+      ],
+      { ordered: true }
+    );
+  }
+}
+
 export async function syncWarpCharacterInventoryAuthority(
   models: {
     itemModel?: { bulkWrite?: (operations: any[], options?: any) => Promise<any> } | null;
     receiptModel?:
+      | {
+          replaceOne?: (
+            filter: Record<string, unknown>,
+            replacement: Record<string, unknown>,
+          options?: Record<string, unknown>
+        ) => Promise<any>;
+          bulkWrite?: (operations: any[], options?: any) => Promise<any>;
+        }
+      | null;
+    publicationModel?:
       | {
           replaceOne?: (
             filter: Record<string, unknown>,
@@ -1372,6 +1566,7 @@ export async function syncWarpCharacterInventoryAuthority(
 ) {
   await syncWarpCharacterInventoryItemModel(models.itemModel, character, table);
   await syncWarpCharacterInventoryReceiptModel(models.receiptModel, character, table);
+  await syncWarpCharacterInventoryPublicationModel(models.publicationModel, character, table);
 }
 
 export function buildWarpCharacterInventoryPersistence(

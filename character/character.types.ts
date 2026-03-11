@@ -20,6 +20,9 @@ export type CharacterInventoryItemDocument = CharacterInventoryItem & Document;
 export type CharacterInventoryReceipt = z.infer<typeof schema.CharacterInventoryReceipt>;
 export type CharacterInventoryReceiptDocument = CharacterInventoryReceipt & Document;
 
+export type CharacterInventoryPublication = z.infer<typeof schema.CharacterInventoryPublication>;
+export type CharacterInventoryPublicationDocument = CharacterInventoryPublication & Document;
+
 export type CharacterAbility = z.infer<typeof schema.CharacterAbility>;
 export type CharacterAbilityDocument = CharacterAbility & Document;
 
@@ -57,6 +60,7 @@ export type Mappings = {
   Character: Model<CharacterDocument>;
   CharacterInventoryItem: Model<CharacterInventoryItemDocument>;
   CharacterInventoryReceipt: Model<CharacterInventoryReceiptDocument>;
+  CharacterInventoryPublication: Model<CharacterInventoryPublicationDocument>;
   CharacterAbility: Model<CharacterAbilityDocument>;
   CharacterAttribute: Model<CharacterAttributeDocument>;
   CharacterClass: Model<CharacterClassDocument>;

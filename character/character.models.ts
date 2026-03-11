@@ -133,6 +133,45 @@ export const CharacterInventoryReceipt = mongo.createModel<Types.CharacterInvent
   }
 );
 
+export const CharacterInventoryPublication = mongo.createModel<Types.CharacterInventoryPublicationDocument>(
+  'CharacterInventoryPublication',
+  {
+    characterId: { type: mongo.Schema.Types.ObjectId, ref: 'Character', required: true },
+    version: { type: Number, required: true },
+    verificationMode: { type: String, required: true, trim: true },
+    tableName: { type: String, required: true, trim: true },
+    rowCount: { type: Number, required: true },
+    merkleRoot: { type: String, required: true, trim: true },
+    updatedDate: { type: String, required: true, trim: true },
+    publisherId: { type: String, required: true, trim: true },
+    publishedAt: { type: String, required: true, trim: true },
+    publicationHash: { type: String, required: true, trim: true },
+    exportHash: { type: String, required: true, trim: true },
+    receiptHash: { type: String, required: true, trim: true },
+    signatureMaterial: {
+      algorithm: { type: String, required: true, trim: true },
+      signerId: { type: String, required: true, trim: true },
+      payload: { type: String, required: true, trim: true },
+      payloadHash: { type: String, required: true, trim: true },
+    },
+  },
+  {
+    extend: 'EntityFields',
+    cache: { enabled: true, ttlMs: 5 * 60 * 1000 },
+    indexes: [{ characterId: 1, unique: true }, { publicationHash: 1 }, { exportHash: 1 }, { receiptHash: 1 }],
+    virtuals: [
+      ...addApplicationVirtual(),
+      {
+        name: 'character',
+        ref: 'Character',
+        localField: 'characterId',
+        foreignField: '_id',
+        justOne: true,
+      },
+    ],
+  }
+);
+
 // Add virtual for `item`
 CharacterEquipment.virtual('item', {
   ref: 'Item',
