@@ -1,10 +1,11 @@
 // node/module/core/core.router.ts
 
 import { z as zod } from 'zod';
-import { initTRPC, inferRouterInputs } from '@trpc/server';
+import { initTRPC } from '@trpc/server';
 import { customErrorFormatter, hasRole } from '../util/rpc';
 import type { RouterContext } from '../types';
-import { Query, getQueryInput, getQueryOutput, inferRouterOutputs } from '../schema';
+import { Query, getQueryInput, getQueryOutput, inferRouterInputs, inferRouterOutputs } from '../schema';
+import { createWarpTrpcBindings } from './warpspeed';
 import {
   Account,
   Achievement,
@@ -35,6 +36,8 @@ import {
   Lore,
   Market,
   Memory,
+  MemoryLedger,
+  MemoryTelemetrySummary,
   Message,
   Metaverse,
   NewsArticle,
@@ -92,12 +95,16 @@ import {
   WorldEvent,
   WorldRecord,
   Stat,
+  WarpFlowActivityIngestInput,
+  WarpFlowActivityQueryInput,
+  WarpFlowActivityQueryOutput,
 } from './core.schema';
 
 export const z = zod;
 export const t = initTRPC.context<RouterContext>().create();
 export const router = t.router;
 export const procedure = t.procedure;
+const warp = createWarpTrpcBindings(procedure, { serviceName: 'Core' });
 
 export const createRouter = () =>
   router({
@@ -167,7 +174,8 @@ export const createRouter = () =>
       .output(ConversationMessage.pick({ id: true }))
       .mutation(({ input, ctx }) => (ctx.app.service.Core.updateConversationMessage as any)(input, ctx)),
 
-    claimConversationMessage: procedure
+    claimConversationMessage: warp
+      .procedure('core.claimConversationMessage')
       .use(customErrorFormatter(t))
       .input(
         z.object({
@@ -175,9 +183,10 @@ export const createRouter = () =>
           characterId: z.string().optional(),
         })
       )
-      .mutation(({ input, ctx }) => (ctx.app.service.Core.claimConversationMessage as any)(input, ctx)),
+      .mutation(),
 
-    setConversationMessageStar: procedure
+    setConversationMessageStar: warp
+      .reducer('core.setConversationMessageStar')
       .use(customErrorFormatter(t))
       .input(
         z.object({
@@ -185,7 +194,14 @@ export const createRouter = () =>
           isStarred: z.boolean().optional(),
         })
       )
-      .mutation(({ input, ctx }) => (ctx.app.service.Core.setConversationMessageStar as any)(input, ctx)),
+      .output(
+        z.object({
+          ok: z.literal(true),
+          messageId: z.string().min(6),
+          isStarred: z.boolean(),
+        })
+      )
+      .mutation(),
     // ------------------------------------
     // Mark messages as read (status='Read') — id list OR convo+limit
     // --------------------------------------------
@@ -273,6 +289,22 @@ export const createRouter = () =>
       )
       .query(({ input, ctx }) => (ctx.app.service.Core.syncGetPayloadsSince as any)(input, ctx)),
 
+    ingestWarpFlowActivity: warp
+      .procedure('core.ingestWarpFlowActivity')
+      .use(hasRole('guest', t))
+      .use(customErrorFormatter(t))
+      .input(WarpFlowActivityIngestInput)
+      .output(WarpFlowActivityQueryOutput)
+      .mutation(),
+
+    getWarpFlowActivity: warp
+      .view('core.getWarpFlowActivity')
+      .use(hasRole('guest', t))
+      .use(customErrorFormatter(t))
+      .input(WarpFlowActivityQueryInput.optional())
+      .output(WarpFlowActivityQueryOutput)
+      .query(),
+
     updateSettings: procedure
       .use(hasRole('user', t))
       .use(customErrorFormatter(t))
@@ -310,12 +342,13 @@ export const createRouter = () =>
       // .output(Account)
       .mutation(({ input, ctx }) => (ctx.app.service.Core.authorize as any)(input, ctx)),
 
-    getAccount: procedure
+    getAccount: warp
+      .view('core.getAccount')
       .use(hasRole('guest', t))
       .use(customErrorFormatter(t))
       .input(getQueryInput(Account))
       .output(Account)
-      .query(({ input, ctx }) => (ctx.app.service.Core.getAccount as any)(input, ctx)),
+      .query(),
 
     getAccounts: procedure
       .use(hasRole('guest', t))
@@ -331,12 +364,13 @@ export const createRouter = () =>
       .output(Account.pick({ id: true }))
       .mutation(({ input, ctx }) => (ctx.app.service.Core.createAccount as any)(input, ctx)),
 
-    updateAccount: procedure
+    updateAccount: warp
+      .reducer('core.updateAccount')
       .use(hasRole('admin', t))
       .use(customErrorFormatter(t))
       .input(getQueryInput(Account))
       .output(Account.pick({ id: true }))
-      .mutation(({ input, ctx }) => (ctx.app.service.Core.updateAccount as any)(input, ctx)),
+      .mutation(),
 
     getAchievement: procedure
       .use(hasRole('guest', t))
@@ -423,12 +457,13 @@ export const createRouter = () =>
       .mutation(({ input, ctx }) => (ctx.app.service.Core.updateAgent as any)(input, ctx)),
 
     // Application Procedures
-    getApplication: procedure
+    getApplication: warp
+      .reducer('core.getApplication')
       .use(hasRole('guest', t))
       .use(customErrorFormatter(t))
       .input(getQueryInput(Application))
       .output(Application)
-      .query(({ input, ctx }) => (ctx.app.service.Core.getApplication as any)(input, ctx)),
+      .query(),
 
     createApplication: procedure
       .use(hasRole('admin', t))
@@ -437,12 +472,13 @@ export const createRouter = () =>
       .output(Application.pick({ id: true }))
       .mutation(({ input, ctx }) => (ctx.app.service.Core.createApplication as any)(input, ctx)),
 
-    updateApplication: procedure
+    updateApplication: warp
+      .reducer('core.updateApplication')
       .use(hasRole('admin', t))
       .use(customErrorFormatter(t))
       .input(getQueryInput(Application))
       .output(Application.pick({ id: true }))
-      .mutation(({ input, ctx }) => (ctx.app.service.Core.updateApplication as any)(input, ctx)),
+      .mutation(),
     // Badge Procedures
     getBadge: procedure
       .use(hasRole('guest', t))
@@ -909,6 +945,44 @@ export const createRouter = () =>
       .output(Memory.pick({ id: true }))
       .mutation(({ input, ctx }) => (ctx.app.service.Core.updateMemory as any)(input, ctx)),
 
+    ingestMemoryLedgerRecord: procedure
+      .use(hasRole('admin', t))
+      .use(customErrorFormatter(t))
+      .input(getQueryInput(MemoryLedger))
+      .output(MemoryLedger)
+      .mutation(({ input, ctx }) => (ctx.app.service.Core.ingestMemoryLedgerRecord as any)(input, ctx)),
+
+    getMemoryLedgerRecords: procedure
+      .use(hasRole('guest', t))
+      .use(customErrorFormatter(t))
+      .input(getQueryInput(MemoryLedger))
+      .output(z.object({ items: z.array(MemoryLedger), total: z.number() }))
+      .query(({ input, ctx }) => (ctx.app.service.Core.getMemoryLedgerRecords as any)(input, ctx)),
+
+    getMemoryTelemetrySummary: procedure
+      .use(hasRole('guest', t))
+      .use(customErrorFormatter(t))
+      .input(
+        z.object({
+          where: z.record(z.unknown()).optional(),
+          query: z
+            .object({
+              lookbackHours: z.number().int().positive().max(24 * 30).optional(),
+              maxRecords: z.number().int().positive().max(5000).optional(),
+              alertThresholds: z
+                .object({
+                  fallbackRate: z.number().min(0).max(1).optional(),
+                  avgLatencyMs: z.number().nonnegative().optional(),
+                  writebackPerHour: z.number().nonnegative().optional(),
+                })
+                .optional(),
+            })
+            .optional(),
+        })
+      )
+      .output(MemoryTelemetrySummary)
+      .query(({ input, ctx }) => (ctx.app.service.Core.getMemoryTelemetrySummary as any)(input, ctx)),
+
     // Message Procedures
     getMessage: procedure
       .use(hasRole('guest', t))
@@ -1343,10 +1417,23 @@ export const createRouter = () =>
           vectorDimensions: z.number().int().positive().optional(),
           topK: z.number().int().positive().max(100).optional(),
           minScore: z.number().min(-1).max(1).optional(),
+          timeoutMs: z.number().int().positive().max(2000).optional(),
           excludeIssueId: z.string().min(1).optional(),
+          preferredIssueId: z.string().min(1).optional(),
+          preferredIssueRef: z.string().min(1).optional(),
+          lexicalQuery: z.string().min(1).max(512).optional(),
         })
       )
-      .output(z.object({ items: z.array(z.object({ item: IssueEmbedding, score: z.number() })), total: z.number() }))
+      .output(
+        z.object({
+          items: z.array(z.object({ item: IssueEmbedding, score: z.number() })),
+          total: z.number(),
+          duration: z.number().int().nonnegative(),
+          indexUsed: z.string().min(1),
+          candidatesExamined: z.number().int().nonnegative(),
+          selectedCount: z.number().int().nonnegative(),
+        })
+      )
       .query(({ input, ctx }) => (ctx.app.service.Core.searchIssueEmbeddings as any)(input, ctx)),
 
 
@@ -1389,10 +1476,23 @@ export const createRouter = () =>
           vectorDimensions: z.number().int().positive().optional(),
           topK: z.number().int().positive().max(100).optional(),
           minScore: z.number().min(-1).max(1).optional(),
+          timeoutMs: z.number().int().positive().max(2000).optional(),
           excludeProjectId: z.string().min(1).optional(),
+          preferredProjectId: z.string().min(1).optional(),
+          preferredProjectRef: z.string().min(1).optional(),
+          lexicalQuery: z.string().min(1).max(512).optional(),
         })
       )
-      .output(z.object({ items: z.array(z.object({ item: ProjectEmbedding, score: z.number() })), total: z.number() }))
+      .output(
+        z.object({
+          items: z.array(z.object({ item: ProjectEmbedding, score: z.number() })),
+          total: z.number(),
+          duration: z.number().int().nonnegative(),
+          indexUsed: z.string().min(1),
+          candidatesExamined: z.number().int().nonnegative(),
+          selectedCount: z.number().int().nonnegative(),
+        })
+      )
       .query(({ input, ctx }) => (ctx.app.service.Core.searchProjectEmbeddings as any)(input, ctx)),
 
     getProductEmbedding: procedure
@@ -1434,10 +1534,23 @@ export const createRouter = () =>
           vectorDimensions: z.number().int().positive().optional(),
           topK: z.number().int().positive().max(100).optional(),
           minScore: z.number().min(-1).max(1).optional(),
+          timeoutMs: z.number().int().positive().max(2000).optional(),
           excludeProductId: z.string().min(1).optional(),
+          preferredProductId: z.string().min(1).optional(),
+          preferredProductRef: z.string().min(1).optional(),
+          lexicalQuery: z.string().min(1).max(512).optional(),
         })
       )
-      .output(z.object({ items: z.array(z.object({ item: ProductEmbedding, score: z.number() })), total: z.number() }))
+      .output(
+        z.object({
+          items: z.array(z.object({ item: ProductEmbedding, score: z.number() })),
+          total: z.number(),
+          duration: z.number().int().nonnegative(),
+          indexUsed: z.string().min(1),
+          candidatesExamined: z.number().int().nonnegative(),
+          selectedCount: z.number().int().nonnegative(),
+        })
+      )
       .query(({ input, ctx }) => (ctx.app.service.Core.searchProductEmbeddings as any)(input, ctx)),
 
     getAgentEmbedding: procedure
@@ -1479,10 +1592,23 @@ export const createRouter = () =>
           vectorDimensions: z.number().int().positive().optional(),
           topK: z.number().int().positive().max(100).optional(),
           minScore: z.number().min(-1).max(1).optional(),
+          timeoutMs: z.number().int().positive().max(2000).optional(),
           excludeAgentId: z.string().min(1).optional(),
+          preferredAgentId: z.string().min(1).optional(),
+          preferredAgentRef: z.string().min(1).optional(),
+          lexicalQuery: z.string().min(1).max(512).optional(),
         })
       )
-      .output(z.object({ items: z.array(z.object({ item: AgentEmbedding, score: z.number() })), total: z.number() }))
+      .output(
+        z.object({
+          items: z.array(z.object({ item: AgentEmbedding, score: z.number() })),
+          total: z.number(),
+          duration: z.number().int().nonnegative(),
+          indexUsed: z.string().min(1),
+          candidatesExamined: z.number().int().nonnegative(),
+          selectedCount: z.number().int().nonnegative(),
+        })
+      )
       .query(({ input, ctx }) => (ctx.app.service.Core.searchAgentEmbeddings as any)(input, ctx)),
 
     // SessionContext Procedures

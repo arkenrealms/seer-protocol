@@ -22,6 +22,7 @@ import * as Profile from './profile';
 import * as Raffle from './raffle';
 import * as Skill from './skill';
 import * as Video from './video';
+import * as Novelist from './novelist';
 
 // Exports
 export * as Area from './area';
@@ -41,6 +42,7 @@ export * as Profile from './profile';
 export * as Raffle from './raffle';
 export * as Skill from './skill';
 export * as Video from './video';
+export * as Novelist from './novelist';
 export * as Trek from './trek';
 export * as Evolution from './evolution';
 export * as Infinite from './infinite';

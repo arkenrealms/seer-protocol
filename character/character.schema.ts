@@ -3,31 +3,34 @@
 import { z, ObjectId, Entity } from '../schema';
 import { Item } from '../item/item.schema';
 
-export const CharacterEquipment = Entity.merge(
-  z.object({
-    characterId: ObjectId,
-    leftHand: Item.optional(),
-    rightHand: Item.optional(),
-    head: Item.optional(),
-    pet: Item.optional(),
-    neck: Item.optional(),
-    legs: Item.optional(),
-    chest: Item.optional(),
-    waist: Item.optional(),
-    hands: Item.optional(),
-    wrists: Item.optional(),
-    shoulders: Item.optional(),
-    feet: Item.optional(),
-    finger1: Item.optional(),
-    finger2: Item.optional(),
-    trinket1: Item.optional(),
-    trinket2: Item.optional(),
-    trinket3: Item.optional(),
-    body: Item.optional(),
-    companion: Item.optional(),
-    mount: Item.optional(),
-  })
-);
+const CharacterEquipmentFields = z.object({
+  characterId: ObjectId,
+  leftHand: Item.optional(),
+  rightHand: Item.optional(),
+  head: Item.optional(),
+  pet: Item.optional(),
+  neck: Item.optional(),
+  legs: Item.optional(),
+  chest: Item.optional(),
+  waist: Item.optional(),
+  hands: Item.optional(),
+  wrists: Item.optional(),
+  shoulders: Item.optional(),
+  feet: Item.optional(),
+  finger1: Item.optional(),
+  finger2: Item.optional(),
+  trinket1: Item.optional(),
+  trinket2: Item.optional(),
+  trinket3: Item.optional(),
+  body: Item.optional(),
+  companion: Item.optional(),
+  mount: Item.optional(),
+});
+
+const CharacterEquipmentSchema = Entity.merge(CharacterEquipmentFields);
+
+export const CharacterEquipment: typeof CharacterEquipmentSchema =
+  CharacterEquipmentSchema;
 
 export const CharacterInventory = Entity.merge(
   z.object({
@@ -36,34 +39,78 @@ export const CharacterInventory = Entity.merge(
   })
 );
 
-// Character schema
-export const Character = Entity.merge(
+export const CharacterInventoryItem = Entity.merge(
   z.object({
-    profileId: ObjectId.optional(),
-    ratingId: ObjectId.optional(),
-    classId: ObjectId.optional(),
-    raceId: ObjectId.optional(),
-    factionId: ObjectId.optional(),
-    genderId: ObjectId.optional(),
-    guildId: ObjectId.optional(),
-    token: z
-      .string()
-      .min(1)
+    characterId: ObjectId,
+    recordPk: z.number().int().positive(),
+    recordId: z.string().min(1),
+    bagIndex: z.number().int().nonnegative().default(0),
+    slotIndex: z.number().int().nonnegative().default(0),
+    itemId: ObjectId.optional(),
+    itemKey: z.string().min(1).optional(),
+    quantity: z.number().int().positive().default(1),
+    hasExplicitQuantity: z.boolean().default(false),
+    item: z.any().optional(),
+    audit: z
+      .object({
+        version: z.literal(1),
+        verificationMode: z.literal('audited'),
+        tableName: z.literal('characterInventoryItems'),
+        characterId: ObjectId,
+        rowCount: z.number().int().nonnegative(),
+        nextRecordPk: z.number().int().positive(),
+        receiptHash: z.string().min(1),
+        exportHash: z.string().min(1),
+        updatedDate: z.string().min(1),
+      })
       .optional(),
-    points: z.number().default(0),
-    isPrimary: z.boolean().default(false),
-    isBoss: z.boolean().default(false),
-    isPlayer: z.boolean().default(false),
-    equipmentIndex: z.number().default(0),
-    equipment: z.array(CharacterEquipment).default([]),
-    inventoryIndex: z.number().default(0),
-    inventory: z.array(CharacterInventory).default([]),
-    energyIds: z.array(ObjectId).optional(),
-    areaIds: z.array(ObjectId).optional(),
-    typeIds: z.array(ObjectId).optional(),
-    itemMaterialIds: z.array(ObjectId).optional(),
   })
 );
+
+export const CharacterInventoryReceipt = Entity.merge(
+  z.object({
+    characterId: ObjectId,
+    version: z.literal(1),
+    verificationMode: z.literal('audited'),
+    tableName: z.literal('characterInventoryItems'),
+    rowCount: z.number().int().nonnegative(),
+    nextRecordPk: z.number().int().positive(),
+    receiptHash: z.string().min(1),
+    exportHash: z.string().min(1),
+    updatedDate: z.string().min(1),
+  })
+);
+
+const CharacterFields = z.object({
+  profileId: ObjectId.optional(),
+  ratingId: ObjectId.optional(),
+  classId: ObjectId.optional(),
+  raceId: ObjectId.optional(),
+  factionId: ObjectId.optional(),
+  genderId: ObjectId.optional(),
+  guildId: ObjectId.optional(),
+  token: z
+    .string()
+    .min(1)
+    .optional(),
+  points: z.number().default(0),
+  isPrimary: z.boolean().default(false),
+  isBoss: z.boolean().default(false),
+  isPlayer: z.boolean().default(false),
+  equipmentIndex: z.number().default(0),
+  equipment: z.array(CharacterEquipment).default([]),
+  inventoryIndex: z.number().default(0),
+  inventory: z.array(CharacterInventory).default([]),
+  energyIds: z.array(ObjectId).optional(),
+  areaIds: z.array(ObjectId).optional(),
+  typeIds: z.array(ObjectId).optional(),
+  itemMaterialIds: z.array(ObjectId).optional(),
+});
+
+const CharacterSchema = Entity.merge(CharacterFields);
+
+// Character schema
+export const Character: typeof CharacterSchema = CharacterSchema;
 
 // CharacterAbility schema
 export const CharacterAbility = Entity.merge(

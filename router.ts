@@ -23,6 +23,7 @@ import * as Isles from './isles/isles.router';
 import * as Evolution from './evolution/evolution.router';
 import * as Infinite from './infinite/infinite.router';
 import * as Oasis from './oasis/oasis.router';
+import * as Novelist from './novelist/novelist.router';
 import type * as Types from './types';
 
 export type RouterContext = {
@@ -58,6 +59,7 @@ export const createRouter = () => {
     infinite: Infinite.createRouter(),
     oasis: Oasis.createRouter(),
     isles: Isles.createRouter(),
+    novelist: Novelist.createRouter(),
 
     info: procedure.query(({ input, ctx }) => {
       return { stuff: 1 };

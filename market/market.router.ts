@@ -1,10 +1,10 @@
 // module/market.router.ts
 
 import { z as zod } from 'zod';
-import { initTRPC, inferRouterInputs, inferRouterOutputs } from '@trpc/server';
+import { initTRPC } from '@trpc/server';
 import { customErrorFormatter, hasRole } from '../util/rpc';
 import type { RouterContext } from '../types';
-import { getQueryInput } from '../schema';
+import { getQueryInput, inferRouterInputs, inferRouterOutputs } from '../schema';
 import { Market, MarketPair, MarketExchange, MarketListing } from './market.schema';
 
 export const z = zod;

@@ -2,9 +2,7 @@
 //
 import Mongoose, { Types } from 'mongoose';
 import { z as zod, ZodTypeAny, ZodLazy, ZodObject, ZodArray } from 'zod';
-import { AnyProcedure, inferProcedureOutput, AnyRouter, AnyTRPCClientTypes, TRPCRouterRecord } from '@trpc/server';
-
-export type { inferRouterInputs } from '@trpc/server';
+import { AnyProcedure, inferProcedureInput, inferProcedureOutput, AnyRouter, AnyTRPCClientTypes, TRPCRouterRecord } from '@trpc/server';
 
 export const z = zod;
 
@@ -293,6 +291,21 @@ const isPlainRecord = (value: unknown): value is Record<string, unknown> => {
   return Object.prototype.toString.call(value) === '[object Object]';
 };
 
+const normalizeEmptyWhereInQueryInput = <T>(input: T): T => {
+  if (!isPlainRecord(input)) {
+    return input;
+  }
+
+  const where = input.where;
+  if (!isPlainRecord(where) || Object.keys(where).length > 0) {
+    return input;
+  }
+
+  const normalized = { ...input };
+  delete normalized.where;
+  return normalized;
+};
+
 const QueryWhereSchema = z.lazy(() =>
   z
     .object({
@@ -312,17 +325,20 @@ const QueryWhereSchema = z.lazy(() =>
 );
 
 export const Query = z
-  .object({
-    skip: z.number().finite().int().min(0).optional().default(0),
-    take: z.number().finite().int().min(0).optional(),
-    // legacy alias kept for backward compatibility across callers
-    limit: z.number().finite().int().min(0).optional(),
-    cursor: NonBlankCursorRecord.optional(),
-    where: QueryWhereSchema.optional(),
-    orderBy: NonBlankOrderByRecord.optional(),
-    include: NonBlankBooleanRecord.optional(),
-    select: NonBlankBooleanRecord.optional(),
-  })
+  .preprocess(
+    normalizeEmptyWhereInQueryInput,
+    z.object({
+      skip: z.number().finite().int().min(0).optional().default(0),
+      take: z.number().finite().int().min(0).optional(),
+      // legacy alias kept for backward compatibility across callers
+      limit: z.number().finite().int().min(0).optional(),
+      cursor: NonBlankCursorRecord.optional(),
+      where: QueryWhereSchema.optional(),
+      orderBy: NonBlankOrderByRecord.optional(),
+      include: NonBlankBooleanRecord.optional(),
+      select: NonBlankBooleanRecord.optional(),
+    })
+  )
   .superRefine((query, ctx) => {
     assertTakeLimitParity(query, ctx, ['limit']);
   })
@@ -413,7 +429,7 @@ export const Query = z
 export const createPrismaWhereSchema = <T extends zod.ZodRawShape>(
   modelSchema: zod.ZodObject<T>,
   depth: number = 3
-): zod.ZodObject<any> => {
+): zod.ZodTypeAny => {
   const fields = modelSchema.shape;
   const normalizedDepth = Number.isFinite(depth) ? Math.max(0, Math.floor(depth)) : 0;
 
@@ -525,6 +541,7 @@ export const getQueryInput = <S extends zod.ZodTypeAny>(schema: S, options: { pa
       include: NonBlankBooleanRecord.optional(),
       select: NonBlankBooleanRecord.optional(),
     })
+    .transform((query) => normalizeEmptyWhereInQueryInput(query))
     .superRefine((query, ctx) => {
       assertTakeLimitParity(query, ctx, ['limit']);
     })
@@ -535,22 +552,38 @@ export const getQueryInput = <S extends zod.ZodTypeAny>(schema: S, options: { pa
 
 export type inferQuery<T extends zod.ZodRawShape> = zod.infer<ReturnType<typeof createPrismaWhereSchema<T>>>;
 
-export type GetInferenceHelpers<
-  TType extends 'input' | 'output',
+export type GetInputInferenceHelpers<
   TRoot extends AnyTRPCClientTypes,
   TRecord extends TRPCRouterRecord,
 > = {
   [TKey in keyof TRecord]: TRecord[TKey] extends infer $Value
     ? $Value extends TRPCRouterRecord
-      ? GetInferenceHelpers<TType, TRoot, $Value>
+      ? GetInputInferenceHelpers<TRoot, $Value>
       : $Value extends AnyProcedure
-        ? inferProcedureOutput<$Value> // inferTransformedProcedureOutput<TRoot, $Value>
+        ? inferProcedureInput<$Value>
         : never
     : never;
 };
 
-export type inferRouterOutputs<TRouter extends AnyRouter> = GetInferenceHelpers<
-  'output',
+export type GetOutputInferenceHelpers<
+  TRoot extends AnyTRPCClientTypes,
+  TRecord extends TRPCRouterRecord,
+> = {
+  [TKey in keyof TRecord]: TRecord[TKey] extends infer $Value
+    ? $Value extends TRPCRouterRecord
+      ? GetOutputInferenceHelpers<TRoot, $Value>
+      : $Value extends AnyProcedure
+        ? inferProcedureOutput<$Value>
+        : never
+    : never;
+};
+
+export type inferRouterInputs<TRouter extends AnyRouter> = GetInputInferenceHelpers<
+  TRouter['_def']['_config']['$types'],
+  TRouter['_def']['record']
+>;
+
+export type inferRouterOutputs<TRouter extends AnyRouter> = GetOutputInferenceHelpers<
   TRouter['_def']['_config']['$types'],
   TRouter['_def']['record']
 >;

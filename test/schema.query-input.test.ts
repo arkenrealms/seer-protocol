@@ -209,8 +209,8 @@ describe('util/schema query envelope behavior', () => {
     expect(valid.where.name.contains).toBe('abc');
   });
 
-  test('Query and getQueryInput reject empty where objects', () => {
-    expect(() => Query.parse({ where: {} })).toThrow(/where must include at least one filter or logical clause/);
+  test('Query normalizes empty where objects while getQueryInput rejects them', () => {
+    expect(Query.parse({ where: {} }).where).toBeUndefined();
 
     const schema = getQueryInput(z.object({ name: z.string() }));
 

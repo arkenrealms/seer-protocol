@@ -4,6 +4,7 @@ import { initTRPC } from '@trpc/server';
 import { customErrorFormatter, hasRole } from '../util/rpc';
 import { Query, getQueryInput, inferRouterOutputs, inferRouterInputs } from '../util/schema';
 import { RouterContext, Core } from '../types';
+import { saveRoundInputSchema, saveRoundResultSchema } from './round-commit';
 
 export const z = zod;
 export const t = initTRPC.context<RouterContext>().create();
@@ -14,7 +15,12 @@ export const createRouter = () =>
   router({
     info: procedure
       .use(customErrorFormatter(t))
-      .input(z.any())
+      .input(
+        z.object({
+          gameKey: z.string().optional(),
+          shardId: z.string().optional(),
+        })
+      )
       .query(({ input, ctx }) => (ctx.app.service.Evolution.info as any)(input, ctx)),
 
     updateConfig: procedure
@@ -119,15 +125,8 @@ export const createRouter = () =>
     saveRound: procedure
       .use(hasRole('guest', t))
       .use(customErrorFormatter(t))
-      .input(
-        z.object({
-          shardId: z.string(),
-          gameKey: z.string(),
-          round: z.any(),
-          clients: z.any(),
-        })
-      )
-      // .output(Profile.Schemas.Profile)
+      .input(saveRoundInputSchema)
+      .output(saveRoundResultSchema)
       .mutation(({ input, ctx }) => (ctx.app.service.Evolution.saveRound as any)(input, ctx)),
 
     interact: t.procedure

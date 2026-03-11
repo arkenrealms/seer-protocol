@@ -26,6 +26,7 @@ import * as Video from './video';
 import * as Evolution from './evolution';
 import * as Infinite from './infinite';
 import * as Oasis from './oasis';
+import * as Novelist from './novelist';
 import * as Trek from './trek';
 
 // Exports
@@ -49,6 +50,7 @@ export * as Video from './video';
 export * as Evolution from './evolution';
 export * as Infinite from './infinite';
 export * as Oasis from './oasis';
+export * as Novelist from './novelist';
 export * as Trek from './trek';
 
 export class Application<ServiceType> {
@@ -165,7 +167,8 @@ export type ApplicationModelType = Partial<
     Skill.Types.Mappings &
     Video.Types.Mappings &
     Evolution.Types.Mappings &
-    Infinite.Types.Mappings
+    Infinite.Types.Mappings &
+    Novelist.Mappings
 >;
 
 export type RouterClient = {

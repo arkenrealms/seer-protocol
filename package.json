@@ -6,6 +6,7 @@
     "clean": "del-cli ./build && make-dir ./build",
     "dist": "npm-run-all clean tsc:*",
     "test": "jest --runInBand",
+    "dev": "NODE_ENV=development tsc -p tsconfig.build.json --watch --preserveWatchOutput",
     "publish": "npm publish --access=public",
     "tsc:1": "rm -rf ./build && mkdir ./build && cp package.json ./build && NODE_ENV=production NODE_OPTIONS=--max-old-space-size=8192 tsc -p tsconfig.build.json --listFiles"
   },
@@ -25,6 +26,7 @@
     "dayjs": "^1"
   },
   "devDependencies": {
-    "del-cli": "^5"
+    "del-cli": "^5",
+    "typescript": "^5.9.2"
   }
 }

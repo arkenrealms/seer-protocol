@@ -50,6 +50,89 @@ const CharacterInventory = new mongo.Schema(
   { _id: false }
 );
 
+export const CharacterInventoryItem = mongo.createModel<Types.CharacterInventoryItemDocument>(
+  'CharacterInventoryItem',
+  {
+    characterId: { type: mongo.Schema.Types.ObjectId, ref: 'Character', required: true },
+    recordPk: { type: Number, required: true },
+    recordId: { type: String, required: true, trim: true },
+    bagIndex: { type: Number, required: true, default: 0 },
+    slotIndex: { type: Number, required: true, default: 0 },
+    itemId: { type: mongo.Schema.Types.ObjectId, ref: 'Item', required: false },
+    itemKey: { type: String, required: false, trim: true },
+    quantity: { type: Number, required: true, default: 1 },
+    hasExplicitQuantity: { type: Boolean, required: true, default: false },
+    item: { type: mongo.Schema.Types.Mixed, required: false },
+    audit: {
+      version: { type: Number, required: false },
+      verificationMode: { type: String, required: false, trim: true },
+      tableName: { type: String, required: false, trim: true },
+      characterId: { type: mongo.Schema.Types.ObjectId, ref: 'Character', required: false },
+      rowCount: { type: Number, required: false },
+      nextRecordPk: { type: Number, required: false },
+      receiptHash: { type: String, required: false, trim: true },
+      exportHash: { type: String, required: false, trim: true },
+      updatedDate: { type: String, required: false, trim: true },
+    },
+  },
+  {
+    extend: 'EntityFields',
+    cache: { enabled: true, ttlMs: 5 * 60 * 1000 },
+    indexes: [
+      { characterId: 1, recordPk: 1, unique: true },
+      { characterId: 1, recordId: 1, unique: true },
+      { recordId: 1, unique: true },
+    ],
+    virtuals: [
+      ...addApplicationVirtual(),
+      {
+        name: 'character',
+        ref: 'Character',
+        localField: 'characterId',
+        foreignField: '_id',
+        justOne: true,
+      },
+      {
+        name: 'itemRef',
+        ref: 'Item',
+        localField: 'itemId',
+        foreignField: '_id',
+        justOne: true,
+      },
+    ],
+  }
+);
+
+export const CharacterInventoryReceipt = mongo.createModel<Types.CharacterInventoryReceiptDocument>(
+  'CharacterInventoryReceipt',
+  {
+    characterId: { type: mongo.Schema.Types.ObjectId, ref: 'Character', required: true },
+    version: { type: Number, required: true },
+    verificationMode: { type: String, required: true, trim: true },
+    tableName: { type: String, required: true, trim: true },
+    rowCount: { type: Number, required: true },
+    nextRecordPk: { type: Number, required: true },
+    receiptHash: { type: String, required: true, trim: true },
+    exportHash: { type: String, required: true, trim: true },
+    updatedDate: { type: String, required: true, trim: true },
+  },
+  {
+    extend: 'EntityFields',
+    cache: { enabled: true, ttlMs: 5 * 60 * 1000 },
+    indexes: [{ characterId: 1, unique: true }, { receiptHash: 1 }, { exportHash: 1 }],
+    virtuals: [
+      ...addApplicationVirtual(),
+      {
+        name: 'character',
+        ref: 'Character',
+        localField: 'characterId',
+        foreignField: '_id',
+        justOne: true,
+      },
+    ],
+  }
+);
+
 // Add virtual for `item`
 CharacterEquipment.virtual('item', {
   ref: 'Item',

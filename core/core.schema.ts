@@ -1,6 +1,7 @@
 // node/modules/core/core.schema.ts
 
 import { z, ObjectId, Entity } from '../schema';
+import type { RefinementCtx } from 'zod';
 import { Profile } from '../profile/profile.schema';
 import { ProfileDocument } from '../profile/profile.types';
 
@@ -263,6 +264,170 @@ export const Market = Entity.merge(z.object({}));
 // Memory Schema
 export const Memory = Entity.merge(z.object({}));
 
+export const MemoryLedgerRecordType = z.enum(['retrieval', 'writeback']);
+
+export const MemoryLedgerSource = z.enum([
+  'request',
+  'agent',
+  'issue',
+  'db',
+  'project',
+  'local-lexical',
+  'local-vector',
+  'provider-memory-search',
+  'provider-vector',
+  'manual',
+]);
+
+export const MemoryLedgerFallbackReason = z.enum([
+  'timeout',
+  'low-confidence',
+  'no-results',
+  'provider-error',
+  'budget-cap',
+  'route-unavailable',
+  'unknown',
+]);
+
+export const MemoryLedgerWritebackCategory = z.enum(['fact', 'preference', 'episode', 'resolution-artifact']);
+
+export const MemoryLedgerFallbackTelemetry = z.object({
+  used: z.boolean().default(false),
+  fromSource: MemoryLedgerSource.optional(),
+  toSource: MemoryLedgerSource.optional(),
+  reason: MemoryLedgerFallbackReason.optional(),
+  detail: z.string().min(1).max(500).optional(),
+});
+
+export const MemoryLedgerRetrievalSnippet = z.object({
+  source: MemoryLedgerSource,
+  memoryId: ObjectId.optional(),
+  externalRef: z.string().min(1).max(300).optional(),
+  score: z.number().min(-1).max(1).optional(),
+  tokenEstimate: z.number().int().nonnegative().optional(),
+  truncated: z.boolean().default(false).optional(),
+  rank: z.number().int().positive().optional(),
+});
+
+export const MemoryLedgerRetrievalRequest = z.object({
+  applicationId: ObjectId.optional(),
+  sessionKey: z.string().min(1).max(200).optional(),
+  requestId: z.string().min(1).max(200),
+  queryText: z.string().min(1),
+  sourcesAttempted: z.array(MemoryLedgerSource).default([]),
+  budgetTokens: z.number().int().positive().optional(),
+  timeoutMs: z.number().int().positive().optional(),
+  startedAt: z.coerce.date(),
+});
+
+export const MemoryLedgerRetrievalResult = z.object({
+  requestId: z.string().min(1).max(200),
+  completedAt: z.coerce.date(),
+  latencyMs: z.number().int().nonnegative(),
+  snippets: z.array(MemoryLedgerRetrievalSnippet).default([]),
+  selectedCount: z.number().int().nonnegative(),
+  tokenEstimate: z.number().int().nonnegative().optional(),
+  fallback: MemoryLedgerFallbackTelemetry.default({ used: false }),
+  errorClass: z.string().min(1).max(200).optional(),
+});
+
+export const MemoryLedgerWritebackEvent = z.object({
+  requestId: z.string().min(1).max(200).optional(),
+  sessionKey: z.string().min(1).max(200).optional(),
+  category: MemoryLedgerWritebackCategory,
+  confidence: z.number().min(0).max(1),
+  dedupeKey: z.string().min(1).max(300).optional(),
+  sourceRef: z.string().min(1).max(500).optional(),
+  metadata: z.record(z.unknown()).default({}),
+  occurredAt: z.coerce.date(),
+});
+
+export const MemoryLedger = Entity.merge(
+  z.object({
+    recordType: MemoryLedgerRecordType,
+    applicationId: ObjectId.optional(),
+    requestId: z.string().min(1).max(200).optional(),
+    sessionKey: z.string().min(1).max(200).optional(),
+    retrievalRequest: MemoryLedgerRetrievalRequest.optional(),
+    retrievalResult: MemoryLedgerRetrievalResult.optional(),
+    writebackEvent: MemoryLedgerWritebackEvent.optional(),
+    tags: z.array(z.string().min(1).max(80)).default([]),
+  })
+).superRefine((value, ctx) => {
+  if (value.recordType === 'retrieval' && (!value.retrievalRequest || !value.retrievalResult)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'retrievalRequest and retrievalResult are required for retrieval recordType',
+      path: ['recordType'],
+    });
+  }
+
+  if (value.recordType === 'writeback' && !value.writebackEvent) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'writebackEvent is required for writeback recordType',
+      path: ['recordType'],
+    });
+  }
+});
+
+export const MemoryTelemetrySourceLatency = z.object({
+  source: MemoryLedgerSource,
+  retrievalCount: z.number().int().nonnegative(),
+  avgLatencyMs: z.number().nonnegative(),
+});
+
+export const MemoryTelemetryFallbackReasonCount = z.object({
+  reason: MemoryLedgerFallbackReason,
+  count: z.number().int().nonnegative(),
+});
+
+export const MemoryTelemetryWritebackCategoryCount = z.object({
+  category: MemoryLedgerWritebackCategory,
+  count: z.number().int().nonnegative(),
+});
+
+export const MemoryTelemetrySessionSummary = z.object({
+  sessionKey: z.string().min(1),
+  retrievalCount: z.number().int().nonnegative(),
+  hitRate: z.number().min(0).max(1),
+  fallbackRate: z.number().min(0).max(1),
+  avgLatencyMs: z.number().nonnegative(),
+});
+
+
+export const MemoryTelemetryAlertKind = z.enum(['high_fallback_rate', 'high_latency', 'writeback_flood']);
+
+export const MemoryTelemetryAlert = z.object({
+  kind: MemoryTelemetryAlertKind,
+  threshold: z.number().nonnegative(),
+  observed: z.number().nonnegative(),
+  windowHours: z.number().positive(),
+  message: z.string().min(1),
+});
+
+export const MemoryTelemetrySummary = z.object({
+  windowStart: z.coerce.date(),
+  windowEnd: z.coerce.date(),
+  sampledRecords: z.number().int().nonnegative(),
+  retrieval: z.object({
+    total: z.number().int().nonnegative(),
+    hitCount: z.number().int().nonnegative(),
+    hitRate: z.number().min(0).max(1),
+    fallbackCount: z.number().int().nonnegative(),
+    fallbackRate: z.number().min(0).max(1),
+    avgLatencyMs: z.number().nonnegative(),
+    latencyBySource: z.array(MemoryTelemetrySourceLatency),
+    fallbackReasons: z.array(MemoryTelemetryFallbackReasonCount),
+  }),
+  writeback: z.object({
+    total: z.number().int().nonnegative(),
+    categories: z.array(MemoryTelemetryWritebackCategoryCount),
+  }),
+  topSessions: z.array(MemoryTelemetrySessionSummary),
+  alerts: z.array(MemoryTelemetryAlert),
+});
+
 // Message Schema
 export const Message = Entity.merge(
   z.object({
@@ -412,11 +577,37 @@ export const RepositoryCommit = Entity.merge(
 const EmbeddingModelId = z.string().min(1);
 const EmbeddingModelVersion = z.string().min(1);
 
-const ensureEmbeddingShapeConsistency = <T extends { modelId: string; modelVersion?: string; vectorDimensions: number; vector: number[] }>(
+const ensureEmbeddingShapeConsistency = <T extends { modelId?: string; modelVersion?: string; vectorDimensions?: number; vector?: number[] }>(
   item: T,
-  ctx: z.RefinementCtx,
+  ctx: RefinementCtx,
   pathPrefix: (string | number)[] = []
 ) => {
+  if (!item.modelId) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: [...pathPrefix, 'modelId'],
+      message: 'modelId is required',
+    });
+  }
+
+  if (typeof item.vectorDimensions !== 'number') {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: [...pathPrefix, 'vectorDimensions'],
+      message: 'vectorDimensions is required',
+    });
+    return;
+  }
+
+  if (!Array.isArray(item.vector)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: [...pathPrefix, 'vector'],
+      message: 'vector is required',
+    });
+    return;
+  }
+
   if (item.vector.length !== item.vectorDimensions) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
@@ -1214,6 +1405,7 @@ export const ModelNames = z.enum([
   'Lore',
   'Market',
   'Memory',
+  'MemoryLedger',
   'Message',
   'Metaverse',
   'NewsArticle',
@@ -1404,3 +1596,74 @@ export const SeerPayload = Entity.merge(
     publicSignals: z.unknown(),
   })
 );
+
+export const WarpFlowIssueState = z.enum(['idle', 'addingIssue', 'issueCreated']);
+
+export const WarpFlowPosition = z.object({
+  x: z.number().finite(),
+  y: z.number().finite(),
+});
+
+export const WarpFlowProduct = z.object({
+  productRef: z.string().min(1),
+  label: z.string().min(1),
+  position: WarpFlowPosition.optional(),
+});
+
+export const WarpFlowIssueLink = z.object({
+  issueRef: z.string().min(1),
+  issueNumber: z.number().int().positive().optional(),
+  title: z.string().min(1).optional(),
+  url: z.string().url().optional(),
+  state: WarpFlowIssueState.default('idle'),
+});
+
+export const WarpFlowActivitySource = z.enum(['simulated', 'llm']);
+
+export const WarpFlowActivityInference = z.object({
+  inferred: z.boolean().default(false),
+  signal: z.enum(['origin-agent', 'origin-non-agent', 'unknown']).default('unknown'),
+  confidence: z.number().min(0).max(1).default(0.5),
+  reason: z.string().min(1).optional(),
+});
+
+export const WarpFlowRenderHint = z.object({
+  style: z.enum(['floating', 'anchored']).default('floating'),
+  tone: z.enum(['neutral', 'active', 'success']).optional(),
+});
+
+export const WarpFlowAgent = z.object({
+  agentRef: z.string().min(1),
+  label: z.string().min(1),
+  status: z.enum(['idle', 'moving']).default('idle'),
+  position: WarpFlowPosition,
+  targetPosition: WarpFlowPosition.optional(),
+  targetProductRef: z.string().min(1).optional(),
+  activitySource: WarpFlowActivitySource.default('simulated'),
+  activitySourceDetail: z.string().min(1).optional(),
+  activityInference: WarpFlowActivityInference.optional(),
+  renderHint: WarpFlowRenderHint.optional(),
+  issue: WarpFlowIssueLink.optional(),
+  updatedAt: z.coerce.date(),
+});
+
+export const WarpFlowSnapshot = z.object({
+  products: z.array(WarpFlowProduct).default([]),
+  agents: z.array(WarpFlowAgent).default([]),
+  asOf: z.coerce.date(),
+});
+
+export const WarpFlowActivityIngestInput = z.object({
+  source: z.string().min(1),
+  snapshot: WarpFlowSnapshot,
+});
+
+export const WarpFlowActivityQueryInput = z.object({
+  since: z.coerce.date().optional(),
+  limit: z.number().int().min(1).max(500).default(100),
+});
+
+export const WarpFlowActivityQueryOutput = z.object({
+  snapshot: WarpFlowSnapshot,
+  status: z.number().default(200),
+});

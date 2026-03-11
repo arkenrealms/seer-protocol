@@ -1,9 +1,12 @@
 import { z } from 'zod';
 import * as schema from './area.schema';
 import { Document, Model } from '../util/mongo';
+import type { RouterContext } from '../types';
+import type { inferRouterInputs, inferRouterOutputs } from '../schema';
+import type { Router } from './area.router';
 
 export type * from './area.router';
-export type { RouterContext } from '../types';
+export type { RouterContext };
 
 export type Area = z.infer<typeof schema.Area>;
 export type AreaDocument = Area & Document;
@@ -23,3 +26,6 @@ export type Mappings = {
   AreaType: Model<AreaTypeDocument>;
   AreaNameChoice: Model<AreaNameChoiceDocument>;
 };
+
+export type RouterInput = inferRouterInputs<Router>;
+export type RouterOutput = inferRouterOutputs<Router>;
