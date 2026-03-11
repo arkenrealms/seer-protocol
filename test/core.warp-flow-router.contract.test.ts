@@ -6,14 +6,16 @@ describe('core warp flow router contract wiring', () => {
     const routerPath = path.resolve(process.cwd(), 'core/core.router.ts');
     const source = fs.readFileSync(routerPath, 'utf8');
 
-    expect(source).toContain('ingestWarpFlowActivity: procedure');
+    expect(source).toContain("ingestWarpFlowActivity: warp");
+    expect(source).toContain(".procedure('core.ingestWarpFlowActivity')");
     expect(source).toContain(".use(hasRole('guest', t))");
     expect(source).toContain('.input(WarpFlowActivityIngestInput)');
     expect(source).toContain('.output(WarpFlowActivityQueryOutput)');
-    expect(source).toContain('(ctx.app.service.Core.ingestWarpFlowActivity as any)(input, ctx)');
+    expect(source).toContain('.mutation()');
 
-    expect(source).toContain('getWarpFlowActivity: procedure');
+    expect(source).toContain("getWarpFlowActivity: warp");
+    expect(source).toContain(".view('core.getWarpFlowActivity')");
     expect(source).toContain('.input(WarpFlowActivityQueryInput.optional())');
-    expect(source).toContain('(ctx.app.service.Core.getWarpFlowActivity as any)(input, ctx)');
+    expect(source).toContain('.query()');
   });
 });

@@ -43,6 +43,7 @@
     "./item/**/*",
     "./job/**/*",
     "./market/**/*",
+    "./novelist/**/*",
     "./oasis/**/*",
     "./product/**/*",
     "./profile/**/*",

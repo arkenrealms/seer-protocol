@@ -5,6 +5,7 @@ import { initTRPC } from '@trpc/server';
 import { customErrorFormatter, hasRole } from '../util/rpc';
 import type { RouterContext } from '../types';
 import { Query, getQueryInput, getQueryOutput, inferRouterInputs, inferRouterOutputs } from '../schema';
+import { createWarpTrpcBindings } from './warpspeed';
 import {
   Account,
   Achievement,
@@ -103,6 +104,7 @@ export const z = zod;
 export const t = initTRPC.context<RouterContext>().create();
 export const router = t.router;
 export const procedure = t.procedure;
+const warp = createWarpTrpcBindings(procedure, { serviceName: 'Core' });
 
 export const createRouter = () =>
   router({
@@ -172,7 +174,8 @@ export const createRouter = () =>
       .output(ConversationMessage.pick({ id: true }))
       .mutation(({ input, ctx }) => (ctx.app.service.Core.updateConversationMessage as any)(input, ctx)),
 
-    claimConversationMessage: procedure
+    claimConversationMessage: warp
+      .procedure('core.claimConversationMessage')
       .use(customErrorFormatter(t))
       .input(
         z.object({
@@ -180,9 +183,10 @@ export const createRouter = () =>
           characterId: z.string().optional(),
         })
       )
-      .mutation(({ input, ctx }) => (ctx.app.service.Core.claimConversationMessage as any)(input, ctx)),
+      .mutation(),
 
-    setConversationMessageStar: procedure
+    setConversationMessageStar: warp
+      .reducer('core.setConversationMessageStar')
       .use(customErrorFormatter(t))
       .input(
         z.object({
@@ -190,7 +194,14 @@ export const createRouter = () =>
           isStarred: z.boolean().optional(),
         })
       )
-      .mutation(({ input, ctx }) => (ctx.app.service.Core.setConversationMessageStar as any)(input, ctx)),
+      .output(
+        z.object({
+          ok: z.literal(true),
+          messageId: z.string().min(6),
+          isStarred: z.boolean(),
+        })
+      )
+      .mutation(),
     // ------------------------------------
     // Mark messages as read (status='Read') — id list OR convo+limit
     // --------------------------------------------
@@ -278,19 +289,21 @@ export const createRouter = () =>
       )
       .query(({ input, ctx }) => (ctx.app.service.Core.syncGetPayloadsSince as any)(input, ctx)),
 
-    ingestWarpFlowActivity: procedure
+    ingestWarpFlowActivity: warp
+      .procedure('core.ingestWarpFlowActivity')
       .use(hasRole('guest', t))
       .use(customErrorFormatter(t))
       .input(WarpFlowActivityIngestInput)
       .output(WarpFlowActivityQueryOutput)
-      .mutation(({ input, ctx }) => (ctx.app.service.Core.ingestWarpFlowActivity as any)(input, ctx)),
+      .mutation(),
 
-    getWarpFlowActivity: procedure
+    getWarpFlowActivity: warp
+      .view('core.getWarpFlowActivity')
       .use(hasRole('guest', t))
       .use(customErrorFormatter(t))
       .input(WarpFlowActivityQueryInput.optional())
       .output(WarpFlowActivityQueryOutput)
-      .query(({ input, ctx }) => (ctx.app.service.Core.getWarpFlowActivity as any)(input, ctx)),
+      .query(),
 
     updateSettings: procedure
       .use(hasRole('user', t))
@@ -329,12 +342,13 @@ export const createRouter = () =>
       // .output(Account)
       .mutation(({ input, ctx }) => (ctx.app.service.Core.authorize as any)(input, ctx)),
 
-    getAccount: procedure
+    getAccount: warp
+      .view('core.getAccount')
       .use(hasRole('guest', t))
       .use(customErrorFormatter(t))
       .input(getQueryInput(Account))
       .output(Account)
-      .query(({ input, ctx }) => (ctx.app.service.Core.getAccount as any)(input, ctx)),
+      .query(),
 
     getAccounts: procedure
       .use(hasRole('guest', t))
@@ -350,12 +364,13 @@ export const createRouter = () =>
       .output(Account.pick({ id: true }))
       .mutation(({ input, ctx }) => (ctx.app.service.Core.createAccount as any)(input, ctx)),
 
-    updateAccount: procedure
+    updateAccount: warp
+      .reducer('core.updateAccount')
       .use(hasRole('admin', t))
       .use(customErrorFormatter(t))
       .input(getQueryInput(Account))
       .output(Account.pick({ id: true }))
-      .mutation(({ input, ctx }) => (ctx.app.service.Core.updateAccount as any)(input, ctx)),
+      .mutation(),
 
     getAchievement: procedure
       .use(hasRole('guest', t))
@@ -442,12 +457,13 @@ export const createRouter = () =>
       .mutation(({ input, ctx }) => (ctx.app.service.Core.updateAgent as any)(input, ctx)),
 
     // Application Procedures
-    getApplication: procedure
+    getApplication: warp
+      .reducer('core.getApplication')
       .use(hasRole('guest', t))
       .use(customErrorFormatter(t))
       .input(getQueryInput(Application))
       .output(Application)
-      .query(({ input, ctx }) => (ctx.app.service.Core.getApplication as any)(input, ctx)),
+      .query(),
 
     createApplication: procedure
       .use(hasRole('admin', t))
@@ -456,12 +472,13 @@ export const createRouter = () =>
       .output(Application.pick({ id: true }))
       .mutation(({ input, ctx }) => (ctx.app.service.Core.createApplication as any)(input, ctx)),
 
-    updateApplication: procedure
+    updateApplication: warp
+      .reducer('core.updateApplication')
       .use(hasRole('admin', t))
       .use(customErrorFormatter(t))
       .input(getQueryInput(Application))
       .output(Application.pick({ id: true }))
-      .mutation(({ input, ctx }) => (ctx.app.service.Core.updateApplication as any)(input, ctx)),
+      .mutation(),
     // Badge Procedures
     getBadge: procedure
       .use(hasRole('guest', t))

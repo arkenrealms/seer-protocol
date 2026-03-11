@@ -4,6 +4,7 @@ import { z as zod } from 'zod';
 import { initTRPC } from '@trpc/server';
 import { customErrorFormatter, hasRole } from '../util/rpc';
 import type { RouterContext } from '../types';
+import { createWarpTrpcBindings } from '../core/warpspeed';
 import {
   Character,
   CharacterAbility,
@@ -23,10 +24,77 @@ export const z = zod;
 export const t = initTRPC.context<RouterContext>().create();
 export const router = t.router;
 export const procedure = t.procedure;
+const warp = createWarpTrpcBindings(procedure, { serviceName: 'Character' });
+
+const characterInventoryPatchValueSchema = z.object({
+  itemKey: z.string().optional(),
+  itemId: z.string().optional(),
+  quantity: z.number().int().positive().optional(),
+  qty: z.number().int().positive().optional(),
+  x: z.number().int().nonnegative().optional(),
+  y: z.number().int().nonnegative().optional(),
+});
+
+const characterInventoryPatchOpSchema = z.union([
+  z.object({
+    op: z.enum(['add', 'remove']),
+    itemKey: z.string().optional(),
+    itemId: z.string().optional(),
+    quantity: z.number().int().positive().optional(),
+    qty: z.number().int().positive().optional(),
+    x: z.number().int().nonnegative().optional(),
+    y: z.number().int().nonnegative().optional(),
+  }),
+  z.object({
+    op: z.literal('move'),
+    itemKey: z.string().optional(),
+    itemId: z.string().optional(),
+    x: z.number().int().nonnegative().optional(),
+    y: z.number().int().nonnegative().optional(),
+  }),
+  z.object({
+    op: z.literal('push'),
+    key: z.string().optional(),
+    value: characterInventoryPatchValueSchema.optional(),
+  }),
+]);
+
+const exchangeCharacterItemInputSchema = z
+  .object({
+    characterId: z.string(),
+    itemId: z.string().optional(),
+    itemKey: z.string().optional(),
+    quantity: z.number().int().positive().default(1),
+  })
+  .refine((value) => Boolean(value.itemId || value.itemKey), {
+    message: 'itemId or itemKey is required',
+    path: ['itemId'],
+  });
+
+const syncCharacterInventoryInputSchema = z.union([
+  z.object({
+    characterId: z.string(),
+    mode: z.literal('patch'),
+    ops: z.array(
+      z.object({
+        op: z.enum(['add', 'remove']),
+        itemKey: z.string(),
+        quantity: z.number().int().positive().optional(),
+      })
+    ),
+    reason: z.string().optional(),
+  }),
+  z.object({
+    characterId: z.string(),
+    mode: z.literal('refresh'),
+    reason: z.string().optional(),
+  }),
+]);
 
 export const createRouter = () =>
   router({
-    getCharacterInventory: procedure
+    getCharacterInventory: warp
+      .view('character.getCharacterInventory')
       .use(hasRole('user', t))
       .use(customErrorFormatter(t))
       .input(
@@ -34,7 +102,118 @@ export const createRouter = () =>
           characterId: z.string(),
         })
       )
-      .mutation(({ input, ctx }) => (ctx.app.service.Character.getCharacterInventory as any)(input, ctx)),
+      .output(
+        z.object({
+          characterId: z.string(),
+          inventory: z.any(),
+        })
+      )
+      .mutation(),
+
+    getCharacterInventoryReceipt: warp
+      .view('character.getCharacterInventoryReceipt')
+      .use(hasRole('user', t))
+      .use(customErrorFormatter(t))
+      .input(
+        z.object({
+          characterId: z.string(),
+        })
+      )
+      .output(
+        z.object({
+          version: z.literal(1),
+          verificationMode: z.literal('audited'),
+          tableName: z.literal('characterInventoryItems'),
+          characterId: z.string(),
+          rowCount: z.number().int().nonnegative(),
+          nextRecordPk: z.number().int().positive(),
+          receiptHash: z.string().min(1),
+          exportHash: z.string().min(1),
+          updatedDate: z.string().min(1),
+        })
+      )
+      .query(),
+
+    getCharacterInventoryAuditExport: warp
+      .view('character.getCharacterInventoryAuditExport')
+      .use(hasRole('user', t))
+      .use(customErrorFormatter(t))
+      .input(
+        z.object({
+          characterId: z.string(),
+        })
+      )
+      .output(
+        z.object({
+          receipt: z.object({
+            version: z.literal(1),
+            verificationMode: z.literal('audited'),
+            tableName: z.literal('characterInventoryItems'),
+            characterId: z.string(),
+            rowCount: z.number().int().nonnegative(),
+            nextRecordPk: z.number().int().positive(),
+            receiptHash: z.string().min(1),
+            exportHash: z.string().min(1),
+            updatedDate: z.string().min(1),
+          }),
+          exportHash: z.string().min(1),
+          publication: z.object({
+            publisherId: z.string().min(1),
+            publishedAt: z.string().min(1),
+            publicationHash: z.string().min(1),
+            exportHash: z.string().min(1),
+            receiptHash: z.string().min(1),
+          }),
+          inventory: z.any(),
+          rows: z.array(
+            z.object({
+              recordPk: z.number().int().positive(),
+              recordId: z.string().min(1),
+              characterId: z.string(),
+              bagIndex: z.number().int().nonnegative(),
+              slotIndex: z.number().int().nonnegative(),
+              itemId: z.string().optional(),
+              itemKey: z.string().optional(),
+              quantity: z.number().int().positive(),
+              hasExplicitQuantity: z.boolean(),
+              item: z.any(),
+              rowHash: z.string().min(1),
+            })
+          ),
+        })
+      )
+      .query(),
+
+    syncCharacterInventory: warp
+      .reducer('character.syncCharacterInventory')
+      .use(hasRole('user', t))
+      .use(customErrorFormatter(t))
+      .input(syncCharacterInventoryInputSchema)
+      .output(
+        z.object({
+          characterId: z.string(),
+          inventory: z.any(),
+        })
+      )
+      .mutation(),
+
+    applyCharacterInventoryPatch: warp
+      .reducer('character.applyCharacterInventoryPatch')
+      .use(hasRole('user', t))
+      .use(customErrorFormatter(t))
+      .input(
+        z.object({
+          characterId: z.string(),
+          ops: z.array(characterInventoryPatchOpSchema),
+        })
+      )
+      .output(
+        z.object({
+          characterId: z.string(),
+          inventory: z.any(),
+        })
+      )
+      .mutation(),
 
     setActiveCharacter: procedure
       .use(hasRole('user', t))
@@ -46,16 +225,18 @@ export const createRouter = () =>
       )
       .mutation(({ input, ctx }) => (ctx.app.service.Character.setActiveCharacter as any)(input, ctx)),
 
-    exchangeCharacterItem: procedure
+    exchangeCharacterItem: warp
+      .reducer('character.exchangeCharacterItem')
       .use(hasRole('user', t))
       .use(customErrorFormatter(t))
-      .input(
+      .input(exchangeCharacterItemInputSchema)
+      .output(
         z.object({
           characterId: z.string(),
-          itemId: z.string(),
+          inventory: z.any(),
         })
       )
-      .mutation(({ input, ctx }) => (ctx.app.service.Character.exchangeCharacterItem as any)(input, ctx)),
+      .mutation(),
 
     getCharacterData: procedure
       .use(hasRole('guest', t))
@@ -91,12 +272,13 @@ export const createRouter = () =>
       .output(Character.pick({ id: true }))
       .mutation(({ input, ctx }) => (ctx.app.service.Character.updateCharacter as any)(input, ctx)),
 
-    getCharacterAbility: procedure
+    getCharacterAbility: warp
+      .view('character.getCharacterAbility')
       .use(hasRole('guest', t))
       .use(customErrorFormatter(t))
       .input(getQueryInput(CharacterAbility))
       .output(CharacterAbility)
-      .query(({ input, ctx }) => (ctx.app.service.Character.getCharacterAbility as any)(input, ctx)),
+      .query(),
 
     createCharacterAbility: procedure
       .use(hasRole('admin', t))
@@ -105,19 +287,21 @@ export const createRouter = () =>
       .output(CharacterAbility.pick({ id: true }))
       .mutation(({ input, ctx }) => (ctx.app.service.Character.createCharacterAbility as any)(input, ctx)),
 
-    updateCharacterAbility: procedure
+    updateCharacterAbility: warp
+      .reducer('character.updateCharacterAbility')
       .use(hasRole('admin', t))
       .use(customErrorFormatter(t))
       .input(getQueryInput(CharacterAbility))
       .output(CharacterAbility.pick({ id: true }))
-      .mutation(({ input, ctx }) => (ctx.app.service.Character.updateCharacterAbility as any)(input, ctx)),
+      .mutation(),
 
-    getCharacterAttribute: procedure
+    getCharacterAttribute: warp
+      .view('character.getCharacterAttribute')
       .use(hasRole('guest', t))
       .use(customErrorFormatter(t))
       .input(getQueryInput(CharacterAttribute))
       .output(CharacterAttribute)
-      .query(({ input, ctx }) => (ctx.app.service.Character.getCharacterAttribute as any)(input, ctx)),
+      .query(),
 
     createCharacterAttribute: procedure
       .use(hasRole('admin', t))
@@ -126,19 +310,21 @@ export const createRouter = () =>
       .output(CharacterAttribute.pick({ id: true }))
       .mutation(({ input, ctx }) => (ctx.app.service.Character.createCharacterAttribute as any)(input, ctx)),
 
-    updateCharacterAttribute: procedure
+    updateCharacterAttribute: warp
+      .reducer('character.updateCharacterAttribute')
       .use(hasRole('admin', t))
       .use(customErrorFormatter(t))
-      .input(getQueryInput(Character))
-      .output(Character.pick({ id: true }))
-      .mutation(({ input, ctx }) => (ctx.app.service.Character.updateCharacterAttribute as any)(input, ctx)),
+      .input(getQueryInput(CharacterAttribute))
+      .output(CharacterAttribute.pick({ id: true }))
+      .mutation(),
 
-    getCharacterType: procedure
+    getCharacterType: warp
+      .view('character.getCharacterType')
       .use(hasRole('guest', t))
       .use(customErrorFormatter(t))
       .input(getQueryInput(CharacterType))
       .output(CharacterType)
-      .query(({ input, ctx }) => (ctx.app.service.Character.getCharacterType as any)(input, ctx)),
+      .query(),
 
     createCharacterType: procedure
       .use(hasRole('admin', t))
@@ -147,19 +333,21 @@ export const createRouter = () =>
       .output(CharacterType.pick({ id: true }))
       .mutation(({ input, ctx }) => (ctx.app.service.Character.createCharacterType as any)(input, ctx)),
 
-    updateCharacterType: procedure
+    updateCharacterType: warp
+      .reducer('character.updateCharacterType')
       .use(hasRole('admin', t))
       .use(customErrorFormatter(t))
       .input(getQueryInput(CharacterType))
       .output(CharacterType.pick({ id: true }))
-      .mutation(({ input, ctx }) => (ctx.app.service.Character.updateCharacterType as any)(input, ctx)),
+      .mutation(),
 
-    getCharacterClass: procedure
+    getCharacterClass: warp
+      .view('character.getCharacterClass')
       .use(hasRole('guest', t))
       .use(customErrorFormatter(t))
       .input(getQueryInput(CharacterClass))
       .output(CharacterClass)
-      .query(({ input, ctx }) => (ctx.app.service.Character.getCharacterClass as any)(input, ctx)),
+      .query(),
 
     createCharacterClass: procedure
       .use(hasRole('admin', t))
@@ -168,19 +356,21 @@ export const createRouter = () =>
       .output(CharacterClass.pick({ id: true }))
       .mutation(({ input, ctx }) => (ctx.app.service.Character.createCharacterClass as any)(input, ctx)),
 
-    updateCharacterClass: procedure
+    updateCharacterClass: warp
+      .reducer('character.updateCharacterClass')
       .use(hasRole('admin', t))
       .use(customErrorFormatter(t))
       .input(getQueryInput(CharacterClass))
       .output(CharacterClass.pick({ id: true }))
-      .mutation(({ input, ctx }) => (ctx.app.service.Character.updateCharacterClass as any)(input, ctx)),
+      .mutation(),
 
-    getCharacterRace: procedure
+    getCharacterRace: warp
+      .view('character.getCharacterRace')
       .use(hasRole('guest', t))
       .use(customErrorFormatter(t))
-      .input(getQueryInput(Character))
-      .output(Character)
-      .query(({ input, ctx }) => (ctx.app.service.Character.getCharacterRace as any)(input, ctx)),
+      .input(getQueryInput(CharacterRace))
+      .output(CharacterRace)
+      .query(),
 
     createCharacterRace: procedure
       .use(hasRole('admin', t))
@@ -189,19 +379,21 @@ export const createRouter = () =>
       .output(CharacterRace.pick({ id: true }))
       .mutation(({ input, ctx }) => (ctx.app.service.Character.createCharacterRace as any)(input, ctx)),
 
-    updateCharacterRace: procedure
+    updateCharacterRace: warp
+      .reducer('character.updateCharacterRace')
       .use(hasRole('admin', t))
       .use(customErrorFormatter(t))
       .input(getQueryInput(CharacterRace))
       .output(CharacterRace.pick({ id: true }))
-      .mutation(({ input, ctx }) => (ctx.app.service.Character.updateCharacterRace as any)(input, ctx)),
+      .mutation(),
 
-    getCharacterGender: procedure
+    getCharacterGender: warp
+      .view('character.getCharacterGender')
       .use(hasRole('guest', t))
       .use(customErrorFormatter(t))
       .input(getQueryInput(CharacterGender))
       .output(CharacterGender)
-      .query(({ input, ctx }) => (ctx.app.service.Character.getCharacterGender as any)(input, ctx)),
+      .query(),
 
     createCharacterGender: procedure
       .use(hasRole('admin', t))
@@ -210,19 +402,21 @@ export const createRouter = () =>
       .output(CharacterGender.pick({ id: true }))
       .mutation(({ input, ctx }) => (ctx.app.service.Character.createCharacterGender as any)(input, ctx)),
 
-    updateCharacterGender: procedure
+    updateCharacterGender: warp
+      .reducer('character.updateCharacterGender')
       .use(hasRole('admin', t))
       .use(customErrorFormatter(t))
-      .input(getQueryInput(Character))
-      .output(Character.pick({ id: true }))
-      .mutation(({ input, ctx }) => (ctx.app.service.Character.updateCharacterGender as any)(input, ctx)),
+      .input(getQueryInput(CharacterGender))
+      .output(CharacterGender.pick({ id: true }))
+      .mutation(),
 
-    getCharacterPersonality: procedure
+    getCharacterPersonality: warp
+      .view('character.getCharacterPersonality')
       .use(hasRole('guest', t))
       .use(customErrorFormatter(t))
       .input(getQueryInput(CharacterPersonality))
       .output(CharacterPersonality)
-      .query(({ input, ctx }) => (ctx.app.service.Character.getCharacterPersonality as any)(input, ctx)),
+      .query(),
 
     createCharacterPersonality: procedure
       .use(hasRole('admin', t))
@@ -231,19 +425,21 @@ export const createRouter = () =>
       .output(CharacterPersonality.pick({ id: true }))
       .mutation(({ input, ctx }) => (ctx.app.service.Character.createCharacterPersonality as any)(input, ctx)),
 
-    updateCharacterPersonality: procedure
+    updateCharacterPersonality: warp
+      .reducer('character.updateCharacterPersonality')
       .use(hasRole('admin', t))
       .use(customErrorFormatter(t))
       .input(getQueryInput(CharacterPersonality))
       .output(CharacterPersonality.pick({ id: true }))
-      .mutation(({ input, ctx }) => (ctx.app.service.Character.updateCharacterPersonality as any)(input, ctx)),
+      .mutation(),
 
-    getCharacterTitle: procedure
+    getCharacterTitle: warp
+      .view('character.getCharacterTitle')
       .use(hasRole('guest', t))
       .use(customErrorFormatter(t))
       .input(getQueryInput(CharacterTitle))
       .output(CharacterTitle)
-      .query(({ input, ctx }) => (ctx.app.service.Character.getCharacterTitle as any)(input, ctx)),
+      .query(),
 
     createCharacterTitle: procedure
       .use(hasRole('admin', t))
@@ -252,47 +448,53 @@ export const createRouter = () =>
       .output(CharacterTitle.pick({ id: true }))
       .mutation(({ input, ctx }) => (ctx.app.service.Character.createCharacterTitle as any)(input, ctx)),
 
-    updateCharacterTitle: procedure
+    updateCharacterTitle: warp
+      .reducer('character.updateCharacterTitle')
       .use(hasRole('admin', t))
       .use(customErrorFormatter(t))
       .input(getQueryInput(CharacterTitle))
       .output(CharacterTitle.pick({ id: true }))
-      .mutation(({ input, ctx }) => (ctx.app.service.Character.updateCharacterTitle as any)(input, ctx)),
+      .mutation(),
 
-    getCharacterFaction: procedure
+    getCharacterFaction: warp
+      .view('character.getCharacterFaction')
       .use(hasRole('guest', t))
       .use(customErrorFormatter(t))
       .input(getQueryInput(CharacterFaction))
       .output(CharacterFaction)
-      .query(({ input, ctx }) => (ctx.app.service.Character.getCharacterFaction as any)(input, ctx)),
+      .query(),
 
-    getCharacterFactions: procedure
+    getCharacterFactions: warp
+      .view('character.getCharacterFactions')
       .use(hasRole('guest', t))
       .use(customErrorFormatter(t))
       .input(getQueryInput(CharacterFaction))
       .output(z.array(CharacterFaction))
-      .query(({ input, ctx }) => (ctx.app.service.Character.getCharacterFactions as any)(input, ctx)),
+      .query(),
 
-    createCharacterFaction: procedure
+    createCharacterFaction: warp
+      .reducer('character.createCharacterFaction')
       .use(hasRole('admin', t))
       .use(customErrorFormatter(t))
       .input(getQueryInput(CharacterFaction))
       .output(CharacterFaction.pick({ id: true }))
-      .mutation(({ input, ctx }) => (ctx.app.service.Character.createCharacterFaction as any)(input, ctx)),
+      .mutation(),
 
-    updateCharacterFaction: procedure
+    updateCharacterFaction: warp
+      .reducer('character.updateCharacterFaction')
       .use(hasRole('admin', t))
       .use(customErrorFormatter(t))
       .input(getQueryInput(CharacterFaction))
       .output(CharacterFaction.pick({ id: true }))
-      .mutation(({ input, ctx }) => (ctx.app.service.Character.updateCharacterFaction as any)(input, ctx)),
+      .mutation(),
 
-    getCharacterNameChoice: procedure
+    getCharacterNameChoice: warp
+      .view('character.getCharacterNameChoice')
       .use(hasRole('guest', t))
       .use(customErrorFormatter(t))
       .input(getQueryInput(CharacterNameChoice))
       .output(CharacterNameChoice)
-      .query(({ input, ctx }) => (ctx.app.service.Character.getCharacterNameChoice as any)(input, ctx)),
+      .query(),
 
     createCharacterNameChoice: procedure
       .use(hasRole('admin', t))
@@ -301,12 +503,13 @@ export const createRouter = () =>
       .output(CharacterNameChoice.pick({ id: true }))
       .mutation(({ input, ctx }) => (ctx.app.service.Character.createCharacterNameChoice as any)(input, ctx)),
 
-    updateCharacterNameChoice: procedure
+    updateCharacterNameChoice: warp
+      .reducer('character.updateCharacterNameChoice')
       .use(hasRole('admin', t))
       .use(customErrorFormatter(t))
       .input(getQueryInput(CharacterNameChoice))
       .output(CharacterNameChoice.pick({ id: true }))
-      .mutation(({ input, ctx }) => (ctx.app.service.Character.updateCharacterNameChoice as any)(input, ctx)),
+      .mutation(),
   });
 
 export type Router = ReturnType<typeof createRouter>;
